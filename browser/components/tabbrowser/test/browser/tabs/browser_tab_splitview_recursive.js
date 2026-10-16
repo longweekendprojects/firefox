@@ -247,3 +247,82 @@ add_task(async function test_layout_survives_window_close_and_restore() {
   );
   await BrowserTestUtils.closeWindow(restored);
 });
+
+add_task(async function test_pane_navigation_and_location() {
+  const [a, b] = [await addLoadedTab(), await addLoadedTab()];
+  await BrowserTestUtils.switchTab(gBrowser, a);
+  const sv = gBrowser.addTabSplitView([a, b], { insertBefore: a });
+  await TestUtils.waitForTick();
+  const header = tab =>
+    document
+      .getElementById(tab.linkedPanel)
+      .querySelector(".split-pane-header");
+
+  // Navigate pane B from its own address field.
+  const input = header(b).querySelector(".split-pane-url");
+  input.focus();
+  input.value = "https://example.org/";
+  const loaded = BrowserTestUtils.browserLoaded(
+    b.linkedBrowser,
+    false,
+    "https://example.org/"
+  );
+  EventUtils.synthesizeKey("KEY_Enter");
+  await loaded;
+  Assert.equal(a.linkedBrowser.currentURI.spec, PAGE, "pane A did not move");
+  await TestUtils.waitForCondition(
+    () => !header(b).querySelector(".split-pane-back").hasAttribute("disabled"),
+    "B back enabled"
+  );
+  Assert.ok(
+    header(a).querySelector(".split-pane-back").hasAttribute("disabled"),
+    "A back stays disabled"
+  );
+
+  // Back acts on B only.
+  // Back may restore from the back-forward cache without a load event.
+  header(b).querySelector(".split-pane-back").doCommand();
+  await TestUtils.waitForCondition(
+    () => b.linkedBrowser.currentURI.spec == PAGE,
+    "B went back"
+  );
+  Assert.equal(
+    a.linkedBrowser.currentURI.spec,
+    PAGE,
+    "pane A unaffected by B's back"
+  );
+  await TestUtils.waitForCondition(
+    () =>
+      !header(b).querySelector(".split-pane-forward").hasAttribute("disabled"),
+    "B forward enabled"
+  );
+
+  // Cmd-L targets the selected pane's field. Navigating focused pane B,
+  // which already selected it.
+  if (gBrowser.selectedTab != b) {
+    await BrowserTestUtils.switchTab(gBrowser, b);
+  }
+  document.getElementById("Browser:OpenLocation").doCommand();
+  Assert.equal(
+    document.activeElement,
+    header(b).querySelector(".split-pane-url"),
+    "location command focuses the pane field"
+  );
+  sv.close();
+  await TestUtils.waitForCondition(() => !sv.isConnected);
+});
+
+add_task(async function test_extension_style_move_keeps_large_split() {
+  const tabs = [
+    await addLoadedTab(),
+    await addLoadedTab(),
+    await addLoadedTab(),
+  ];
+  await BrowserTestUtils.switchTab(gBrowser, tabs[0]);
+  const sv = gBrowser.addTabSplitView(tabs, { insertBefore: tabs[0] });
+  gBrowser.moveTabToEnd(tabs[1]);
+  Assert.equal(sv.tabs.length, 3, "moving one pane moves the whole split");
+  Assert.ok(sv.isConnected, "split survives");
+  sv.close();
+  await TestUtils.waitForCondition(() => !sv.isConnected);
+});

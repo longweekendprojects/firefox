@@ -1151,7 +1151,9 @@ this.tabs = class extends ExtensionAPIPersistent {
             let splitview = nativeTab.splitview;
             let splitviewTabs = splitview?.tabs;
             let wantReversedSplit = false;
-            if (splitview) {
+            // Pane order of larger split views lives in their layout, so
+            // they always move as one unit.
+            if (splitview && splitviewTabs.length == 2) {
               // otherTabInSplit always exists because a split view has 2 tabs.
               const otherTabInSplit = splitviewTabs.find(t => t !== nativeTab);
               // tabsToMove is the (potentially empty) list of tabs that will
