@@ -3362,6 +3362,8 @@ export class Tabbrowser {
     if (
       !aTab ||
       aTab.selected ||
+      // Keep visible split view panes loaded unless explicitly unloaded.
+      (!aForceDiscard && aTab.splitview?.hasActiveTab) ||
       aTab.closing ||
       this.#windowIsClosing ||
       !browser.isConnected ||
@@ -4016,10 +4018,12 @@ export class Tabbrowser {
    * @param {string} [options.trigger]
    *   The trigger method for creating the split view. Used for telemetry.
    *   Valid values: "menu_add", "menu_open".
+   * @param {object} [options.layout]
+   *   Serialized pane layout whose leaf ids are positions in `tabs`.
    */
   addTabSplitView(
     tabs,
-    { id = null, insertBefore = null, trigger = null } = {}
+    { id = null, insertBefore = null, trigger = null, layout = null } = {}
   ) {
     if (!tabs?.length) {
       throw new Error("Cannot create split view with zero tabs");
@@ -4038,7 +4042,7 @@ export class Tabbrowser {
       splitview,
       insertBefore?.splitview ?? insertBefore
     );
-    splitview.addTabs(tabs);
+    splitview.addTabs(tabs, { layout });
 
     // Bail out if the split view is empty at this point. This can happen if all
     // provided tabs are pinned and therefore cannot be grouped.
@@ -4091,7 +4095,6 @@ export class Tabbrowser {
     const panels = [];
     for (const tab of tabs) {
       this.#insertBrowser(tab);
-      this.#insertSplitViewFooter(tab);
       if (tab.linkedBrowser) {
         tab.linkedBrowser.docShellIsActive = true;
         panels.push(tab.linkedPanel);
@@ -4100,23 +4103,6 @@ export class Tabbrowser {
       panelEl?.classList.toggle("split-view-panel-active", true);
     }
     this.tabpanels.splitViewPanels = panels;
-  }
-
-  /**
-   * Ensures the split view footer exists for the given tab.
-   *
-   * @param {MozTabbrowserTab} tab
-   */
-  #insertSplitViewFooter(tab) {
-    const panelEl = this.document.getElementById(tab.linkedPanel);
-    if (panelEl?.querySelector("split-view-footer")) {
-      return;
-    }
-    if (panelEl) {
-      const footer = this.document.createXULElement("split-view-footer");
-      footer.setTab(tab);
-      panelEl.querySelector(".browserStack").appendChild(footer);
-    }
   }
 
   openSplitViewMenu(anchorElement) {
@@ -4413,6 +4399,8 @@ export class Tabbrowser {
     let oldSelectedTab =
       selectTab && container.documentGlobal.gBrowser.selectedTab;
     let newTabs = [];
+    // Capture the pane layout before the tabs leave the source window.
+    let { layout } = container.state;
 
     // When tabs are adopted across windows, they exit the tab split of the
     // source window, moved to the new window, and finally moved into a split
@@ -4438,6 +4426,7 @@ export class Tabbrowser {
       return this.addTabSplitView(newTabs, {
         id: container.splitViewId,
         insertBefore: newTabs[0],
+        layout,
       });
     } finally {
       for (let tab of newTabs) {
@@ -4963,6 +4952,7 @@ export class Tabbrowser {
     for (const splitViewData of splitViewDataList) {
       splitViewWorkingData.set(splitViewData.id, {
         numberOfTabs: splitViewData.numberOfTabs,
+        layout: splitViewData.layout,
         node: undefined,
         tabs: [],
       });
@@ -5118,7 +5108,10 @@ export class Tabbrowser {
     }
     for (const splitView of splitViewWorkingData.values()) {
       if (splitView.node) {
-        splitView.node.addTabs(splitView.tabs, { isSessionRestore: true });
+        splitView.node.addTabs(splitView.tabs, {
+          isSessionRestore: true,
+          layout: splitView.layout,
+        });
       }
     }
 
@@ -7019,6 +7012,12 @@ export class Tabbrowser {
     }
 
     let excludeTabs = new Set(aExcludeTabs);
+
+    // Closing a split view pane selects its nearest pane in the layout.
+    let paneTab = aTab.splitview?.paneToSelectAfterClose(aTab);
+    if (paneTab && !excludeTabs.has(paneTab)) {
+      return paneTab;
+    }
 
     // If this tab has a successor, it should be selectable, since
     // hiding or closing a tab removes that tab as a successor.

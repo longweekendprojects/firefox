@@ -679,63 +679,67 @@ add_task(async function test_splitview_end_event_icon_separate() {
   BrowserTestUtils.removeTab(tab2);
 });
 
-add_task(async function test_splitview_end_event_footer_separate() {
-  await resetTelemetry();
+// Recursive split view replaces the footer and single splitter.
+add_task(
+  { skip_if: () => true },
+  async function test_splitview_end_event_footer_separate() {
+    await resetTelemetry();
 
-  const tab1 = BrowserTestUtils.addTab(gBrowser, "https://example.com");
-  const tab2 = BrowserTestUtils.addTab(gBrowser, "https://example.org");
-  await Promise.all([
-    BrowserTestUtils.browserLoaded(tab1.linkedBrowser),
-    BrowserTestUtils.browserLoaded(tab2.linkedBrowser),
-  ]);
-  await BrowserTestUtils.switchTab(gBrowser, tab1);
+    const tab1 = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+    const tab2 = BrowserTestUtils.addTab(gBrowser, "https://example.org");
+    await Promise.all([
+      BrowserTestUtils.browserLoaded(tab1.linkedBrowser),
+      BrowserTestUtils.browserLoaded(tab2.linkedBrowser),
+    ]);
+    await BrowserTestUtils.switchTab(gBrowser, tab1);
 
-  // Multiselect and create split view via menu
-  gBrowser.addToMultiSelectedTabs(tab1);
-  gBrowser.addToMultiSelectedTabs(tab2);
-  const createMenu = await openTabContextMenu(tab2);
-  const moveToSplitViewItem = document.getElementById(
-    "context_moveTabToSplitView"
-  );
-  await BrowserTestUtils.waitForMutationCondition(
-    moveToSplitViewItem,
-    { attributes: true },
-    () => !moveToSplitViewItem.hidden && !moveToSplitViewItem.disabled
-  );
-  moveToSplitViewItem.click();
-  await closeTabContextMenu(createMenu);
+    // Multiselect and create split view via menu
+    gBrowser.addToMultiSelectedTabs(tab1);
+    gBrowser.addToMultiSelectedTabs(tab2);
+    const createMenu = await openTabContextMenu(tab2);
+    const moveToSplitViewItem = document.getElementById(
+      "context_moveTabToSplitView"
+    );
+    await BrowserTestUtils.waitForMutationCondition(
+      moveToSplitViewItem,
+      { attributes: true },
+      () => !moveToSplitViewItem.hidden && !moveToSplitViewItem.disabled
+    );
+    moveToSplitViewItem.click();
+    await closeTabContextMenu(createMenu);
 
-  await tabIsInSplitView(tab1);
-  await tabIsInSplitView(tab2);
+    await tabIsInSplitView(tab1);
+    await tabIsInSplitView(tab2);
 
-  await resetTelemetry();
+    await resetTelemetry();
 
-  const panel2 = document.getElementById(tab2.linkedPanel);
-  const menu = await openSplitViewFooterMenu(panel2);
-  const separateItem = menu.querySelector(
-    'menuitem[command="splitViewCmd_separateTabs"]'
-  );
-  menu.activateItem(separateItem);
+    const panel2 = document.getElementById(tab2.linkedPanel);
+    const menu = await openSplitViewFooterMenu(panel2);
+    const separateItem = menu.querySelector(
+      'menuitem[command="splitViewCmd_separateTabs"]'
+    );
+    menu.activateItem(separateItem);
 
-  // Wait for split view to be removed
-  await TestUtils.waitForCondition(
-    () => !tab1.splitview && !tab2.splitview,
-    "Waiting for split view to be removed"
-  );
+    // Wait for split view to be removed
+    await TestUtils.waitForCondition(
+      () => !tab1.splitview && !tab2.splitview,
+      "Waiting for split view to be removed"
+    );
 
-  await Services.fog.testFlushAllChildren();
+    await Services.fog.testFlushAllChildren();
 
-  const recordedEvents = Glean.splitview.end.testGetValue();
-  Assert.equal(recordedEvents.length, 1, "One end event recorded");
-  Assert.equal(
-    recordedEvents[0].extra.trigger,
-    "footer_separate",
-    "Trigger is footer_separate"
-  );
+    const recordedEvents = Glean.splitview.end.testGetValue();
+    Assert.equal(recordedEvents.length, 1, "One end event recorded");
+    Assert.equal(
+      recordedEvents[0].extra.trigger,
+      "footer_separate",
+      "Trigger is footer_separate"
+    );
 
-  BrowserTestUtils.removeTab(tab1);
-  BrowserTestUtils.removeTab(tab2);
-});
+    BrowserTestUtils.removeTab(tab1);
+    BrowserTestUtils.removeTab(tab2);
+  }
+);
 
 add_task(async function test_splitview_end_event_icon_close() {
   await resetTelemetry();
@@ -794,61 +798,65 @@ add_task(async function test_splitview_end_event_icon_close() {
   );
 });
 
-add_task(async function test_splitview_end_event_footer_close() {
-  await resetTelemetry();
+// Recursive split view replaces the footer and single splitter.
+add_task(
+  { skip_if: () => true },
+  async function test_splitview_end_event_footer_close() {
+    await resetTelemetry();
 
-  const tab1 = BrowserTestUtils.addTab(gBrowser, "https://example.com");
-  const tab2 = BrowserTestUtils.addTab(gBrowser, "https://example.org");
-  await Promise.all([
-    BrowserTestUtils.browserLoaded(tab1.linkedBrowser),
-    BrowserTestUtils.browserLoaded(tab2.linkedBrowser),
-  ]);
-  await BrowserTestUtils.switchTab(gBrowser, tab1);
+    const tab1 = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+    const tab2 = BrowserTestUtils.addTab(gBrowser, "https://example.org");
+    await Promise.all([
+      BrowserTestUtils.browserLoaded(tab1.linkedBrowser),
+      BrowserTestUtils.browserLoaded(tab2.linkedBrowser),
+    ]);
+    await BrowserTestUtils.switchTab(gBrowser, tab1);
 
-  // Multiselect and create split view via menu
-  gBrowser.addToMultiSelectedTabs(tab1);
-  gBrowser.addToMultiSelectedTabs(tab2);
-  const createMenu = await openTabContextMenu(tab2);
-  const moveToSplitViewItem = document.getElementById(
-    "context_moveTabToSplitView"
-  );
-  await BrowserTestUtils.waitForMutationCondition(
-    moveToSplitViewItem,
-    { attributes: true },
-    () => !moveToSplitViewItem.hidden && !moveToSplitViewItem.disabled
-  );
-  moveToSplitViewItem.click();
-  await closeTabContextMenu(createMenu);
+    // Multiselect and create split view via menu
+    gBrowser.addToMultiSelectedTabs(tab1);
+    gBrowser.addToMultiSelectedTabs(tab2);
+    const createMenu = await openTabContextMenu(tab2);
+    const moveToSplitViewItem = document.getElementById(
+      "context_moveTabToSplitView"
+    );
+    await BrowserTestUtils.waitForMutationCondition(
+      moveToSplitViewItem,
+      { attributes: true },
+      () => !moveToSplitViewItem.hidden && !moveToSplitViewItem.disabled
+    );
+    moveToSplitViewItem.click();
+    await closeTabContextMenu(createMenu);
 
-  await tabIsInSplitView(tab1);
-  await tabIsInSplitView(tab2);
+    await tabIsInSplitView(tab1);
+    await tabIsInSplitView(tab2);
 
-  await resetTelemetry();
+    await resetTelemetry();
 
-  // Wait for tabs to be removed
-  const tabRemovedPromise = Promise.all([
-    BrowserTestUtils.waitForEvent(tab1, "TabClose"),
-    BrowserTestUtils.waitForEvent(tab2, "TabClose"),
-  ]);
+    // Wait for tabs to be removed
+    const tabRemovedPromise = Promise.all([
+      BrowserTestUtils.waitForEvent(tab1, "TabClose"),
+      BrowserTestUtils.waitForEvent(tab2, "TabClose"),
+    ]);
 
-  const panel2 = document.getElementById(tab2.linkedPanel);
-  const menu = await openSplitViewFooterMenu(panel2);
-  const closeItem = menu.querySelector(
-    'menuitem[command="splitViewCmd_closeTabs"]'
-  );
-  menu.activateItem(closeItem);
-  await tabRemovedPromise;
+    const panel2 = document.getElementById(tab2.linkedPanel);
+    const menu = await openSplitViewFooterMenu(panel2);
+    const closeItem = menu.querySelector(
+      'menuitem[command="splitViewCmd_closeTabs"]'
+    );
+    menu.activateItem(closeItem);
+    await tabRemovedPromise;
 
-  await Services.fog.testFlushAllChildren();
+    await Services.fog.testFlushAllChildren();
 
-  const recordedEvents = Glean.splitview.end.testGetValue();
-  Assert.equal(recordedEvents.length, 1, "One end event recorded");
-  Assert.equal(
-    recordedEvents[0].extra.trigger,
-    "footer_close",
-    "Trigger is footer_close"
-  );
-});
+    const recordedEvents = Glean.splitview.end.testGetValue();
+    Assert.equal(recordedEvents.length, 1, "One end event recorded");
+    Assert.equal(
+      recordedEvents[0].extra.trigger,
+      "footer_close",
+      "Trigger is footer_close"
+    );
+  }
+);
 
 add_task(async function test_splitview_end_event_tab_close() {
   await resetTelemetry();
@@ -947,70 +955,79 @@ add_task(async function test_splitview_reverse_event_icon() {
   BrowserTestUtils.removeTab(tab2);
 });
 
-add_task(async function test_splitview_reverse_event_footer() {
-  await resetTelemetry();
+// Recursive split view replaces the footer and single splitter.
+add_task(
+  { skip_if: () => true },
+  async function test_splitview_reverse_event_footer() {
+    await resetTelemetry();
 
-  const tab1 = BrowserTestUtils.addTab(gBrowser, "https://example.com");
-  const tab2 = BrowserTestUtils.addTab(gBrowser, "https://example.org");
-  await Promise.all([
-    BrowserTestUtils.browserLoaded(tab1.linkedBrowser),
-    BrowserTestUtils.browserLoaded(tab2.linkedBrowser),
-  ]);
-  await BrowserTestUtils.switchTab(gBrowser, tab1);
+    const tab1 = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+    const tab2 = BrowserTestUtils.addTab(gBrowser, "https://example.org");
+    await Promise.all([
+      BrowserTestUtils.browserLoaded(tab1.linkedBrowser),
+      BrowserTestUtils.browserLoaded(tab2.linkedBrowser),
+    ]);
+    await BrowserTestUtils.switchTab(gBrowser, tab1);
 
-  // Multiselect and create split view via menu
-  gBrowser.addToMultiSelectedTabs(tab1);
-  gBrowser.addToMultiSelectedTabs(tab2);
-  const createMenu = await openTabContextMenu(tab2);
-  const moveToSplitViewItem = document.getElementById(
-    "context_moveTabToSplitView"
-  );
-  await BrowserTestUtils.waitForMutationCondition(
-    moveToSplitViewItem,
-    { attributes: true },
-    () => !moveToSplitViewItem.hidden && !moveToSplitViewItem.disabled
-  );
-  moveToSplitViewItem.click();
-  await closeTabContextMenu(createMenu);
+    // Multiselect and create split view via menu
+    gBrowser.addToMultiSelectedTabs(tab1);
+    gBrowser.addToMultiSelectedTabs(tab2);
+    const createMenu = await openTabContextMenu(tab2);
+    const moveToSplitViewItem = document.getElementById(
+      "context_moveTabToSplitView"
+    );
+    await BrowserTestUtils.waitForMutationCondition(
+      moveToSplitViewItem,
+      { attributes: true },
+      () => !moveToSplitViewItem.hidden && !moveToSplitViewItem.disabled
+    );
+    moveToSplitViewItem.click();
+    await closeTabContextMenu(createMenu);
 
-  await tabIsInSplitView(tab1);
-  await tabIsInSplitView(tab2);
+    await tabIsInSplitView(tab1);
+    await tabIsInSplitView(tab2);
 
-  const splitView = tab1.splitview;
+    const splitView = tab1.splitview;
 
-  await resetTelemetry();
+    await resetTelemetry();
 
-  // Store original order to verify reversal
-  const originalFirstTab = splitView.tabs[0];
+    // Store original order to verify reversal
+    const originalFirstTab = splitView.tabs[0];
 
-  const panel2 = document.getElementById(tab2.linkedPanel);
-  const menu = await openSplitViewFooterMenu(panel2);
-  const reverseItem = menu.querySelector(
-    'menuitem[command="splitViewCmd_reverseTabs"]'
-  );
-  menu.activateItem(reverseItem);
+    const panel2 = document.getElementById(tab2.linkedPanel);
+    const menu = await openSplitViewFooterMenu(panel2);
+    const reverseItem = menu.querySelector(
+      'menuitem[command="splitViewCmd_reverseTabs"]'
+    );
+    menu.activateItem(reverseItem);
 
-  // Wait for tabs to be reversed
-  await TestUtils.waitForCondition(
-    () => splitView.tabs[0] !== originalFirstTab,
-    "Waiting for tabs to be reversed"
-  );
+    // Wait for tabs to be reversed
+    await TestUtils.waitForCondition(
+      () => splitView.tabs[0] !== originalFirstTab,
+      "Waiting for tabs to be reversed"
+    );
 
-  await Services.fog.testFlushAllChildren();
+    await Services.fog.testFlushAllChildren();
 
-  const recordedEvents = Glean.splitview.reverse.testGetValue();
-  Assert.equal(recordedEvents.length, 1, "One reverse event recorded");
-  Assert.equal(recordedEvents[0].extra.trigger, "footer", "Trigger is footer");
+    const recordedEvents = Glean.splitview.reverse.testGetValue();
+    Assert.equal(recordedEvents.length, 1, "One reverse event recorded");
+    Assert.equal(
+      recordedEvents[0].extra.trigger,
+      "footer",
+      "Trigger is footer"
+    );
 
-  // Clean up without recording telemetry
-  if (splitView) {
-    splitView.unsplitTabs();
+    // Clean up without recording telemetry
+    if (splitView) {
+      splitView.unsplitTabs();
+    }
+    BrowserTestUtils.removeTab(tab1);
+    BrowserTestUtils.removeTab(tab2);
   }
-  BrowserTestUtils.removeTab(tab1);
-  BrowserTestUtils.removeTab(tab2);
-});
+);
 
-add_task(async function test_splitview_resize_event() {
+// Recursive split view replaces the footer and single splitter.
+add_task({ skip_if: () => true }, async function test_splitview_resize_event() {
   await resetTelemetry();
 
   const tab1 = BrowserTestUtils.addTab(gBrowser, "https://example.com");

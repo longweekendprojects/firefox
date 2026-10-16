@@ -12,6 +12,8 @@ browser.jar:
    content/browser/tabbrowser/opentabs-splitview.css      (content/opentabs-splitview.css)
    content/browser/tabbrowser/opentabs-splitview.mjs      (content/opentabs-splitview.mjs)
    content/browser/tabbrowser/split-view-footer.js        (content/split-view-footer.js)
+   content/browser/tabbrowser/splitview-panes.css         (content/splitview-panes.css)
+   content/browser/tabbrowser/splitview-panes.mjs         (content/splitview-panes.mjs)
    content/browser/tabbrowser/status-panel.js             (content/status-panel.js)
    content/browser/tabbrowser/tab.js                      (content/tab.js)
    content/browser/tabbrowser/tab-context-menu.js         (content/tab-context-menu.js)

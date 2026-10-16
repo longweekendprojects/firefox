@@ -190,6 +190,24 @@ export function replace(root, oldId, newId) {
   return mapLeaves(root, node => (node.id === oldId ? leaf(newId) : node));
 }
 
+/** Returns the tree with every leaf id passed through `fn`. */
+export function mapIds(root, fn) {
+  return root ? mapLeaves(root, node => leaf(fn(node.id))) : null;
+}
+
+/** Mirrors the layout: every split swaps its children. */
+export function mirror(root) {
+  if (!root || !isSplit(root)) {
+    return root;
+  }
+  return {
+    axis: root.axis,
+    ratio: clampRatio(1 - root.ratio),
+    first: mirror(root.second),
+    second: mirror(root.first),
+  };
+}
+
 /** Exchanges the positions of two leaves. */
 export function swap(root, a, b) {
   if (!root || a === b || !hasLeaf(root, a) || !hasLeaf(root, b)) {
@@ -282,6 +300,7 @@ export function computeLayout(root, rect, splitterSize = 0) {
         y,
         width: splitterSize,
         height,
+        rect: { x, y, width, height },
       });
       visit(
         node.second,
@@ -302,6 +321,7 @@ export function computeLayout(root, rect, splitterSize = 0) {
         y: y + firstHeight,
         width,
         height: splitterSize,
+        rect: { x, y, width, height },
       });
       visit(
         node.second,
@@ -328,24 +348,10 @@ export function ratioBounds(root, path, rect, minWidth, minHeight) {
   if (!target || !isSplit(target)) {
     return null;
   }
-  const own = computeLayout(root, rect).leaves;
-  // Measure the split's own extent from the leaves it contains.
-  const ids = new Set(leafIds(target));
-  let start = Infinity;
-  let end = -Infinity;
-  for (const r of own) {
-    if (!ids.has(r.id)) {
-      continue;
-    }
-    if (target.axis === "row") {
-      start = Math.min(start, r.x);
-      end = Math.max(end, r.x + r.width);
-    } else {
-      start = Math.min(start, r.y);
-      end = Math.max(end, r.y + r.height);
-    }
-  }
-  const extent = end - start;
+  const { rect: box } = computeLayout(root, rect).splitters.find(
+    sp => sp.path === path
+  );
+  const extent = target.axis === "row" ? box.width : box.height;
   const a = minSize(target.first, minWidth, minHeight);
   const b = minSize(target.second, minWidth, minHeight);
   const minFirst = target.axis === "row" ? a.width : a.height;

@@ -214,6 +214,22 @@ document.addEventListener(
           case "Browser:SeparateTabSplitView":
             BrowserCommands.separateTabSplitView();
             break;
+          case "Browser:SplitPaneRight":
+          case "Browser:SplitPaneDown":
+          case "Browser:SplitPaneLeft":
+          case "Browser:SplitPaneUp":
+            BrowserCommands.splitPane(
+              event.target.id.slice("Browser:SplitPane".length).toLowerCase()
+            );
+            break;
+          case "Browser:FocusPaneRight":
+          case "Browser:FocusPaneDown":
+          case "Browser:FocusPaneLeft":
+          case "Browser:FocusPaneUp":
+            gBrowser.activeSplitView?.focusPane(
+              event.target.id.slice("Browser:FocusPane".length).toLowerCase()
+            );
+            break;
           case "cmd_fullZoomReduce":
             FullZoom.reduce();
             break;

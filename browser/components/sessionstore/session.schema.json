@@ -262,6 +262,10 @@
         },
         "numberOfTabs": {
           "type": "integer"
+        },
+        "layout": {
+          "type": "object",
+          "description": "Versioned recursive pane layout. Leaf ids are tab positions within the split view."
         }
       },
       "required": ["id", "numberOfTabs"]

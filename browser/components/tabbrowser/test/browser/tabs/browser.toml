@@ -674,18 +674,25 @@ skip-if = [
 
 ["browser_tab_splitview_footer.js"]
 support-files = ["file_withicon.html"]
+disabled = "Recursive split view replaces the footer with pane headers (browser_tab_splitview_recursive.js)"
 
 ["browser_tab_splitview_keyboard_focus.js"]
 
+["browser_tab_splitview_recursive.js"]
+
 ["browser_tab_splitview_resize.js"]
+disabled = "Recursive split view replaces the single splitter (browser_tab_splitview_recursive.js)"
 
 ["browser_tab_splitview_splitter_keyboard.js"]
+disabled = "Recursive split view replaces the single splitter (browser_tab_splitview_recursive.js)"
 
 ["browser_tab_splitview_splitter_keyboard_boundary.js"]
+disabled = "Recursive split view replaces the single splitter (browser_tab_splitview_recursive.js)"
 
 ["browser_tab_splitview_tab_height.js"]
 
 ["browser_tab_splitview_tab_order.js"]
+disabled = "Recursive split view replaces the single splitter (browser_tab_splitview_recursive.js)"
 
 ["browser_tab_splitview_telemetry.js"]
 

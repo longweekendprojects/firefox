@@ -109,12 +109,14 @@ add_task(async function test_contextMenuMoveTabsToNewSplitView() {
         { attributes: true },
         () =>
           !moveTabToNewSplitViewItem.hidden &&
-          moveTabToNewSplitViewItem.disabled,
-        { msg: "moveTabToNewSplitViewItem is visible and disabled" }
+          !moveTabToNewSplitViewItem.disabled,
+        { msg: "moveTabToNewSplitViewItem is visible and enabled" }
       );
+      // Recursive split view accepts more than two tabs.
       Assert.ok(
-        !moveTabToNewSplitViewItem.hidden && moveTabToNewSplitViewItem.disabled,
-        "moveTabToNewSplitViewItem is visible and disabled"
+        !moveTabToNewSplitViewItem.hidden &&
+          !moveTabToNewSplitViewItem.disabled,
+        "moveTabToNewSplitViewItem is visible and enabled for three tabs"
       );
       await BrowserTestUtils.waitForMutationCondition(
         unsplitTabItem,

@@ -118,34 +118,55 @@ add_task(function test_deserialize_is_defensive() {
   Assert.deepEqual(M.leafIds(pruned), ["A", "C", "D"], "missing tab pruned");
   Assert.equal(M.deserialize(data, []), null);
 
-  const dup = { version: 1, root: { axis: "row", ratio: 0.5, first: { id: "A" }, second: { id: "A" } } };
-  Assert.deepEqual(M.deserialize(dup, ids), M.leaf("A"), "duplicate leaf dropped");
+  const dup = {
+    version: 1,
+    root: { axis: "row", ratio: 0.5, first: { id: "A" }, second: { id: "A" } },
+  };
+  Assert.deepEqual(
+    M.deserialize(dup, ids),
+    M.leaf("A"),
+    "duplicate leaf dropped"
+  );
 
   const bad = [
     null,
     "junk",
     { version: 999, root: { id: "A" } },
     { version: 1 },
-    { version: 1, root: { axis: "diagonal", first: { id: "A" }, second: { id: "B" } } },
+    {
+      version: 1,
+      root: { axis: "diagonal", first: { id: "A" }, second: { id: "B" } },
+    },
     { version: 1, root: { axis: "row", ratio: 0.5, first: { id: "A" } } },
   ];
   for (const d of bad) {
     Assert.equal(M.deserialize(d, ids), null, `rejects ${JSON.stringify(d)}`);
   }
 
-  const nan = { version: 1, root: { axis: "row", ratio: "x", first: { id: "A" }, second: { id: "B" } } };
+  const nan = {
+    version: 1,
+    root: { axis: "row", ratio: "x", first: { id: "A" }, second: { id: "B" } },
+  };
   Assert.equal(M.deserialize(nan, ids).ratio, 0.5, "bad ratio defaults");
 
   let deep = { id: "A" };
   for (let i = 0; i < 100; i++) {
     deep = { axis: "row", ratio: 0.5, first: deep, second: { id: "B" } };
   }
-  Assert.equal(M.deserialize({ version: 1, root: deep }, ids), null, "depth bounded");
+  Assert.equal(
+    M.deserialize({ version: 1, root: deep }, ids),
+    null,
+    "depth bounded"
+  );
 });
 
 add_task(function test_reconcile_with_membership() {
   const t = guideTree();
   Assert.deepEqual(M.leafIds(M.reconcile(t, ["A", "D", "E"])), ["A", "D", "E"]);
   Assert.deepEqual(M.leafIds(M.reconcile(null, ["A", "B"])), ["A", "B"]);
-  Assert.equal(M.reconcile(t, ["A", "B", "C", "D"]), t, "no change reuses tree");
+  Assert.equal(
+    M.reconcile(t, ["A", "B", "C", "D"]),
+    t,
+    "no change reuses tree"
+  );
 });

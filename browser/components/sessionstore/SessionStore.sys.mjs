@@ -194,6 +194,7 @@ const TAB_EVENTS = [
   "TabSplitViewActivate",
   "SplitViewRemoved",
   "SplitViewCreated",
+  "SplitViewLayoutChanged",
 ];
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -1382,6 +1383,7 @@ class _SessionStore {
       case "TabGroupExpand":
       case "SplitViewRemoved":
       case "SplitViewCreated":
+      case "SplitViewLayoutChanged":
         this.#saveStateDelayed(win);
         break;
       case "TabGroupRemoveRequested":

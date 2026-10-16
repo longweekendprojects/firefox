@@ -104,6 +104,41 @@ var BrowserCommands = {
     gBrowser.selectedTab?.splitview?.unsplitTabs("keyboard_shortcut");
   },
 
+  /**
+   * Splits the selected pane, opening a new tab in `direction`.
+   *
+   * @param {"left"|"right"|"up"|"down"} direction
+   */
+  splitPane(direction) {
+    const tab = gBrowser.selectedTab;
+    if (!tab || tab.hidden || tab.pinned) {
+      return;
+    }
+    let splitview = tab.splitview;
+    if (splitview && !splitview.canSplitPane(tab, direction)) {
+      return;
+    }
+    // A new tab page reuses Firefox's preloaded browser when one exists.
+    const newTab = gBrowser.addTrustedTab(BROWSER_NEW_TAB_URL);
+    if (splitview) {
+      splitview.splitPane(tab, direction, newTab);
+    } else {
+      splitview = gBrowser.addTabSplitView([tab, newTab], {
+        insertBefore: tab,
+        trigger: "keyboard_shortcut",
+      });
+      if (direction != "right") {
+        splitview?.splitPane(tab, direction, newTab);
+      }
+    }
+    gBrowser.selectedTab = newTab;
+    gBrowser.addEventListener(
+      "TabSwitchDone",
+      () => newTab.splitview?.focusLocation(),
+      { once: true }
+    );
+  },
+
   duplicateTab() {
     duplicateTabIn(gBrowser.selectedTab, "tab");
   },

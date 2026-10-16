@@ -51,7 +51,8 @@ let CRITERIA_WEIGHT = 1;
  */
 let DefaultTabUnloaderMethods = {
   isNonDiscardable(tab, weight) {
-    if (tab.undiscardable || tab.selected) {
+    // Visible split view panes are in use even when not selected.
+    if (tab.undiscardable || tab.selected || tab.splitview?.hasActiveTab) {
       return weight;
     }
 

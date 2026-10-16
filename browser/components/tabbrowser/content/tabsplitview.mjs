@@ -29,6 +29,22 @@ const updateUrlbarButton = new DeferredTask(() => {
   }
 }, 0);
 
+// The recursive layout model and the pane renderer load on first use, so
+// windows without a split view pay nothing for them.
+let LayoutModel = null;
+function layoutModel() {
+  return (LayoutModel ??= ChromeUtils.importESModule(
+    "moz-src:///browser/components/tabbrowser/splitview/SplitLayoutModel.sys.mjs"
+  ));
+}
+let Panes = null;
+function panes() {
+  return (Panes ??= ChromeUtils.importESModule(
+    "chrome://browser/content/tabbrowser/splitview-panes.mjs",
+    { global: "current" }
+  ));
+}
+
 /**
  * State of a tab splitview inside of an open window.
  *
@@ -37,6 +53,8 @@ const updateUrlbarButton = new DeferredTask(() => {
  *   Unique ID of the tab splitview.
  * @property {number} numberOfTabs
  *   Number of expected tabs in the splitview.
+ * @property {object} [layout]
+ *   Serialized recursive layout whose leaf ids are tab positions.
  */
 
 export class MozTabSplitViewWrapper extends MozXULElement {
@@ -53,6 +71,11 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   #shouldMoveAllTabsAtOnce = true;
 
   #storedPanelWidths = new WeakMap();
+
+  /**
+   * Recursive pane layout whose leaf ids are member tabs. Null until needed.
+   */
+  #layout = null;
 
   /**
    * @returns {boolean}
@@ -79,10 +102,26 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    *   Serialized splitview data
    */
   get state() {
-    return {
+    const tabs = this.tabs;
+    const state = {
       id: this.splitViewId,
-      numberOfTabs: this.tabs.length,
+      numberOfTabs: tabs.length,
     };
+    if (tabs.length > 1) {
+      const M = layoutModel();
+      state.layout = M.serialize(
+        M.mapIds(M.reconcile(this.#layout, tabs), tab => tabs.indexOf(tab))
+      );
+    }
+    return state;
+  }
+
+  /**
+   * The recursive pane layout, reconciled with current membership.
+   */
+  get layout() {
+    this.#layout = layoutModel().reconcile(this.#layout, this.#tabs);
+    return this.#layout;
   }
 
   /**
@@ -150,7 +189,16 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   #observeTabChanges() {
     if (!this.#tabChangeObserver) {
       this.#tabChangeObserver = new window.MutationObserver(mutations => {
-        if (this.tabs.length) {
+        const children = this.tabs;
+        const removed = this.#tabs.filter(tab => !children.includes(tab));
+        if (removed.length) {
+          // Drop tabs that left the wrapper so no stale references remain,
+          // and clear their panels' split view state.
+          this.#tabs = this.#tabs.filter(tab => children.includes(tab));
+          gBrowser.tabpanels.removeTabsFromSplitview(removed);
+          Panes?.clear(removed);
+        }
+        if (children.length) {
           this.hasActiveTab = this.tabs.some(tab => tab.selected);
           this.tabs.forEach((tab, index) => {
             // Renumber tabs so that a11y tools can tell users that a given
@@ -169,12 +217,18 @@ export class MozTabSplitViewWrapper extends MozXULElement {
         }
 
         if (
-          this.tabs.length == 1 &&
-          mutations.some(mutation => mutation.removedNodes.length == 1)
+          children.length == 1 &&
+          mutations.some(mutation => mutation.removedNodes.length)
         ) {
-          // We assume you end up with only one tab in a splitview when the other tab is closed,
-          // in which case, move the remaining tab out via this.unsplitTabs.
+          // A split view with one tab left is no longer a split view.
           this.unsplitTabs("tab_close");
+        } else if (
+          removed.length &&
+          children.length > 1 &&
+          this.hasActiveTab &&
+          this.isConnected
+        ) {
+          this.#activate();
         }
       });
     }
@@ -238,6 +292,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   #activate() {
     updateUrlbarButton.arm();
     gBrowser.showSplitViewPanels(this.#tabs);
+    panes().render(this);
     this.container.dispatchEvent(
       new CustomEvent("TabSplitViewActivate", {
         detail: { tabs: this.#tabs, splitview: this },
@@ -251,9 +306,11 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    * various attributes on tabpanels.
    */
   #deactivate() {
-    gBrowser.tabpanels.removeTabsFromSplitview(
-      this.#tabs.filter(tab => !tab.splitview || tab.splitview === this)
+    const tabs = this.#tabs.filter(
+      tab => !tab.splitview || tab.splitview === this
     );
+    Panes?.detach(this, tabs);
+    gBrowser.tabpanels.removeTabsFromSplitview(tabs);
     updateUrlbarButton.arm();
     this.container.dispatchEvent(
       new CustomEvent("TabSplitViewDeactivate", {
@@ -270,9 +327,11 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    * browser elements.
    */
   #suspend() {
-    gBrowser.tabpanels.suspendSplitViewPanels(
-      this.#tabs.filter(tab => !tab.splitview || tab.splitview === this)
+    const tabs = this.#tabs.filter(
+      tab => !tab.splitview || tab.splitview === this
     );
+    Panes?.detach(this, tabs);
+    gBrowser.tabpanels.suspendSplitViewPanels(tabs);
     updateUrlbarButton.arm();
     this.container.dispatchEvent(
       new CustomEvent("TabSplitViewDeactivate", {
@@ -328,8 +387,13 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    * @param {object} [options]
    * @param {boolean} [options.isSessionRestore]
    * @param {int} [options.indexOfReplacedTab] [optional] Used if replacing a tab in the split view
+   * @param {object} [options.layout] Serialized layout whose leaf ids are
+   *   positions in `tabs`.
    */
-  addTabs(tabs, { isSessionRestore = false, indexOfReplacedTab = -1 } = {}) {
+  addTabs(
+    tabs,
+    { isSessionRestore = false, indexOfReplacedTab = -1, layout = null } = {}
+  ) {
     for (let tab of tabs) {
       if (tab.pinned) {
         return;
@@ -354,6 +418,14 @@ export class MozTabSplitViewWrapper extends MozXULElement {
       }
     }
 
+    if (layout) {
+      const M = layoutModel();
+      this.#layout = M.mapIds(
+        M.deserialize(layout, [...tabs.keys()]),
+        index => tabs[index]
+      );
+    }
+
     if (this.hasActiveTab) {
       this.#activate();
     }
@@ -364,8 +436,11 @@ export class MozTabSplitViewWrapper extends MozXULElement {
       if (!isBlankPageURL(tabURI) && tabURI !== "about:opentabs") {
         // Add to the counter which tracks the number of URIs loaded into splitview tabs
         const index = tabs.indexOf(tab);
-        const label = String(index + 1); // 0 -> "1" (LTR left), 1 -> "2" (LTR right)
-        Glean.splitview.uriCount[label].add(1);
+        // The metric only defines labels for the first two panes.
+        if (index > -1 && index < 2) {
+          const label = String(index + 1); // 0 -> "1" (LTR left), 1 -> "2" (LTR right)
+          Glean.splitview.uriCount[label].add(1);
+        }
       }
     }
   }
@@ -425,6 +500,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
     if (tabToReplace.selected) {
       gBrowser.selectedTab = newTab;
     }
+    this.#layout = layoutModel().replace(this.layout, tabToReplace, newTab);
     gBrowser.removeTab(tabToReplace);
     this.addTabs([newTab], { isSessionRestore: false, indexOfReplacedTab });
 
@@ -439,15 +515,24 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    *   The trigger method for reversing tabs. Used for telemetry.
    */
   reverseTabs(trigger = null) {
+    if (this.#tabs.length != 2) {
+      // With more than two panes, reversing mirrors the whole layout.
+      this.#setLayout(layoutModel().mirror(this.layout));
+      if (trigger) {
+        Glean.splitview.reverse.record({ trigger });
+      }
+      return;
+    }
     const [firstTab, secondTab] = this.#tabs;
+    this.#layout = layoutModel().swap(this.layout, firstTab, secondTab);
     this.#shouldMoveAllTabsAtOnce = false;
     gBrowser.moveTabBefore(secondTab, firstTab);
     this.#shouldMoveAllTabsAtOnce = true;
     this.#tabs = [secondTab, firstTab];
     if (this.hasActiveTab) {
-      gBrowser.showSplitViewPanels(this.#tabs);
-      updateUrlbarButton.arm();
+      this.#activate();
     }
+    this.#notifyLayoutChanged();
 
     // Record telemetry
     if (trigger) {
@@ -474,6 +559,117 @@ export class MozTabSplitViewWrapper extends MozXULElement {
     }
     this.#isClosing = true;
     gBrowser.removeTabs(this.#tabs);
+  }
+
+  #setLayout(layout) {
+    this.#layout = layout;
+    if (this.hasActiveTab) {
+      panes().render(this);
+    }
+    this.#notifyLayoutChanged();
+  }
+
+  #notifyLayoutChanged() {
+    this.dispatchEvent(
+      new CustomEvent("SplitViewLayoutChanged", { bubbles: true })
+    );
+  }
+
+  /**
+   * Splits the pane of `target`, placing `newTab` in `direction`.
+   * `newTab` joins the split view if it is not a member yet.
+   *
+   * @param {MozTabbrowserTab} target
+   * @param {"left"|"right"|"up"|"down"} direction
+   * @param {MozTabbrowserTab} newTab
+   */
+  splitPane(target, direction, newTab) {
+    const M = layoutModel();
+    this.#layout = M.split(
+      M.remove(this.layout, newTab),
+      target,
+      direction,
+      newTab
+    );
+    if (this.#tabs.includes(newTab)) {
+      this.#setLayout(this.#layout);
+    } else {
+      this.addTabs([newTab]);
+      this.#notifyLayoutChanged();
+    }
+  }
+
+  /**
+   * Whether the pane of `tab` has room to split in `direction`.
+   */
+  canSplitPane(tab, direction) {
+    const { width, height } = gBrowser.tabpanels.getBoundingClientRect();
+    return layoutModel().canSplit(
+      this.layout,
+      tab,
+      direction,
+      { x: 0, y: 0, width, height },
+      panes().MIN_PANE_WIDTH,
+      panes().MIN_PANE_HEIGHT
+    );
+  }
+
+  /**
+   * Selects the pane next to the selected one in `direction`.
+   */
+  focusPane(direction) {
+    const next = layoutModel().findNeighbor(
+      this.layout,
+      gBrowser.selectedTab,
+      direction
+    );
+    if (next) {
+      gBrowser.selectedTab = next;
+    }
+  }
+
+  /**
+   * The pane to select when the pane of `tab` closes, or null.
+   */
+  paneToSelectAfterClose(tab) {
+    if (!this.#tabs.includes(tab)) {
+      return null;
+    }
+    // Skip panes that are already closing or gone.
+    const M = layoutModel();
+    let layout = this.layout;
+    for (const other of this.#tabs) {
+      if (other !== tab && (other.closing || !other.linkedBrowser)) {
+        layout = M.remove(layout, other);
+      }
+    }
+    return M.focusAfterRemove(layout, tab);
+  }
+
+  /**
+   * Sets the ratio of one split in the layout.
+   *
+   * @param {string} path
+   * @param {number} ratio
+   * @param {boolean} [persist] Notify session store of the change.
+   */
+  setLayoutRatio(path, ratio, persist = true) {
+    this.#layout = layoutModel().setRatio(this.layout, path, ratio);
+    if (this.hasActiveTab) {
+      panes().render(this);
+    }
+    if (persist) {
+      this.#notifyLayoutChanged();
+    }
+  }
+
+  /**
+   * Focuses the location field of the selected pane.
+   *
+   * @returns {boolean} Whether a pane location field took focus.
+   */
+  focusLocation() {
+    return !!Panes?.focusLocation(gBrowser.selectedTab);
   }
 
   /**

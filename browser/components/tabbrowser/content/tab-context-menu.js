@@ -787,7 +787,6 @@ var TabContextMenu = {
         t.hasAttribute("customizemode")
       );
       contextMoveTabToNewSplitView.disabled =
-        this.contextTabs.length > 2 ||
         pinnedTabs.length ||
         customizeTabs.length;
     }

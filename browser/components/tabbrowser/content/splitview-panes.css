@@ -1,0 +1,118 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* Loaded on a window's first split view by splitview-panes.mjs. */
+
+#tabbrowser-tabpanels[splitlayout] {
+  > .split-view-splitter {
+    display: none !important;
+  }
+
+  &[splitview] > .split-pane.split-view-panel.split-view-panel-active {
+    position: absolute;
+    inset: auto;
+    margin: 0;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    flex: none;
+    flex-direction: column;
+  }
+}
+
+.split-pane-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxsmall);
+  min-height: 28px;
+  padding-inline: var(--space-xxsmall);
+  color: var(--toolbar-text-color);
+  background-color: var(--toolbar-background-color);
+
+  > toolbarbutton {
+    appearance: none;
+    padding: var(--space-xxsmall);
+    border-radius: var(--border-radius-small);
+    -moz-context-properties: fill, fill-opacity;
+    fill: currentColor;
+
+    > .toolbarbutton-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:not([disabled]):hover {
+      background-color: var(--button-background-color-ghost-hover);
+    }
+
+    &[disabled] {
+      opacity: 0.4;
+    }
+  }
+
+  > .split-pane-back:-moz-locale-dir(rtl),
+  > .split-pane-forward:-moz-locale-dir(rtl) {
+    scale: -1 1;
+  }
+}
+
+.split-pane-url {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  margin: 0;
+  padding-inline: var(--space-small);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-small);
+  color: var(--toolbar-field-color);
+  background-color: var(--toolbar-field-background-color);
+  font: inherit;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: -1px;
+  }
+}
+
+#split-pane-splitters {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.split-pane-splitter {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: var(--border-radius-small);
+
+  &[data-axis="row"] {
+    cursor: ew-resize;
+  }
+
+  &[data-axis="column"] {
+    cursor: ns-resize;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--focus-outline-color);
+    outline: none;
+  }
+}
+
+/* Page fullscreen shows only the selected pane, edge to edge. */
+:root[inDOMFullscreen] {
+  #split-pane-splitters,
+  .split-pane-header {
+    display: none;
+  }
+
+  #tabbrowser-tabpanels[splitlayout][splitview] > .split-pane.split-view-panel.deck-selected {
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
