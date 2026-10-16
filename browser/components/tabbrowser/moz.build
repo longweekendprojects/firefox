@@ -23,6 +23,7 @@ MOZ_SRC_FILES += [
     "NewTabPagePreloading.sys.mjs",
     "OpenInTabsUtils.sys.mjs",
     "SmartTabGrouping.sys.mjs",
+    "splitview/SplitLayoutModel.sys.mjs",
     "Tabbrowser.sys.mjs",
     "TabMetrics.sys.mjs",
     "TabsList.sys.mjs",
@@ -41,4 +42,7 @@ BROWSER_CHROME_MANIFESTS += [
     "test/browser/tabs/browser.toml",
 ]
 
-XPCSHELL_TESTS_MANIFESTS += ["test/xpcshell/smarttabgrouping/xpcshell.toml"]
+XPCSHELL_TESTS_MANIFESTS += [
+    "test/xpcshell/smarttabgrouping/xpcshell.toml",
+    "test/xpcshell/splitview/xpcshell.toml",
+]
