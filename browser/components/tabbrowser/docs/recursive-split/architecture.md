@@ -67,5 +67,5 @@ The split code must add near-zero memory, both with and without an active split.
 
 - Artifact build, capped at 8 jobs, run at low priority.
 - One agent builds or runs Firefox at a time, on a dedicated dev profile.
-- Firefox runs under `tasks/run-guarded.sh`, which kills the process tree on timeout or on process-count or memory caps.
+- Firefox runs under `tools/recursive-split/run-guarded.sh` (and `run-dev.sh` for manual use), which kills the process tree on timeout or on process-count or memory caps.
 - Tests run one file at a time.
