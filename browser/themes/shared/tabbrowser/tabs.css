@@ -1803,6 +1803,50 @@ tab-group > tab-split-view-wrapper {
   justify-content: center;
 }
 
+/* Every pane of a split view shares one row in the tab strip, so a split
+   never grows with its pane count. Segments too narrow for a title show only
+   their icon. This overrides the two-column and stacked layouts above. */
+#tabbrowser-tabs:is([orient="horizontal"], [orient="vertical"][expanded]) tab-split-view-wrapper {
+  grid-template-columns: none !important;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+
+  > .tabbrowser-tab {
+    container: split-segment / inline-size;
+    min-width: 0 !important;
+    max-width: none !important;
+
+    /* A segment may show only its icon, so it always needs one. */
+    .tab-icon-image:not([busy]) {
+      display: revert !important;
+    }
+    border-block-end-width: 0 !important;
+    border-inline-start: none !important;
+
+    &:not(:first-child) {
+      border-inline-start: 1px solid transparent !important;
+    }
+  }
+
+  &:not([hasactivetab]) > .tabbrowser-tab:not(:first-child) {
+    border-inline-start-color: var(--toolbarbutton-icon-fill) !important;
+  }
+}
+
+@container split-segment (max-width: 100px) {
+  tab-split-view-wrapper > .tabbrowser-tab {
+    .tab-content {
+      justify-content: center;
+      padding-inline: 0 !important;
+    }
+
+    .tab-label-container,
+    .tab-close-button {
+      display: none;
+    }
+  }
+}
+
 /* Drag/drop of split-view-wrapped tabs */
 #tabbrowser-tabs[orient="vertical"] tab-split-view-wrapper {
   &[small-stack] {
