@@ -60,8 +60,38 @@ The split code must add near-zero memory, both with and without an active split.
 ## Module layout
 
 - `browser/components/tabbrowser/splitview/SplitLayoutModel.sys.mjs`: pure tree operations, geometry, directional focus, and serialization. No DOM.
-- Later: a renderer and pane chrome loaded lazily from the wrapper.
+- `browser/components/tabbrowser/content/splitview-panes.mjs` and `splitview-panes.css`: the renderer and pane headers. Loaded on a window's first split.
 - Upstream files get small hooks only.
+
+## Pane chrome and keys
+
+- Each visible pane has a header with Back, Forward, an address field, and a split view menu. Strings live in `tabbrowser.ftl`.
+- The pane headers replace the upstream unfocused-pane footer. The footer element is no longer created.
+- One splitter per split. Splitters move by drag or by arrow keys when focused.
+- Accel+Alt+Shift+D splits the selected pane right; Accel+Alt+Shift+S splits it down.
+- Accel+Alt+Shift+arrow keys select the neighboring pane.
+- Accel+L focuses the selected pane's address field while a split is shown.
+
+## Lifecycle
+
+- Pinning a member removes it from the split. A split left with one tab becomes a plain tab. Unpinning never rejoins a split.
+- Pinning the selected member hides the split until one of its panes is selected again.
+- Duplicating a member opens an ordinary tab outside the split.
+- Undo close reopens a closed pane as an ordinary tab; it does not rejoin the split.
+- Private splits cannot move into normal windows, by drag or by adoption. Adoption returns null when no member can move.
+- Each pane keeps its own container. Moving a split to another window keeps containers and the layout.
+- Session restore ignores a stale saved tab count. Every saved tab reaches the tab strip; a split with one surviving member restores as a plain tab.
+
+## Disabled upstream tests
+
+These check the replaced footer or single splitter; `browser_tab_splitview_recursive.js` covers the replacement behavior.
+
+- `browser_tab_splitview_footer.js`
+- `browser_tab_splitview_resize.js`
+- `browser_tab_splitview_splitter_keyboard.js`
+- `browser_tab_splitview_splitter_keyboard_boundary.js`
+- `browser_tab_splitview_tab_order.js`
+- Four footer tasks in `browser_tab_splitview_telemetry.js`
 
 ## Machine safety
 

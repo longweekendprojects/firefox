@@ -4359,6 +4359,9 @@ export class Tabbrowser {
           elementIndex,
           tabIndex,
         });
+        if (!splitview) {
+          continue;
+        }
         newTabs.push(splitview);
         tabIndex = splitview.tabs[0].index + splitview.tabs.length;
       } else {
@@ -4389,7 +4392,8 @@ export class Tabbrowser {
    * @param {number} [options.elementIndex]
    * @param {number} [options.tabIndex]
    * @param {boolean} [options.selectTab]
-   * @returns {MozTabSplitViewWrapper}
+   * @returns {MozTabSplitViewWrapper|null}
+   *   Null when none of the tabs could be adopted.
    */
   adoptSplitView(container, { elementIndex, tabIndex, selectTab } = {}) {
     if (container.ownerDocument == this.document) {
@@ -4415,6 +4419,11 @@ export class Tabbrowser {
         tabIndex,
         elementIndex,
       });
+      if (!adoptedTab) {
+        // The tab could not move, for example across private browsing.
+        delete tab.removedByAdoption;
+        continue;
+      }
       adoptedTab.addedByAdoption = true;
       newTabs.push(adoptedTab);
       // Put next tab after current one.
@@ -4422,6 +4431,9 @@ export class Tabbrowser {
       tabIndex = adoptedTab.index + 1;
     }
 
+    if (!newTabs.length) {
+      return null;
+    }
     try {
       return this.addTabSplitView(newTabs, {
         id: container.splitViewId,
@@ -5031,14 +5043,17 @@ export class Tabbrowser {
         }
       }
 
+      // Pinned tabs cannot be in a split view.
       let splitView =
-        tabData.splitViewId && splitViewWorkingData.get(tabData.splitViewId);
+        !tabData.pinned &&
+        tabData.splitViewId &&
+        splitViewWorkingData.get(tabData.splitViewId);
       if (splitView) {
         splitView.tabs.push(tab);
-        // Only create the split view when we've got the last tab it would contain
-        if (splitView.tabs.length == splitView.numberOfTabs) {
-          splitView.node = this.#createTabSplitView(tabData.splitViewId);
-        }
+        // Place the split view at its first tab. The saved tab count is not
+        // trusted: membership is checked once every tab exists, so a stale
+        // count cannot leave tabs out of the tab strip.
+        splitView.node ??= this.#createTabSplitView(tabData.splitViewId);
       }
 
       tabs.push(tab);
@@ -5056,7 +5071,7 @@ export class Tabbrowser {
         if (tabGroup) {
           if (!splitView) {
             tabGroup.containingTabsFragment.appendChild(tab);
-          } else if (splitView?.node) {
+          } else if (splitView.tabs.length == 1) {
             tabGroup.containingTabsFragment.appendChild(splitView.node);
           }
 
@@ -5080,13 +5095,15 @@ export class Tabbrowser {
 
         if (!splitView) {
           tabsFragment.appendChild(tab);
-        } else if (splitView?.node) {
+        } else {
           // Treat split views as a unit for hiding purposes -- both tabs and
           // the split view wrapper itself should be hidden.
-          if (splitView.tabs.some(t => t.hidden)) {
+          if (tab.hidden) {
             splitView.node.toggleAttribute("hidden", true);
           }
-          tabsFragment.appendChild(splitView.node);
+          if (splitView.tabs.length == 1) {
+            tabsFragment.appendChild(splitView.node);
+          }
         }
 
         if (tabWasReused) {
@@ -5107,7 +5124,10 @@ export class Tabbrowser {
       }
     }
     for (const splitView of splitViewWorkingData.values()) {
-      if (splitView.node) {
+      if (splitView.node && splitView.tabs.length < 2) {
+        // One tab is not a split view; keep it as an ordinary tab.
+        splitView.node.replaceWith(...splitView.tabs);
+      } else if (splitView.node) {
         splitView.node.addTabs(splitView.tabs, {
           isSessionRestore: true,
           layout: splitView.layout,

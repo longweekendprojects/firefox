@@ -1039,10 +1039,16 @@
      *
      * @param {number} index
      *   The index of this tab in the Split View.
+     * @param {number} [count]
+     *   The number of tabs in the Split View.
      */
-    updateSplitViewAriaLabel(index) {
+    updateSplitViewAriaLabel(index, count = 2) {
       let l10nId = "";
-      switch (index) {
+      // Left and right only describe a split view of two panes.
+      switch (count > 2 ? -1 : index) {
+        case -1:
+          l10nId = "tabbrowser-tab-label-tab-split-view-pane";
+          break;
         case 0:
           l10nId = window.RTL_UI
             ? "tabbrowser-tab-label-tab-split-view-right"

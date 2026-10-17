@@ -337,6 +337,23 @@ tab-context-move-split-view-to-group =
 
 tab-splitview-splitter =
     .aria-label = Resize split view tabs
+
+## Split view pane header, shown at the top of each visible split view pane.
+
+tab-splitview-pane-back =
+    .tooltiptext = Go back one page in this pane
+    .aria-label = Back
+tab-splitview-pane-forward =
+    .tooltiptext = Go forward one page in this pane
+    .aria-label = Forward
+tab-splitview-pane-address =
+    .aria-label = Pane address
+    .placeholder = Search or enter address
+tab-splitview-pane-menu =
+    .tooltiptext = Split view options
+    .aria-label = Split view options
+
+##
 tab-devtools-splitter =
     .aria-label = Resize Developer Tools panel
 
@@ -492,6 +509,12 @@ tabbrowser-tab-label-tab-split-view-left = { $label }, Split view left
 # Variables:
 #   $label (String): the text label of the tab visible in the tab strip
 tabbrowser-tab-label-tab-split-view-right = { $label }, Split view right
+
+# Label of a tab in a split view of three or more panes. The tab's position
+# and the number of panes are announced separately.
+# Variables:
+#   $label (String): the text label of the tab visible in the tab strip
+tabbrowser-tab-label-tab-split-view-pane = { $label }, Split view pane
 
 # Open a new tab next to the current tab and display their contents side by side
 tab-context-add-split-view =

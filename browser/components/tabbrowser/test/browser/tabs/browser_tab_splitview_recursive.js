@@ -9,6 +9,10 @@ const { TabStateFlusher } = ChromeUtils.importESModule(
   "moz-src:///browser/components/sessionstore/TabStateFlusher.sys.mjs"
 );
 
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("browser.tabs.splitview.hasUsed");
+});
+
 async function addLoadedTab() {
   const tab = BrowserTestUtils.addTab(gBrowser, PAGE);
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);

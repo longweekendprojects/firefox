@@ -191,6 +191,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
       this.#tabChangeObserver = new window.MutationObserver(mutations => {
         const children = this.tabs;
         const removed = this.#tabs.filter(tab => !children.includes(tab));
+        const wasActive = this.hasActiveTab;
         if (removed.length) {
           // Drop tabs that left the wrapper so no stale references remain,
           // and clear their panels' split view state.
@@ -205,7 +206,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
             // tab is "1 of 2" in the split view, for example.
             tab.setAttribute("aria-posinset", index + 1);
             tab.setAttribute("aria-setsize", this.tabs.length);
-            tab.updateSplitViewAriaLabel(index);
+            tab.updateSplitViewAriaLabel(index, children.length);
           });
           this.dispatchEvent(
             new CustomEvent("SplitViewTabChange", {
@@ -222,13 +223,13 @@ export class MozTabSplitViewWrapper extends MozXULElement {
         ) {
           // A split view with one tab left is no longer a split view.
           this.unsplitTabs("tab_close");
-        } else if (
-          removed.length &&
-          children.length > 1 &&
-          this.hasActiveTab &&
-          this.isConnected
-        ) {
-          this.#activate();
+        } else if (removed.length && children.length > 1 && this.isConnected) {
+          if (this.hasActiveTab) {
+            this.#activate();
+          } else if (wasActive) {
+            // The selected tab left the split, for example by pinning it.
+            this.#suspend();
+          }
         }
       });
     }

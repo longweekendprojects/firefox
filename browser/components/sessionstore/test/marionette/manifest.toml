@@ -54,6 +54,8 @@ skip-if = [
 
 ["test_splitview_restore.py"]
 
+["test_splitview_recursive_restore.py"]
+
 ["test_tabgroups_restore.py"]
 
 ["test_tabnotes_canonicalurl_restore.py"]

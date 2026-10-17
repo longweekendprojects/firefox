@@ -260,12 +260,12 @@ function headerFor(tab) {
     ?.querySelector(":scope > .split-pane-header");
 }
 
-function createButton(className, image, label) {
+function createButton(className, image, l10nId) {
   const button = document.createXULElement("toolbarbutton");
-  button.className = className;
+  // Keyboard users reach pane buttons with Tab, like the address field.
+  button.className = className + " tabbable";
   button.setAttribute("image", image);
-  button.setAttribute("tooltiptext", label);
-  button.setAttribute("aria-label", label);
+  document.l10n.setAttributes(button, l10nId);
   return button;
 }
 
@@ -278,21 +278,24 @@ function createHeader(tab) {
   const input = document.createElementNS(HTML_NS, "input");
   input.className = "split-pane-url";
   input.setAttribute("spellcheck", "false");
-  input.setAttribute("aria-label", "Address");
-  input.setAttribute("data-l10n-id", "urlbar-placeholder");
+  document.l10n.setAttributes(input, "tab-splitview-pane-address");
 
   header.append(
-    createButton("split-pane-back", "chrome://browser/skin/back.svg", "Back"),
+    createButton(
+      "split-pane-back",
+      "chrome://browser/skin/back.svg",
+      "tab-splitview-pane-back"
+    ),
     createButton(
       "split-pane-forward",
       "chrome://browser/skin/forward.svg",
-      "Forward"
+      "tab-splitview-pane-forward"
     ),
     input,
     createButton(
       "split-pane-menu",
       "chrome://global/skin/icons/more.svg",
-      "Split view options"
+      "tab-splitview-pane-menu"
     )
   );
   return header;
