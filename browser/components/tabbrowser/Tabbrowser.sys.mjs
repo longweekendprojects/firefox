@@ -6373,6 +6373,9 @@ export class Tabbrowser {
       this.documentGlobal.gReduceMotion ||
       isLastTab ||
       aTab.pinned ||
+      // A split view pane must leave the screen at once, so that it cannot
+      // be clicked and selected again while its tab strip item animates out.
+      aTab.splitview ||
       !isVisibleTab ||
       this.tabContainer.verticalMode ||
       this._removingTabs.size >

@@ -384,8 +384,10 @@
         // falls through
         case "focus": {
           const tab = gBrowser.getTabForBrowser(browser);
-          const tabstrip = this.tabbox.tabs;
-          tabstrip.selectedItem = tab;
+          // Never select a pane whose tab is already closing.
+          if (tab && !tab.closing) {
+            this.tabbox.tabs.selectedItem = tab;
+          }
           break;
         }
         case "mouseover":

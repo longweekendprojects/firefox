@@ -665,12 +665,14 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   }
 
   /**
-   * Focuses the location field of the selected pane.
+   * Focuses the location field of a visible pane.
    *
+   * @param {MozTabbrowserTab} [tab] The pane's tab; the selected tab if unset.
+   * @param {string} [text] Text to type into the field.
    * @returns {boolean} Whether a pane location field took focus.
    */
-  focusLocation() {
-    return !!Panes?.focusLocation(gBrowser.selectedTab);
+  focusLocation(tab = gBrowser.selectedTab, text = "") {
+    return !!Panes?.focusLocation(tab, text);
   }
 
   /**

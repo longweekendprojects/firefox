@@ -330,3 +330,148 @@ add_task(async function test_extension_style_move_keeps_large_split() {
   sv.close();
   await TestUtils.waitForCondition(() => !sv.isConnected);
 });
+
+function paneHeader(tab) {
+  return document
+    .getElementById(tab.linkedPanel)
+    .querySelector(".split-pane-header");
+}
+
+async function splitFourWays(tab) {
+  gBrowser.selectedTab = tab;
+  await SimpleTest.promiseFocus(window);
+  for (const direction of ["right", "down", "left"]) {
+    const count = tab.splitview?.tabs.length ?? 1;
+    BrowserCommands.splitPane(direction);
+    await TestUtils.waitForCondition(
+      () => tab.splitview?.tabs.length == count + 1,
+      `split ${direction}`
+    );
+  }
+  return tab.splitview;
+}
+
+add_task(async function test_new_pane_is_blank_with_focused_address() {
+  const tab = await addLoadedTab();
+  gBrowser.selectedTab = tab;
+  await SimpleTest.promiseFocus(window);
+  BrowserCommands.splitPane("right");
+  await TestUtils.waitForCondition(() => tab.splitview, "split created");
+  const pane = gBrowser.selectedTab;
+  Assert.notEqual(pane, tab, "the new pane is selected");
+  Assert.equal(
+    pane.linkedBrowser.currentURI.spec,
+    "about:blank",
+    "the new pane starts blank"
+  );
+  await TestUtils.waitForCondition(
+    () =>
+      document.activeElement ==
+      paneHeader(pane).querySelector(".split-pane-url"),
+    "the new pane's address field has focus"
+  );
+  for (const t of [...tab.splitview.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
+add_task(async function test_window_navigation_hidden_while_panes_show() {
+  const ids = ["back-button", "forward-button", "urlbar-container"];
+  const visible = id =>
+    document.getElementById(id).checkVisibility({ visibilityProperty: true });
+  const tab = await addLoadedTab();
+  const other = await addLoadedTab();
+  for (const id of ids) {
+    Assert.ok(visible(id), `${id} shows without a split`);
+  }
+  const sv = gBrowser.addTabSplitView([tab, gBrowser.addTrustedTab(PAGE)], {
+    insertBefore: tab,
+  });
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  for (const id of ids) {
+    Assert.ok(!visible(id), `${id} hides while panes show`);
+  }
+  await BrowserTestUtils.switchTab(gBrowser, other);
+  for (const id of ids) {
+    Assert.ok(visible(id), `${id} shows again outside the split`);
+  }
+  sv.close();
+  BrowserTestUtils.removeTab(other);
+});
+
+add_task(async function test_pane_reload_and_close_buttons() {
+  const [a, b, c] = [
+    await addLoadedTab(),
+    await addLoadedTab(),
+    await addLoadedTab(),
+  ];
+  await BrowserTestUtils.switchTab(gBrowser, a);
+  const sv = gBrowser.addTabSplitView([a, b, c], { insertBefore: a });
+  await TestUtils.waitForTick();
+
+  const reloaded = BrowserTestUtils.browserLoaded(b.linkedBrowser);
+  paneHeader(b).querySelector(".split-pane-reload").doCommand();
+  await reloaded;
+  Assert.ok(true, "Reload reloads its own pane");
+
+  paneHeader(b).querySelector(".split-pane-close").doCommand();
+  await TestUtils.waitForCondition(() => !b.isConnected, "pane B closed");
+  Assert.deepEqual(sv.tabs, [a, c], "only pane B left the split");
+  Assert.ok(gBrowser.selectedTab.linkedBrowser, "selected tab is alive");
+  sv.close();
+});
+
+add_task(async function test_accel_w_closes_panes_with_animation() {
+  // Real windows animate tab closing; the test profile normally does not.
+  window.gReduceMotionOverride = false;
+  const tab = await addLoadedTab();
+  const sv = await splitFourWays(tab);
+  for (let remaining = 3; remaining >= 1; remaining--) {
+    const closing = gBrowser.selectedTab;
+    EventUtils.synthesizeKey("w", { accelKey: true });
+    // A click on the closing pane must not select it again.
+    const panel = document.getElementById(closing.linkedPanel);
+    if (panel?.isConnected) {
+      EventUtils.synthesizeMouseAtCenter(panel.querySelector("browser"), {});
+    }
+    await TestUtils.waitForCondition(
+      () => !closing.isConnected,
+      `Accel+W closes the pane (${remaining} left)`
+    );
+    const selected = gBrowser.selectedTab;
+    Assert.ok(!selected.closing && selected.linkedBrowser, "selection alive");
+    if (remaining > 1) {
+      Assert.equal(selected.splitview, sv, "a pane of the split is selected");
+      Assert.equal(sv.tabs.length, remaining, "one pane fewer");
+    }
+  }
+  Assert.ok(!gBrowser.selectedTab.splitview, "the last pane is a normal tab");
+  window.gReduceMotionOverride = null;
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+add_task(async function test_accel_w_after_clicking_a_pane() {
+  window.gReduceMotionOverride = false;
+  const tab = await addLoadedTab();
+  const sv = await splitFourWays(tab);
+  for (const target of [tab, sv.tabs.find(t => t != tab)]) {
+    await EventUtils.synthesizeMouseAtCenter(
+      document.getElementById(target.linkedPanel).querySelector("browser"),
+      {}
+    );
+    await TestUtils.waitForCondition(
+      () => gBrowser.selectedTab == target,
+      "clicking a pane selects it"
+    );
+    EventUtils.synthesizeKey("w", { accelKey: true });
+    await TestUtils.waitForCondition(
+      () => !target.isConnected,
+      "Accel+W closes the clicked pane"
+    );
+    Assert.ok(gBrowser.selectedTab.linkedBrowser, "selection alive");
+  }
+  window.gReduceMotionOverride = null;
+  for (const t of [...sv.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});

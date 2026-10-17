@@ -346,12 +346,18 @@ tab-splitview-pane-back =
 tab-splitview-pane-forward =
     .tooltiptext = Go forward one page in this pane
     .aria-label = Forward
+tab-splitview-pane-reload =
+    .tooltiptext = Reload this pane
+    .aria-label = Reload
 tab-splitview-pane-address =
     .aria-label = Pane address
     .placeholder = Search or enter address
 tab-splitview-pane-menu =
     .tooltiptext = Split view options
     .aria-label = Split view options
+tab-splitview-pane-close =
+    .tooltiptext = Close this pane
+    .aria-label = Close pane
 
 ##
 tab-devtools-splitter =

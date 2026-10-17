@@ -9,4 +9,4 @@ MINUTES=${1:-60}
 # Caps: 60 processes, 12 GB total RSS. The guard kills the whole tree on breach.
 exec tools/recursive-split/run-guarded.sh $((MINUTES * 60)) 60 12000 -- \
   nice -n 5 obj-artifact/dist/Nightly.app/Contents/MacOS/firefox \
-  -no-remote -profile "$PROFILE"
+  -no-remote -purgecaches -profile "$PROFILE"

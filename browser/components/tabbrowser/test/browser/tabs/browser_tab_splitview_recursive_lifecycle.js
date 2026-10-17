@@ -319,6 +319,8 @@ add_task(async function test_accessible_names_and_roles() {
   const role = el => accService.getAccessibleFor(el)?.role;
   Assert.equal(name(header.querySelector(".split-pane-back")), "Back");
   Assert.equal(name(header.querySelector(".split-pane-forward")), "Forward");
+  Assert.equal(name(header.querySelector(".split-pane-reload")), "Reload");
+  Assert.equal(name(header.querySelector(".split-pane-close")), "Close pane");
   Assert.equal(name(header.querySelector(".split-pane-url")), "Pane address");
   Assert.equal(
     name(header.querySelector(".split-pane-menu")),

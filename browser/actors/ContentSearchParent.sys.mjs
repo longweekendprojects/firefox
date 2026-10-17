@@ -505,6 +505,12 @@ export let ContentSearch = {
   _onMessageSearchHandoff({ browser, data, actor }) {
     let win = browser.documentGlobal;
     let text = data.text;
+    // A visible split view pane searches from its own address field, since
+    // the window's address bar is hidden while panes are shown.
+    let tab = win.gBrowser.getTabForBrowser(browser);
+    if (tab?.splitview?.focusLocation(tab, text)) {
+      return;
+    }
     let urlBar = win.gURLBar;
     let inPrivateBrowsing = lazy.PrivateBrowsingUtils.isBrowserPrivate(browser);
     let searchEngine = inPrivateBrowsing

@@ -9,8 +9,9 @@
  *
  * Loaded into a browser window on its first split view. Browser panels stay
  * direct children of tabpanels; this module only positions them, adds a small
- * header (Back, Forward, address) to each visible pane, and draws one splitter
- * per split. Everything it adds is removed when the split view is hidden, so
+ * header (Back, Forward, Reload, address, Close) to each visible pane, and
+ * draws one splitter per split. While panes are shown, the window's own
+ * navigation controls are hidden, because each pane has its own. Everything it adds is removed when the split view is hidden, so
  * a window without a visible split view keeps no listeners, observers, or DOM.
  */
 
@@ -156,15 +157,21 @@ export function clear(tabs) {
 /**
  * Focuses the address field of the pane showing `tab`.
  *
+ * @param {MozTabbrowserTab} tab
+ * @param {string} [text] Text to type into the field instead of selecting it.
  * @returns {boolean} Whether a pane address field took focus.
  */
-export function focusLocation(tab) {
+export function focusLocation(tab, text = "") {
   const input = headerFor(tab)?.querySelector(".split-pane-url");
   if (!input) {
     return false;
   }
   input.focus();
-  input.select();
+  if (text) {
+    input.value = text;
+  } else {
+    input.select();
+  }
   return true;
 }
 
@@ -178,6 +185,7 @@ function attach() {
   }
   const tabpanels = gBrowser.tabpanels;
   tabpanels.setAttribute("splitlayout", "");
+  document.documentElement.setAttribute("splitpanes", "");
   for (const type of [
     "command",
     "mousedown",
@@ -228,6 +236,7 @@ function teardown() {
     tabpanels.removeEventListener(type, handler);
   }
   tabpanels.removeAttribute("splitlayout");
+  document.documentElement.removeAttribute("splitpanes");
   current = null;
 }
 
@@ -291,11 +300,21 @@ function createHeader(tab) {
       "chrome://browser/skin/forward.svg",
       "tab-splitview-pane-forward"
     ),
+    createButton(
+      "split-pane-reload",
+      "chrome://global/skin/icons/reload.svg",
+      "tab-splitview-pane-reload"
+    ),
     input,
     createButton(
       "split-pane-menu",
       "chrome://global/skin/icons/more.svg",
       "tab-splitview-pane-menu"
+    ),
+    createButton(
+      "split-pane-close",
+      "chrome://global/skin/icons/close.svg",
+      "tab-splitview-pane-close"
     )
   );
   return header;
@@ -356,6 +375,10 @@ function onCommand(event) {
     tab.linkedBrowser.goBack();
   } else if (classes.contains("split-pane-forward")) {
     tab.linkedBrowser.goForward();
+  } else if (classes.contains("split-pane-reload")) {
+    gBrowser.reloadTab(tab);
+  } else if (classes.contains("split-pane-close")) {
+    gBrowser.removeTab(tab);
   } else if (classes.contains("split-pane-menu")) {
     gBrowser.selectedTab = tab;
     gBrowser.openSplitViewMenu(event.target);

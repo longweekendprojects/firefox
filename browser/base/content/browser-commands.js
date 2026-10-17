@@ -118,8 +118,10 @@ var BrowserCommands = {
     if (splitview && !splitview.canSplitPane(tab, direction)) {
       return;
     }
-    // A new tab page reuses Firefox's preloaded browser when one exists.
-    const newTab = gBrowser.addTrustedTab(BROWSER_NEW_TAB_URL);
+    // A new pane starts blank with its address field focused. The new tab
+    // page needs more width than a pane often has, and a blank page costs
+    // far less memory.
+    const newTab = gBrowser.addTrustedTab("about:blank");
     if (splitview) {
       splitview.splitPane(tab, direction, newTab);
     } else {

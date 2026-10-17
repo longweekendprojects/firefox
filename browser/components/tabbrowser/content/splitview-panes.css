@@ -21,6 +21,13 @@
   }
 }
 
+/* Each pane has its own navigation controls, so the window's own controls
+   would not say which pane they act on. Hidden, not removed, so the toolbar
+   keeps its layout and focus can never land in them. */
+:root[splitpanes] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #home-button, #urlbar-container) {
+  visibility: hidden;
+}
+
 .split-pane-header {
   display: flex;
   align-items: center;

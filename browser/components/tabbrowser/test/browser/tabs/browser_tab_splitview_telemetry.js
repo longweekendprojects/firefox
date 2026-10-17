@@ -24,15 +24,22 @@ function navigateTab(tab, url) {
 }
 
 async function openSplitViewIconMenu() {
+  // The address bar, and its split view button, hide while panes show; each
+  // pane's own menu button opens the same menu.
   const urlbarButton = document.getElementById("split-view-button");
   await BrowserTestUtils.waitForMutationCondition(
     urlbarButton,
     { attributes: true, attributeFilter: ["hidden"] },
-    () => BrowserTestUtils.isVisible(urlbarButton)
+    () => !urlbarButton.hidden
   );
   const menu = document.getElementById("split-view-menu");
   const promiseMenuShown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
-  EventUtils.synthesizeMouseAtCenter(urlbarButton, {});
+  EventUtils.synthesizeMouseAtCenter(
+    document
+      .getElementById(gBrowser.selectedTab.linkedPanel)
+      .querySelector(".split-pane-menu"),
+    {}
+  );
   await promiseMenuShown;
   return menu;
 }

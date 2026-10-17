@@ -196,16 +196,23 @@ add_task(async function test_split_view_panels() {
   for (const tab of splitView.tabs) {
     await checkSplitViewPanelVisible(tab, true);
   }
+  // The address bar, and its split view button, hide while panes show; each
+  // pane's own menu button opens the split view menu instead.
   await BrowserTestUtils.waitForMutationCondition(
     urlbarButton,
     { attributes: true, attributeFilter: ["hidden"] },
-    () => BrowserTestUtils.isVisible(urlbarButton)
+    () => !urlbarButton.hidden
   );
 
   info("Open split view menu.");
   const menu = document.getElementById("split-view-menu");
   const promiseMenuShown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
-  EventUtils.synthesizeMouseAtCenter(urlbarButton, {});
+  EventUtils.synthesizeMouseAtCenter(
+    document
+      .getElementById(gBrowser.selectedTab.linkedPanel)
+      .querySelector(".split-pane-menu"),
+    {}
+  );
   await promiseMenuShown;
   menu.hidePopup();
 
@@ -253,7 +260,7 @@ add_task(async function test_split_view_panels() {
   await BrowserTestUtils.waitForMutationCondition(
     urlbarButton,
     { attributes: true },
-    () => BrowserTestUtils.isHidden(urlbarButton)
+    () => urlbarButton.hidden
   );
 
   BrowserTestUtils.removeTab(tab1);
