@@ -123,3 +123,29 @@
     height: 100% !important;
   }
 }
+
+/* Dragging a pane bar moves the pane; the indicator shows where it lands. */
+.split-pane-header {
+  cursor: grab;
+
+  &[dragging] {
+    cursor: grabbing;
+    opacity: var(--opacity-deemphasized);
+  }
+
+  > toolbarbutton {
+    cursor: default;
+  }
+}
+
+.split-pane-url:not(:focus) {
+  cursor: grab;
+}
+
+.split-pane-drop {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid var(--focus-outline-color);
+  border-radius: var(--border-radius-medium);
+  background-color: var(--background-color-dimmed);
+}

@@ -601,6 +601,50 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   }
 
   /**
+   * Whether the pane of `tab` can move to `zone` of the pane of `target`.
+   *
+   * @param {MozTabbrowserTab} tab
+   * @param {MozTabbrowserTab} target
+   * @param {"left"|"right"|"up"|"down"|"swap"} zone
+   */
+  canMovePane(tab, target, zone) {
+    if (
+      tab === target ||
+      !this.#tabs.includes(tab) ||
+      !this.#tabs.includes(target)
+    ) {
+      return false;
+    }
+    if (zone == "swap") {
+      return true;
+    }
+    const M = layoutModel();
+    const { width, height } = gBrowser.tabpanels.getBoundingClientRect();
+    return M.canSplit(
+      M.remove(this.layout, tab),
+      target,
+      zone,
+      { x: 0, y: 0, width, height },
+      panes().MIN_PANE_WIDTH,
+      panes().MIN_PANE_HEIGHT
+    );
+  }
+
+  /**
+   * Moves the pane of `tab` to `zone` of the pane of `target`.
+   *
+   * @param {MozTabbrowserTab} tab
+   * @param {MozTabbrowserTab} target
+   * @param {"left"|"right"|"up"|"down"|"swap"} zone
+   */
+  movePane(tab, target, zone) {
+    if (!this.canMovePane(tab, target, zone)) {
+      return;
+    }
+    this.#setLayout(layoutModel().move(this.layout, tab, target, zone));
+  }
+
+  /**
    * Whether the pane of `tab` has room to split in `direction`.
    */
   canSplitPane(tab, direction) {

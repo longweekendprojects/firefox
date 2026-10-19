@@ -20,6 +20,17 @@ const M = ChromeUtils.importESModule(
 );
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
+const PANEL_EVENTS = [
+  "command",
+  "mousedown",
+  "keydown",
+  "focusin",
+  "focusout",
+  "pointerdown",
+  "pointermove",
+  "pointerup",
+  "pointercancel",
+];
 const STYLESHEET = "chrome://browser/content/tabbrowser/splitview-panes.css";
 
 export const MIN_PANE_WIDTH = 140;
@@ -29,6 +40,10 @@ export const MIN_PANE_HEIGHT = 120;
 const GAP = 6;
 // Ratio change for one splitter arrow key press.
 const KEY_STEP = 0.02;
+// Pointer travel, in CSS pixels, before a pane bar press becomes a drag.
+const DRAG_THRESHOLD = 5;
+// Half-size of the central drop zone that swaps two panes, as a fraction.
+const SWAP_ZONE = 0.2;
 
 /** The split view wrapper currently rendered in this window, if any. */
 let current = null;
@@ -37,6 +52,8 @@ let resizeObserver = null;
 let pendingFrame = 0;
 let sheetLoaded = false;
 let drag = null;
+/** A press on a pane bar that may become a pane drag. */
+let grab = null;
 
 const progressListener = {
   onLocationChange(browser, webProgress) {
@@ -73,14 +90,26 @@ const handler = {
         }
         break;
       case "pointerdown":
-        onSplitterPointerDown(event);
+        if (event.currentTarget === splitterBox) {
+          onSplitterPointerDown(event);
+        } else {
+          onHeaderPointerDown(event);
+        }
         break;
       case "pointermove":
-        onSplitterPointerMove(event);
+        if (event.currentTarget === splitterBox) {
+          onSplitterPointerMove(event);
+        } else {
+          onHeaderPointerMove(event);
+        }
         break;
       case "pointerup":
       case "pointercancel":
-        onSplitterPointerUp(event);
+        if (event.currentTarget === splitterBox) {
+          onSplitterPointerUp(event);
+        } else {
+          onHeaderPointerUp(event);
+        }
         break;
     }
   },
@@ -186,13 +215,7 @@ function attach() {
   const tabpanels = gBrowser.tabpanels;
   tabpanels.setAttribute("splitlayout", "");
   document.documentElement.setAttribute("splitpanes", "");
-  for (const type of [
-    "command",
-    "mousedown",
-    "keydown",
-    "focusin",
-    "focusout",
-  ]) {
+  for (const type of PANEL_EVENTS) {
     tabpanels.addEventListener(type, handler);
   }
   gBrowser.addTabsProgressListener(progressListener);
@@ -221,18 +244,14 @@ function teardown() {
     window.cancelAnimationFrame(pendingFrame);
     pendingFrame = 0;
   }
+  grab?.header.removeAttribute("dragging");
+  grab = null;
   splitterBox?.remove();
   splitterBox = null;
   drag = null;
   gBrowser.removeTabsProgressListener(progressListener);
   const tabpanels = gBrowser.tabpanels;
-  for (const type of [
-    "command",
-    "mousedown",
-    "keydown",
-    "focusin",
-    "focusout",
-  ]) {
+  for (const type of PANEL_EVENTS) {
     tabpanels.removeEventListener(type, handler);
   }
   tabpanels.removeAttribute("splitlayout");
@@ -387,7 +406,16 @@ function onCommand(event) {
 
 function onHeaderMouseDown(event) {
   const header = event.target.closest?.(".split-pane-header");
-  if (!header || header._tab.selected) {
+  if (!header) {
+    return;
+  }
+  if (grab?.header === header) {
+    // A pane bar press keeps focus and text selection where they are; the
+    // address field takes focus on release if the press did not drag.
+    event.preventDefault();
+    return;
+  }
+  if (header._tab.selected) {
     return;
   }
   gBrowser.selectedTab = header._tab;
@@ -437,16 +465,169 @@ async function navigate(tab, text) {
   browser.focus();
 }
 
+/**
+ * Starts a pane bar press. The bar background and the unfocused address field
+ * act as a drag handle; buttons and a focused address field keep their own
+ * behavior.
+ */
+function onHeaderPointerDown(event) {
+  const header = event.target.closest?.(".split-pane-header");
+  if (
+    !header ||
+    event.button != 0 ||
+    !current ||
+    event.target.closest("toolbarbutton")
+  ) {
+    return;
+  }
+  const input = event.target.classList.contains("split-pane-url")
+    ? event.target
+    : null;
+  if (input && document.activeElement === input) {
+    return;
+  }
+  header.setPointerCapture(event.pointerId);
+  const g = {
+    header,
+    tab: header._tab,
+    input,
+    x: event.clientX,
+    y: event.clientY,
+    moved: false,
+    drop: null,
+    indicator: null,
+    switching: false,
+    focusOnSwitch: false,
+  };
+  grab = g;
+  if (!g.tab.selected) {
+    g.switching = true;
+    gBrowser.addEventListener(
+      "TabSwitchDone",
+      () => {
+        g.switching = false;
+        if (g.focusOnSwitch) {
+          g.input.focus();
+        }
+      },
+      { once: true }
+    );
+    gBrowser.selectedTab = g.tab;
+  }
+}
+
+function onHeaderPointerMove(event) {
+  if (!grab || !current || !splitterBox) {
+    return;
+  }
+  if (!grab.moved) {
+    const distance = Math.hypot(event.clientX - grab.x, event.clientY - grab.y);
+    if (distance < DRAG_THRESHOLD) {
+      return;
+    }
+    grab.moved = true;
+    grab.header.setAttribute("dragging", "");
+    grab.indicator = document.createElementNS(HTML_NS, "div");
+    grab.indicator.className = "split-pane-drop";
+    grab.indicator.hidden = true;
+    splitterBox.append(grab.indicator);
+  }
+  grab.drop = dropTarget(event.clientX, event.clientY);
+  showDropIndicator(grab.indicator, grab.drop);
+}
+
+function onHeaderPointerUp(event) {
+  const g = grab;
+  if (!g) {
+    return;
+  }
+  grab = null;
+  if (g.header.hasPointerCapture?.(event.pointerId)) {
+    g.header.releasePointerCapture(event.pointerId);
+  }
+  g.header.removeAttribute("dragging");
+  g.indicator?.remove();
+  if (!g.moved) {
+    if (g.input && event.type == "pointerup") {
+      if (g.switching) {
+        g.focusOnSwitch = true;
+      } else {
+        g.input.focus();
+      }
+    }
+    return;
+  }
+  if (event.type == "pointerup" && g.drop && current) {
+    current.movePane(g.tab, g.drop.tab, g.drop.zone);
+  }
+}
+
+/**
+ * Pane under the point, other than the dragged one, and where the dragged
+ * pane would land: an edge ("left", "right", "up", "down") or "swap".
+ */
+function dropTarget(x, y) {
+  for (const tab of current.tabs) {
+    if (tab === grab.tab) {
+      continue;
+    }
+    const panel = document.getElementById(tab.linkedPanel);
+    if (!panel?.classList.contains("split-pane")) {
+      continue;
+    }
+    const rect = panel.getBoundingClientRect();
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      continue;
+    }
+    const dx = (x - rect.left) / rect.width - 0.5;
+    const dy = (y - rect.top) / rect.height - 0.5;
+    let zone;
+    if (Math.abs(dx) < SWAP_ZONE && Math.abs(dy) < SWAP_ZONE) {
+      zone = "swap";
+    } else if (Math.abs(dx) > Math.abs(dy)) {
+      zone = dx < 0 ? "left" : "right";
+    } else {
+      zone = dy < 0 ? "up" : "down";
+    }
+    if (!current.canMovePane(grab.tab, tab, zone)) {
+      return null;
+    }
+    return { tab, zone, rect };
+  }
+  return null;
+}
+
+function showDropIndicator(indicator, drop) {
+  indicator.hidden = !drop;
+  if (!drop) {
+    return;
+  }
+  const box = gBrowser.tabbox.getBoundingClientRect();
+  const { zone, rect } = drop;
+  const half = { w: rect.width / 2, h: rect.height / 2 };
+  const x = rect.left - box.left + (zone == "right" ? half.w : 0);
+  const y = rect.top - box.top + (zone == "down" ? half.h : 0);
+  const w = zone == "left" || zone == "right" ? half.w : rect.width;
+  const h = zone == "up" || zone == "down" ? half.h : rect.height;
+  Object.assign(indicator.style, {
+    left: x + "px",
+    top: y + "px",
+    width: w + "px",
+    height: h + "px",
+  });
+}
+
 function layoutSplitters(layout, splitters) {
   const panels = gBrowser.tabpanels.getBoundingClientRect();
   const box = gBrowser.tabbox.getBoundingClientRect();
   const dx = panels.left - box.left;
   const dy = panels.top - box.top;
-  while (splitterBox.children.length > splitters.length) {
-    splitterBox.lastElementChild.remove();
+  const existing = splitterBox.querySelectorAll(".split-pane-splitter");
+  for (const el of [...existing].slice(splitters.length)) {
+    el.remove();
   }
   for (const [i, splitter] of splitters.entries()) {
-    let el = splitterBox.children[i];
+    let el = existing[i];
     if (!el) {
       el = document.createElementNS(HTML_NS, "div");
       el.className = "split-pane-splitter";

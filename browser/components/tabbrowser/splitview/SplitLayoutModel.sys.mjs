@@ -224,6 +224,24 @@ export function swap(root, a, b) {
   });
 }
 
+/**
+ * Moves leaf `id` next to leaf `targetId`: "swap" exchanges the two leaves,
+ * and a direction splits `targetId` with `id` on that side.
+ */
+export function move(root, id, targetId, zone) {
+  if (!root || id === targetId || !hasLeaf(root, id)) {
+    return root;
+  }
+  if (zone === "swap") {
+    return swap(root, id, targetId);
+  }
+  const rest = remove(root, id);
+  if (!hasLeaf(rest, targetId)) {
+    return root;
+  }
+  return split(rest, targetId, zone, id);
+}
+
 /** Sets the ratio of the split at `path`. */
 export function setRatio(root, path, ratio) {
   const target = nodeAt(root, path);

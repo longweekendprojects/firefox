@@ -475,3 +475,81 @@ add_task(async function test_accel_w_after_clicking_a_pane() {
     BrowserTestUtils.removeTab(t);
   }
 });
+
+async function dragHeader(tab, target, fx, fy) {
+  // The unfocused address field is the pane bar's drag handle.
+  gBrowser.selectedBrowser.focus();
+  const handle = paneHeader(tab).querySelector(".split-pane-url");
+  const panel = document.getElementById(target.linkedPanel);
+  const from = handle.getBoundingClientRect();
+  const to = panel.getBoundingClientRect();
+  const start = {
+    x: from.left + from.width / 2,
+    y: from.top + from.height / 2,
+  };
+  const end = { x: to.left + to.width * fx, y: to.top + to.height * fy };
+  const at = (x, y, type) =>
+    EventUtils.synthesizeMouseAtPoint(x, y, { type }, window);
+  at(start.x, start.y, "mousedown");
+  for (let i = 1; i <= 5; i++) {
+    at(
+      start.x + ((end.x - start.x) * i) / 5,
+      start.y + ((end.y - start.y) * i) / 5,
+      "mousemove"
+    );
+    await TestUtils.waitForTick();
+  }
+  at(end.x, end.y, "mouseup");
+  await TestUtils.waitForTick();
+}
+
+add_task(async function test_drag_pane_header_moves_pane() {
+  const tab = await addLoadedTab();
+  const sv = await splitFourWays(tab);
+  const M = ChromeUtils.importESModule(
+    "moz-src:///browser/components/tabbrowser/splitview/SplitLayoutModel.sys.mjs"
+  );
+  const before = M.leafIds(sv.layout);
+  const [a, , , d] = before;
+
+  await dragHeader(a, d, 0.5, 0.5);
+  Assert.deepEqual(
+    M.leafIds(sv.layout),
+    before.map(
+      t => ({ [a.linkedPanel]: d, [d.linkedPanel]: a })[t.linkedPanel] ?? t
+    ),
+    "dropping on a pane's center swaps the two panes"
+  );
+
+  const order = M.leafIds(sv.layout);
+  const [first, second] = order;
+  await dragHeader(first, second, 0.95, 0.5);
+  const after = M.leafIds(sv.layout);
+  Assert.equal(after.length, 4, "no pane lost");
+  Assert.equal(
+    after.indexOf(first),
+    after.indexOf(second) + 1,
+    "dropping on a pane's right edge places the pane after it"
+  );
+  const rf = rect(first);
+  const rs = rect(second);
+  Assert.greater(rf.x, rs.x, "the moved pane sits to the right");
+  Assert.ok(
+    !document.querySelector(".split-pane-drop"),
+    "the drop indicator is removed"
+  );
+
+  // A click without movement still focuses the pane's address field.
+  const other = sv.tabs.find(t => !t.selected);
+  const input = paneHeader(other).querySelector(".split-pane-url");
+  EventUtils.synthesizeMouseAtCenter(input, {});
+  await TestUtils.waitForCondition(
+    () => document.activeElement == input,
+    "a click focuses the address field"
+  );
+  Assert.equal(gBrowser.selectedTab, other, "and selects the pane");
+
+  for (const t of [...sv.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});

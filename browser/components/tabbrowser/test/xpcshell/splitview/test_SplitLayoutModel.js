@@ -170,3 +170,25 @@ add_task(function test_reconcile_with_membership() {
     "no change reuses tree"
   );
 });
+
+add_task(function test_move_pane() {
+  const t = guideTree();
+  Assert.deepEqual(M.leafIds(M.move(t, "A", "D", "swap")), [
+    "D",
+    "B",
+    "C",
+    "A",
+  ]);
+
+  const right = M.move(t, "A", "D", "right");
+  Assert.deepEqual(M.leafIds(right), ["B", "C", "D", "A"], "A moved after D");
+  Assert.equal(right.axis, "column", "B over (C | (D | A))");
+  Assert.equal(right.second.second.axis, "row");
+
+  const up = M.move(t, "D", "A", "up");
+  Assert.deepEqual(M.leafIds(up), ["D", "A", "B", "C"], "D moved above A");
+  Assert.equal(up.first.axis, "column");
+
+  Assert.equal(M.move(t, "A", "A", "left"), t, "moving onto itself is a no-op");
+  Assert.equal(M.move(t, "Z", "A", "left"), t, "missing pane is a no-op");
+});
