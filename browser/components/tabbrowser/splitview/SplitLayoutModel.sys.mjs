@@ -131,11 +131,75 @@ function mapLeaves(root, fn) {
 }
 
 /**
+ * A run is a chain of nested splits that share one axis, such as three
+ * side-by-side panes. Its items are the subtrees laid out along that axis,
+ * each with its share of the run's extent.
+ */
+function flatten(node, axis, share = 1, out = []) {
+  if (!isSplit(node) || node.axis !== axis) {
+    out.push({ node, share });
+    return out;
+  }
+  flatten(node.first, axis, share * node.ratio, out);
+  flatten(node.second, axis, share * (1 - node.ratio), out);
+  return out;
+}
+
+/** Builds a run from items, scaling their shares to fill the run. */
+function buildRun(axis, items) {
+  if (items.length == 1) {
+    return items[0].node;
+  }
+  const total = items.reduce((sum, item) => sum + item.share, 0);
+  return {
+    axis,
+    ratio: clampRatio(items[0].share / total),
+    first: items[0].node,
+    second: buildRun(axis, items.slice(1)),
+  };
+}
+
+/**
+ * Path of the top split of the run along `axis` whose items include leaf
+ * `id`, or null when the leaf's parent split has another axis.
+ */
+function runPath(root, id, axis) {
+  let node = root;
+  let path = "";
+  let start = null;
+  while (isSplit(node)) {
+    if (node.axis !== axis) {
+      start = null;
+    } else if (start === null) {
+      start = path;
+    }
+    const step = hasLeaf(node.first, id) ? "0" : "1";
+    node = step === "0" ? node.first : node.second;
+    path += step;
+  }
+  return start;
+}
+
+function replaceAt(root, path, node, depth = 0) {
+  if (depth === path.length) {
+    return node;
+  }
+  return path[depth] === "0"
+    ? { ...root, first: replaceAt(root.first, path, node, depth + 1) }
+    : { ...root, second: replaceAt(root.second, path, node, depth + 1) };
+}
+
+/**
  * Splits leaf `targetId`, placing a new leaf `newId` in `direction`
  * ("left" | "right" | "up" | "down"). Returns the same tree when the target
  * is missing or `newId` already exists.
+ *
+ * When the target already sits in a run along the split's axis, the new leaf
+ * joins that run with the target's share and every item shrinks in
+ * proportion. Equal panes therefore stay equal: two halves become three
+ * thirds. Otherwise the target is halved.
  */
-export function split(root, targetId, direction, newId, ratio = 0.5) {
+export function split(root, targetId, direction, newId) {
   const dir = DIRECTIONS[direction];
   if (!dir) {
     throw new Error(`Unknown split direction: ${direction}`);
@@ -144,21 +208,31 @@ export function split(root, targetId, direction, newId, ratio = 0.5) {
     return root;
   }
   const added = leaf(newId);
-  return mapLeaves(root, node => {
-    if (node.id !== targetId) {
-      return node;
-    }
-    return {
-      axis: dir.axis,
-      ratio: clampRatio(dir.before ? 1 - ratio : ratio),
-      first: dir.before ? added : node,
-      second: dir.before ? node : added,
-    };
+  const path = runPath(root, targetId, dir.axis);
+  if (path === null) {
+    return mapLeaves(root, node =>
+      node.id === targetId
+        ? {
+            axis: dir.axis,
+            ratio: 0.5,
+            first: dir.before ? added : node,
+            second: dir.before ? node : added,
+          }
+        : node
+    );
+  }
+  const items = flatten(nodeAt(root, path), dir.axis);
+  const index = items.findIndex(item => item.node.id === targetId);
+  items.splice(dir.before ? index : index + 1, 0, {
+    node: added,
+    share: items[index].share,
   });
+  return replaceAt(root, path, buildRun(dir.axis, items));
 }
 
 /**
- * Removes leaf `id` and promotes its sibling into the parent's place.
+ * Removes leaf `id`. The other items of its run grow in proportion to fill
+ * the space, so a split followed by a close restores the earlier sizes.
  * Returns null when the last leaf is removed.
  */
 export function remove(root, id) {
@@ -168,18 +242,16 @@ export function remove(root, id) {
   if (!isSplit(root)) {
     return root.id === id ? null : root;
   }
-  const first = remove(root.first, id);
-  const second = remove(root.second, id);
-  if (!first) {
-    return second;
-  }
-  if (!second) {
-    return first;
-  }
-  if (first === root.first && second === root.second) {
+  const parent = parentPath(root, id);
+  if (parent === null) {
     return root;
   }
-  return { ...root, first, second };
+  const axis = nodeAt(root, parent).axis;
+  const path = runPath(root, id, axis);
+  const items = flatten(nodeAt(root, path), axis).filter(
+    item => item.node.id !== id || isSplit(item.node)
+  );
+  return replaceAt(root, path, buildRun(axis, items));
 }
 
 /** Replaces leaf `oldId` with `newId`, keeping its position. */
@@ -242,7 +314,29 @@ export function move(root, id, targetId, zone) {
   return split(rest, targetId, zone, id);
 }
 
-/** Sets the ratio of the split at `path`. */
+/** Writes new item sizes into an existing run, keeping its shape. */
+function reweight(node, axis, sizes) {
+  if (!isSplit(node) || node.axis !== axis) {
+    return { node, size: sizes.shift() };
+  }
+  const first = reweight(node.first, axis, sizes);
+  const second = reweight(node.second, axis, sizes);
+  return {
+    node: {
+      ...node,
+      ratio: clampRatio(first.size / (first.size + second.size)),
+      first: first.node,
+      second: second.node,
+    },
+    size: first.size + second.size,
+  };
+}
+
+/**
+ * Moves the splitter of the split at `path` so its first child takes `ratio`.
+ * Only the two panes touching the splitter change size; the other items of
+ * a run keep theirs.
+ */
 export function setRatio(root, path, ratio) {
   const target = nodeAt(root, path);
   if (!target || !isSplit(target)) {
@@ -252,16 +346,17 @@ export function setRatio(root, path, ratio) {
   if (Math.abs(value - target.ratio) < EPSILON) {
     return root;
   }
-  const rebuild = (node, depth) => {
-    if (depth === path.length) {
-      return { ...node, ratio: value };
-    }
-    if (path[depth] === "0") {
-      return { ...node, first: rebuild(node.first, depth + 1) };
-    }
-    return { ...node, second: rebuild(node.second, depth + 1) };
-  };
-  return rebuild(root, 0);
+  const a = flatten(target.first, target.axis, target.ratio);
+  const b = flatten(target.second, target.axis, 1 - target.ratio);
+  const last = a[a.length - 1];
+  const delta = Math.min(
+    b[0].share - MIN_RATIO,
+    Math.max(MIN_RATIO - last.share, value - target.ratio)
+  );
+  last.share += delta;
+  b[0].share -= delta;
+  const sizes = [...a, ...b].map(item => item.share);
+  return replaceAt(root, path, reweight(target, target.axis, sizes).node);
 }
 
 /**
@@ -307,46 +402,57 @@ export function computeLayout(root, rect, splitterSize = 0) {
       leaves.push({ id: node.id, x, y, width, height });
       return;
     }
-    if (node.axis === "row") {
-      const usable = Math.max(0, width - splitterSize);
-      const firstWidth = Math.round(usable * node.ratio);
-      visit(node.first, x, y, firstWidth, height, path + "0");
+    // Every splitter in a run takes the same space, so panes with equal
+    // shares get equal sizes however the run is nested.
+    const row = node.axis === "row";
+    const before = flatten(node.first, node.axis).length - 1;
+    const count = before + flatten(node.second, node.axis).length + 1;
+    const extent = row ? width : height;
+    const usable = Math.max(0, extent - (count - 1) * splitterSize);
+    const offset = before * splitterSize;
+    const firstSize = Math.round(usable * node.ratio) + offset;
+    const rest = Math.max(0, extent - firstSize - splitterSize);
+    const box = { x, y, width, height };
+    if (row) {
+      visit(node.first, x, y, firstSize, height, path + "0");
       splitters.push({
         path,
         axis: "row",
-        x: x + firstWidth,
+        x: x + firstSize,
         y,
         width: splitterSize,
         height,
-        rect: { x, y, width, height },
+        rect: box,
+        usable,
+        offset,
       });
       visit(
         node.second,
-        x + firstWidth + splitterSize,
+        x + firstSize + splitterSize,
         y,
-        usable - firstWidth,
+        rest,
         height,
         path + "1"
       );
     } else {
-      const usable = Math.max(0, height - splitterSize);
-      const firstHeight = Math.round(usable * node.ratio);
-      visit(node.first, x, y, width, firstHeight, path + "0");
+      visit(node.first, x, y, width, firstSize, path + "0");
       splitters.push({
         path,
         axis: "column",
         x,
-        y: y + firstHeight,
+        y: y + firstSize,
         width,
         height: splitterSize,
-        rect: { x, y, width, height },
+        rect: box,
+        usable,
+        offset,
       });
       visit(
         node.second,
         x,
-        y + firstHeight + splitterSize,
+        y + firstSize + splitterSize,
         width,
-        usable - firstHeight,
+        rest,
         path + "1"
       );
     }
@@ -370,16 +476,21 @@ export function ratioBounds(root, path, rect, minWidth, minHeight) {
     sp => sp.path === path
   );
   const extent = target.axis === "row" ? box.width : box.height;
-  const a = minSize(target.first, minWidth, minHeight);
-  const b = minSize(target.second, minWidth, minHeight);
-  const minFirst = target.axis === "row" ? a.width : a.height;
-  const minSecond = target.axis === "row" ? b.width : b.height;
-  if (extent <= 0 || minFirst + minSecond > extent) {
+  const a = flatten(target.first, target.axis, target.ratio);
+  const b = flatten(target.second, target.axis, 1 - target.ratio);
+  const last = a[a.length - 1];
+  const along = node => {
+    const size = minSize(node, minWidth, minHeight);
+    return (target.axis === "row" ? size.width : size.height) / extent;
+  };
+  const shrinkFirst = last.share - along(last.node);
+  const shrinkSecond = b[0].share - along(b[0].node);
+  if (extent <= 0 || shrinkFirst < 0 || shrinkSecond < 0) {
     return { min: target.ratio, max: target.ratio };
   }
   return {
-    min: Math.max(MIN_RATIO, minFirst / extent),
-    max: Math.min(1 - MIN_RATIO, 1 - minSecond / extent),
+    min: Math.max(MIN_RATIO, target.ratio - shrinkFirst),
+    max: Math.min(1 - MIN_RATIO, target.ratio + shrinkSecond),
   };
 }
 
@@ -388,17 +499,10 @@ export function canSplit(root, targetId, direction, rect, minWidth, minHeight) {
   if (!hasLeaf(root, targetId)) {
     return false;
   }
-  const probe = Symbol("probe");
-  const next = split(root, targetId, direction, probe);
-  const { width, height } = minSize(next, minWidth, minHeight);
-  if (width > rect.width || height > rect.height) {
-    return false;
-  }
-  const target = computeLayout(root, rect).leaves.find(r => r.id === targetId);
-  const axis = DIRECTIONS[direction].axis;
-  return axis === "row"
-    ? target.width >= 2 * minWidth
-    : target.height >= 2 * minHeight;
+  const next = split(root, targetId, direction, Symbol("probe"));
+  return computeLayout(next, rect).leaves.every(
+    r => r.width >= minWidth && r.height >= minHeight
+  );
 }
 
 /**

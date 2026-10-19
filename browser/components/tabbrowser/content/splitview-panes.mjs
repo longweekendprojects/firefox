@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser, isBlankPageURL, openTrustedLinkIn, UrlbarUtils, BrowserUIUtils */
+/* global gBrowser, isBlankPageURL, openTrustedLinkIn, UrlbarUtils, BrowserUtils */
 
 /**
  * Renders the active split view as a recursive layout of panes.
@@ -367,20 +367,22 @@ function updateHeader(tab) {
 
 /**
  * Address of `tab` taken from browser state, never from page content, with
- * any credentials removed.
+ * any credentials removed. Unfocused fields show only the site, such as
+ * "example.com"; a focused field shows the full address for editing.
  */
 function displayURL(tab, full) {
   const uri = tab.linkedBrowser.currentURI;
   if (!uri || isBlankPageURL(uri.spec)) {
     return "";
   }
-  let spec;
   try {
-    spec = Services.io.createExposableURI(uri).displaySpec;
+    const exposable = Services.io.createExposableURI(uri);
+    return full
+      ? exposable.displaySpec
+      : BrowserUtils.formatURIForDisplay(exposable, { onlyBaseDomain: true });
   } catch (e) {
-    spec = uri.spec;
+    return uri.spec;
   }
-  return full ? spec : BrowserUIUtils.trimURL(spec);
 }
 
 function onCommand(event) {
@@ -466,18 +468,13 @@ async function navigate(tab, text) {
 }
 
 /**
- * Starts a pane bar press. The bar background and the unfocused address field
- * act as a drag handle; buttons and a focused address field keep their own
- * behavior.
+ * Starts a pane bar press. Every part of the bar except a focused address
+ * field is a drag handle. A press that does not move acts as a click on the
+ * button or address field under it.
  */
 function onHeaderPointerDown(event) {
   const header = event.target.closest?.(".split-pane-header");
-  if (
-    !header ||
-    event.button != 0 ||
-    !current ||
-    event.target.closest("toolbarbutton")
-  ) {
+  if (!header || event.button != 0 || !current) {
     return;
   }
   const input = event.target.classList.contains("split-pane-url")
@@ -486,8 +483,10 @@ function onHeaderPointerDown(event) {
   if (input && document.activeElement === input) {
     return;
   }
+  // Capture at once, so a fast drag keeps reporting while over a page.
   header.setPointerCapture(event.pointerId);
   const g = {
+    button: event.target.closest("toolbarbutton"),
     header,
     tab: header._tab,
     input,
@@ -520,6 +519,11 @@ function onHeaderPointerMove(event) {
   if (!grab || !current || !splitterBox) {
     return;
   }
+  if (!(event.buttons & 1)) {
+    // The button was released where this window could not see it.
+    onHeaderPointerUp({ type: "pointercancel", pointerId: event.pointerId });
+    return;
+  }
   if (!grab.moved) {
     const distance = Math.hypot(event.clientX - grab.x, event.clientY - grab.y);
     if (distance < DRAG_THRESHOLD) {
@@ -548,6 +552,19 @@ function onHeaderPointerUp(event) {
   g.header.removeAttribute("dragging");
   g.indicator?.remove();
   if (!g.moved) {
+    // Capture sends the click to the bar, so press the button here.
+    if (g.button && !g.button.disabled && event.type == "pointerup") {
+      const r = g.button.getBoundingClientRect();
+      if (
+        event.clientX >= r.left &&
+        event.clientX <= r.right &&
+        event.clientY >= r.top &&
+        event.clientY <= r.bottom
+      ) {
+        g.button.doCommand();
+      }
+      return;
+    }
     if (g.input && event.type == "pointerup") {
       if (g.switching) {
         g.focusOnSwitch = true;
@@ -655,10 +672,9 @@ function layoutSplitters(layout, splitters) {
 
 /** Ratio for a splitter placed at `position` (px inside tabpanels). */
 function clampedRatio(splitter, position) {
-  const { rect, axis, path } = splitter;
+  const { rect, axis, path, usable, offset } = splitter;
   const start = axis == "row" ? rect.x : rect.y;
-  const extent = (axis == "row" ? rect.width : rect.height) - GAP;
-  const ratio = (position - start - GAP / 2) / Math.max(1, extent);
+  const ratio = (position - start - offset - GAP / 2) / Math.max(1, usable);
   return clampRatio(path, ratio);
 }
 

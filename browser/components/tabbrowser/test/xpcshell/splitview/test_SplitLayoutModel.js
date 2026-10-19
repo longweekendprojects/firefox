@@ -97,10 +97,17 @@ add_task(function test_directional_neighbor_uses_geometry() {
 add_task(function test_min_size_limits() {
   const t = guideTree();
   Assert.ok(M.canSplit(t, "A", "right", RECT, 140, 100));
-  Assert.ok(!M.canSplit(t, "C", "right", RECT, 140, 100), "C is too narrow");
+  Assert.ok(
+    !M.canSplit(t, "C", "right", RECT, 200, 100),
+    "C and D cannot share their row three ways"
+  );
   const b = M.ratioBounds(t, "", RECT, 100, 100);
-  Assert.equal(b.min, 0.1);
-  Assert.equal(b.max, 0.8, "right side needs room for C and D");
+  Assert.equal(b.min.toFixed(6), "0.100000");
+  Assert.equal(
+    b.max.toFixed(6),
+    "0.800000",
+    "right side needs room for C and D"
+  );
 });
 
 add_task(function test_serialize_round_trip() {
@@ -191,4 +198,68 @@ add_task(function test_move_pane() {
 
   Assert.equal(M.move(t, "A", "A", "left"), t, "moving onto itself is a no-op");
   Assert.equal(M.move(t, "Z", "A", "left"), t, "missing pane is a no-op");
+});
+
+function widths(t) {
+  const { leaves } = M.computeLayout(t, {
+    x: 0,
+    y: 0,
+    width: 900,
+    height: 600,
+  });
+  return Object.fromEntries(leaves.map(l => [l.id, l.width]));
+}
+
+add_task(function test_equal_panes_stay_equal() {
+  let t = M.split(M.fromIds(["A", "B"]), "B", "right", "C");
+  Assert.deepEqual(widths(t), { A: 300, B: 300, C: 300 }, "three thirds");
+  t = M.split(t, "A", "left", "Z");
+  Assert.deepEqual(
+    widths(t),
+    { Z: 225, A: 225, B: 225, C: 225 },
+    "a left split joins the row too"
+  );
+  Assert.deepEqual(
+    widths(M.remove(t, "Z")),
+    { A: 300, B: 300, C: 300 },
+    "closing a pane gives its space back evenly"
+  );
+  Assert.deepEqual(
+    widths(M.remove(M.remove(t, "Z"), "B")),
+    { A: 450, C: 450 },
+    "two panes return to halves"
+  );
+  const down = M.split(t, "B", "down", "D");
+  Assert.deepEqual(
+    widths(down),
+    { ...widths(t), D: 225 },
+    "a split across keeps widths"
+  );
+});
+
+add_task(function test_manual_sizes_are_kept() {
+  const t = M.split(M.fromIds(["A", "B"]), "B", "right", "C");
+  const dragged = M.setRatio(t, "", 0.5);
+  Assert.deepEqual(
+    widths(dragged),
+    { A: 450, B: 150, C: 300 },
+    "a divider drag moves only its two neighbors"
+  );
+  Assert.deepEqual(
+    widths(M.remove(dragged, "C")),
+    { A: 675, B: 225 },
+    "closing scales the remaining panes in proportion"
+  );
+  Assert.deepEqual(
+    widths(M.split(M.remove(dragged, "C"), "B", "right", "C")),
+    { A: 540, B: 180, C: 180 },
+    "a new pane copies its source's share and the row scales to fit"
+  );
+  const bounds = M.ratioBounds(t, "", RECT, 100, 100);
+  Assert.equal(bounds.min.toFixed(4), (0.1).toFixed(4), "A keeps its minimum");
+  Assert.equal(
+    bounds.max.toFixed(4),
+    (2 / 3 - 0.1).toFixed(4),
+    "B keeps its minimum; C is untouched"
+  );
 });

@@ -476,10 +476,10 @@ add_task(async function test_accel_w_after_clicking_a_pane() {
   }
 });
 
-async function dragHeader(tab, target, fx, fy) {
-  // The unfocused address field is the pane bar's drag handle.
+async function dragHeader(tab, target, fx, fy, part = ".split-pane-url") {
+  // Every part of the pane bar is a drag handle.
   gBrowser.selectedBrowser.focus();
-  const handle = paneHeader(tab).querySelector(".split-pane-url");
+  const handle = paneHeader(tab).querySelector(part);
   const panel = document.getElementById(target.linkedPanel);
   const from = handle.getBoundingClientRect();
   const to = panel.getBoundingClientRect();
@@ -489,7 +489,12 @@ async function dragHeader(tab, target, fx, fy) {
   };
   const end = { x: to.left + to.width * fx, y: to.top + to.height * fy };
   const at = (x, y, type) =>
-    EventUtils.synthesizeMouseAtPoint(x, y, { type }, window);
+    EventUtils.synthesizeMouseAtPoint(
+      x,
+      y,
+      { type, buttons: type == "mouseup" ? 0 : 1 },
+      window
+    );
   at(start.x, start.y, "mousedown");
   for (let i = 1; i <= 5; i++) {
     at(
@@ -539,6 +544,27 @@ add_task(async function test_drag_pane_header_moves_pane() {
     "the drop indicator is removed"
   );
 
+  // A drag that starts on a button moves the pane and does not press it.
+  const [p, q] = M.leafIds(sv.layout);
+  let closed = false;
+  const onClose = () => (closed = true);
+  gBrowser.tabContainer.addEventListener("TabClose", onClose);
+  await dragHeader(p, q, 0.5, 0.5, ".split-pane-close");
+  gBrowser.tabContainer.removeEventListener("TabClose", onClose);
+  Assert.ok(!closed && p.isConnected, "the close button was not pressed");
+  Assert.equal(M.leafIds(sv.layout)[1], p, "dragging from a button swaps");
+
+  // A plain click on a pane bar button still presses it.
+  const victim = sv.tabs.find(t => !t.selected);
+  EventUtils.synthesizeMouseAtCenter(
+    paneHeader(victim).querySelector(".split-pane-close"),
+    {}
+  );
+  await TestUtils.waitForCondition(
+    () => !victim.isConnected,
+    "a click on Close closes the pane"
+  );
+
   // A click without movement still focuses the pane's address field.
   const other = sv.tabs.find(t => !t.selected);
   const input = paneHeader(other).querySelector(".split-pane-url");
@@ -549,6 +575,39 @@ add_task(async function test_drag_pane_header_moves_pane() {
   );
   Assert.equal(gBrowser.selectedTab, other, "and selects the pane");
 
+  for (const t of [...sv.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
+add_task(async function test_panes_resize_evenly() {
+  const tab = await addLoadedTab();
+  gBrowser.selectedTab = tab;
+  await SimpleTest.promiseFocus(window);
+  for (let i = 0; i < 2; i++) {
+    const count = tab.splitview?.tabs.length ?? 1;
+    BrowserCommands.splitPane("right");
+    await TestUtils.waitForCondition(
+      () => tab.splitview?.tabs.length == count + 1
+    );
+  }
+  const sv = tab.splitview;
+  await TestUtils.waitForTick();
+  const widths = () => sv.tabs.map(t => Math.round(rect(t).w));
+  const [w0, w1, w2] = widths();
+  Assert.lessOrEqual(Math.max(w0, w1, w2) - Math.min(w0, w1, w2), 2, "thirds");
+  BrowserTestUtils.removeTab(sv.tabs[2]);
+  await TestUtils.waitForCondition(() => sv.tabs.length == 2);
+  await TestUtils.waitForTick();
+  const [h0, h1] = widths();
+  Assert.lessOrEqual(Math.abs(h0 - h1), 2, "back to halves after a close");
+  Assert.greater(h0, w0 * 1.3, "the remaining panes grew");
+  gBrowser.selectedBrowser.focus();
+  Assert.equal(
+    paneHeader(tab).querySelector(".split-pane-url").value,
+    "example.com",
+    "an unfocused address field shows only the site"
+  );
   for (const t of [...sv.tabs]) {
     BrowserTestUtils.removeTab(t);
   }

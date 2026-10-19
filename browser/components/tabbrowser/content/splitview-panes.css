@@ -31,16 +31,17 @@
 .split-pane-header {
   display: flex;
   align-items: center;
-  gap: var(--space-xxsmall);
-  min-height: 28px;
-  padding-inline: var(--space-xxsmall);
+  gap: var(--space-xsmall);
+  min-height: 36px;
+  padding-block: var(--space-xsmall);
+  padding-inline: var(--space-small);
   color: var(--toolbar-text-color);
   background-color: var(--toolbar-background-color);
 
   > toolbarbutton {
     appearance: none;
-    padding: var(--space-xxsmall);
-    border-radius: var(--border-radius-small);
+    padding: var(--space-xsmall);
+    border-radius: var(--border-radius-medium);
     -moz-context-properties: fill, fill-opacity;
     fill: currentColor;
 
@@ -67,14 +68,21 @@
 .split-pane-url {
   flex: 1;
   min-width: 0;
-  height: 22px;
-  margin: 0;
+  height: 26px;
+  margin-inline: var(--space-xsmall);
   padding-inline: var(--space-small);
   border: 1px solid transparent;
-  border-radius: var(--border-radius-small);
-  color: var(--toolbar-field-color);
-  background-color: var(--toolbar-field-background-color);
+  border-radius: var(--border-radius-medium);
+  color: inherit;
+  /* Unfocused, the field blends into the bar and shows only the site. */
+  background-color: transparent;
   font: inherit;
+  text-overflow: ellipsis;
+
+  &:focus {
+    color: var(--toolbar-field-color);
+    background-color: var(--toolbar-field-background-color);
+  }
 
   &:focus-visible {
     outline: var(--focus-outline);
@@ -133,7 +141,7 @@
     opacity: var(--opacity-deemphasized);
   }
 
-  > toolbarbutton {
+  > toolbarbutton:not([dragging] > *) {
     cursor: default;
   }
 }
