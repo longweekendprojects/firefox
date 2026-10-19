@@ -557,12 +557,18 @@ def sign_with_codesign(
             else:
                 cs_cmd.append(entitlement_file)
 
+        matched = False
         for pathglob in signing_group["globs"]:
             binary_paths = glob.glob(
                 os.path.join(app, pathglob.strip("/")), recursive=True
             )
             for binary_path in binary_paths:
                 cs_cmd.append(binary_path)
+                matched = True
+
+        # Artifact builds omit some helpers; skip groups with nothing to sign.
+        if not matched:
+            continue
 
         run(ctx, cs_cmd, capture_output=not verbose_arg)
 
