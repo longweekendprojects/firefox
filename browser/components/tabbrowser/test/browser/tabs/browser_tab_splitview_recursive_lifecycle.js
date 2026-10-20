@@ -188,7 +188,8 @@ add_task(async function test_accel_z_reopens_closed_pane() {
   await TestUtils.waitForCondition(() => sv.tabs.length == 2);
   // Two panes left: closing one more unsplits into a plain tab.
   const b = tabs[1];
-  await BrowserTestUtils.switchTab(gBrowser, b);
+  // Closing C already selected its neighbor B.
+  Assert.ok(b.selected, "closing C selects B");
   await TabStateFlusher.flush(b.linkedBrowser);
   BrowserTestUtils.removeTab(b);
   await TestUtils.waitForCondition(() => !sv.isConnected);
@@ -216,7 +217,25 @@ add_task(async function test_accel_z_reopens_closed_pane() {
   Assert.equal(c2.splitview, b2.splitview, "C rejoins the same split");
   Assert.less(rectOf(b2).y, rectOf(c2).y, "C back below B");
 
-  // A text field keeps Accel+Z for its own undo.
+  // A text field, in chrome or in a page, keeps Accel+Z for its own undo.
+  await SpecialPowers.spawn(c2.linkedBrowser, [], () => {
+    const input = content.document.createElement("input");
+    content.document.body.append(input);
+    input.focus();
+  });
+  await TestUtils.waitForCondition(
+    () =>
+      window.windowUtils.IMEStatus != Ci.nsIDOMWindowUtils.IME_STATUS_DISABLED
+  );
+  const beforePage = SessionStore.getClosedTabCountForWindow(window);
+  EventUtils.synthesizeKey("z", { accelKey: true });
+  await TestUtils.waitForTick();
+  Assert.equal(
+    SessionStore.getClosedTabCountForWindow(window),
+    beforePage,
+    "nothing reopened from a page text field"
+  );
+
   const closedBefore = SessionStore.getClosedTabCountForWindow(window);
   gURLBar.focus();
   EventUtils.synthesizeKey("z", { accelKey: true });

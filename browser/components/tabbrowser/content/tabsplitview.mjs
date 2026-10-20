@@ -563,7 +563,10 @@ export class MozTabSplitViewWrapper extends MozXULElement {
       });
     }
     this.#isClosing = true;
-    gBrowser.removeTabs(this.#tabs);
+    // Read current members: a pane closed moments ago may still be listed in
+    // #tabs, and passing it on can make this look like closing every tab in
+    // the window, which closes the window.
+    gBrowser.removeTabs(this.tabs.filter(tab => !tab.closing));
   }
 
   #setLayout(layout) {

@@ -9100,6 +9100,20 @@ export class Tabbrowser {
       return;
     }
 
+    // Accel+Z outside a text field reopens what was closed last. The key
+    // press would otherwise do nothing there.
+    if (
+      this.#isUndoCloseKey(aEvent) &&
+      lazy.SessionStore.lastClosedActions.length &&
+      this.documentGlobal.SessionWindowUI
+    ) {
+      this.documentGlobal.SessionWindowUI.restoreLastClosedTabOrWindowOrSession(
+        this.documentGlobal
+      );
+      aEvent.preventDefault();
+      return;
+    }
+
     // We only want to request reply if this is an actual action.
     const action = lazy.ShortcutUtils.getSystemActionForEvent(aEvent);
     if (
@@ -9233,23 +9247,6 @@ export class Tabbrowser {
       return;
     }
 
-    if (this.#isUndoCloseKey(aEvent)) {
-      if (
-        aEvent.defaultPrevented ||
-        this.#maybeRequestReplyFromRemoteContent(aEvent)
-      ) {
-        return;
-      }
-      const { SessionWindowUI } = this.documentGlobal;
-      if (lazy.SessionStore.lastClosedActions.length && SessionWindowUI) {
-        SessionWindowUI.restoreLastClosedTabOrWindowOrSession(
-          this.documentGlobal
-        );
-        aEvent.preventDefault();
-      }
-      return;
-    }
-
     switch (
       lazy.ShortcutUtils.getSystemActionForEvent(aEvent, {
         rtl: this.documentGlobal.RTL_UI,
@@ -9285,9 +9282,8 @@ export class Tabbrowser {
   }
 
   /**
-   * Whether `aEvent` is Accel+Z with nothing to undo in a text field, which
-   * reopens the most recently closed tab, pane, or window. Text fields and
-   * pages that handle the key themselves keep it.
+   * Whether `aEvent` is Accel+Z while no text field, in chrome or in a page,
+   * has focus. Text fields keep Accel+Z for their own undo.
    *
    * @param {KeyboardEvent} aEvent
    */
@@ -9302,11 +9298,11 @@ export class Tabbrowser {
     ) {
       return false;
     }
-    const focused = this.document.commandDispatcher.focusedElement;
-    return !(
-      HTMLInputElement.isInstance(focused) ||
-      HTMLTextAreaElement.isInstance(focused) ||
-      focused?.isContentEditable
+    // The input method state covers text fields in chrome and in pages, in
+    // any process: it is enabled whenever an editable element has focus.
+    return (
+      this.documentGlobal.windowUtils.IMEStatus ==
+      Ci.nsIDOMWindowUtils.IME_STATUS_DISABLED
     );
   }
 
