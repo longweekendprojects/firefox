@@ -71,8 +71,9 @@ add_task(function test_layout_geometry_and_splitters() {
   const { leaves, splitters } = M.computeLayout(guideTree(), RECT, 4);
   const byId = Object.fromEntries(leaves.map(l => [l.id, l]));
   Assert.equal(splitters.length, 3, "one splitter per split node");
-  Assert.deepEqual(byId.A, { id: "A", x: 0, y: 0, width: 498, height: 1000 });
-  Assert.equal(byId.B.x, 502);
+  // A holds one of four panes, so it takes a quarter of the width.
+  Assert.deepEqual(byId.A, { id: "A", x: 0, y: 0, width: 249, height: 1000 });
+  Assert.equal(byId.B.x, 253);
   Assert.equal(byId.C.y, byId.D.y);
   Assert.equal(byId.D.x + byId.D.width, 1000, "fills the container");
   Assert.equal(byId.C.y + byId.C.height, 1000);
@@ -89,7 +90,8 @@ add_task(function test_directional_neighbor_uses_geometry() {
   Assert.equal(M.findNeighbor(t, "C", "left"), "A");
   Assert.equal(M.findNeighbor(t, "C", "right"), "D");
   Assert.equal(M.findNeighbor(t, "B", "down"), "C", "tie broken by order");
-  Assert.equal(M.findNeighbor(t, "A", "right"), "B", "tie broken by order");
+  // B takes a third of the height and C and D two thirds, so C is nearer.
+  Assert.equal(M.findNeighbor(t, "A", "right"), "C", "closest center wins");
   Assert.equal(M.findNeighbor(t, "A", "left"), null, "edge returns null");
   Assert.equal(M.findNeighbor(t, "D", "right"), null);
 });
@@ -98,8 +100,8 @@ add_task(function test_min_size_limits() {
   const t = guideTree();
   Assert.ok(M.canSplit(t, "A", "right", RECT, 140, 100));
   Assert.ok(
-    !M.canSplit(t, "C", "right", RECT, 200, 100),
-    "C and D cannot share their row three ways"
+    !M.canSplit(t, "C", "right", RECT, 210, 100),
+    "a sixth pane would leave A narrower than the minimum"
   );
   const b = M.ratioBounds(t, "", RECT, 100, 100);
   Assert.equal(b.min.toFixed(6), "0.100000");
@@ -230,10 +232,12 @@ add_task(function test_equal_panes_stay_equal() {
     "two panes return to halves"
   );
   const down = M.split(t, "B", "down", "D");
+  // B and D share a column, so it is twice as wide and every pane has the
+  // same area.
   Assert.deepEqual(
     widths(down),
-    { ...widths(t), D: 225 },
-    "a split across keeps widths"
+    { Z: 180, A: 180, B: 360, D: 360, C: 180 },
+    "a split across rebalances to equal areas"
   );
 });
 
@@ -262,4 +266,28 @@ add_task(function test_manual_sizes_are_kept() {
     (2 / 3 - 0.1).toFixed(4),
     "B keeps its minimum; C is untouched"
   );
+});
+
+add_task(function test_nested_panes_get_equal_areas() {
+  const R = { x: 0, y: 0, width: 1600, height: 1000 };
+  let t = M.leaf("A");
+  t = M.split(t, "A", "right", "B");
+  t = M.split(t, "B", "right", "C");
+  t = M.split(t, "A", "down", "D");
+  t = M.split(t, "B", "down", "E");
+  t = M.split(t, "B", "right", "F");
+  t = M.split(t, "D", "down", "G");
+  t = M.split(t, "E", "down", "H");
+  const areas = M.computeLayout(t, R).leaves.map(l => l.width * l.height);
+  const ideal = (R.width * R.height) / areas.length;
+  for (const area of areas) {
+    Assert.less(Math.abs(area - ideal) / ideal, 0.02, "every pane is equal");
+  }
+  const dragged = M.setRatio(t, "", 0.6);
+  const before = M.computeLayout(dragged, R).leaves[0].width;
+  const after = M.computeLayout(M.split(dragged, "C", "down", "Z"), R).leaves[0]
+    .width;
+  Assert.equal(before, after, "a hand-set split keeps its size");
+  const restored = M.deserialize(M.serialize(dragged), M.leafIds(dragged));
+  Assert.ok(restored.manual, "hand-set sizes survive a restart");
 });

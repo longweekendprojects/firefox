@@ -11,6 +11,10 @@
  *
  * "row" places first left of second; "column" places first above second.
  * `ratio` is the share of the first child, in (0, 1).
+ *
+ * Splits are balanced: each child's share is proportional to its number of
+ * leaves, so every pane gets the same area however the tree is nested.
+ * A split the user resized carries `manual: true` and keeps its ratio.
  * Leaf ids are opaque primitives chosen by the caller.
  * Split nodes are addressed by path strings of "0" (first) and "1" (second);
  * the root split has path "".
@@ -145,18 +149,63 @@ function flatten(node, axis, share = 1, out = []) {
   return out;
 }
 
-/** Builds a run from items, scaling their shares to fill the run. */
-function buildRun(axis, items) {
+/**
+ * Builds a run from items, scaling their shares to fill the run. A manual
+ * run keeps these shares; other runs are rebalanced by `balance`.
+ */
+function buildRun(axis, items, manual = false) {
   if (items.length == 1) {
     return items[0].node;
   }
   const total = items.reduce((sum, item) => sum + item.share, 0);
-  return {
+  const node = {
     axis,
     ratio: clampRatio(items[0].share / total),
     first: items[0].node,
-    second: buildRun(axis, items.slice(1)),
+    second: buildRun(axis, items.slice(1), manual),
   };
+  if (manual) {
+    node.manual = true;
+  }
+  return node;
+}
+
+/** Whether any split of the run starting at `node` was resized by hand. */
+function isManualRun(node, axis) {
+  return (
+    isSplit(node) &&
+    node.axis === axis &&
+    (!!node.manual ||
+      isManualRun(node.first, axis) ||
+      isManualRun(node.second, axis))
+  );
+}
+
+function leafCount(node) {
+  return isSplit(node) ? leafCount(node.first) + leafCount(node.second) : 1;
+}
+
+/**
+ * Gives every split that was not resized by hand a ratio proportional to the
+ * leaves on each side, so all panes get equal areas. Reuses unchanged nodes.
+ */
+function balance(node) {
+  if (!node || !isSplit(node)) {
+    return node;
+  }
+  const first = balance(node.first);
+  const second = balance(node.second);
+  const ratio = node.manual
+    ? node.ratio
+    : leafCount(first) / (leafCount(first) + leafCount(second));
+  if (
+    first === node.first &&
+    second === node.second &&
+    Math.abs(ratio - node.ratio) < EPSILON
+  ) {
+    return node;
+  }
+  return { ...node, ratio, first, second };
 }
 
 /**
@@ -210,7 +259,7 @@ export function split(root, targetId, direction, newId) {
   const added = leaf(newId);
   const path = runPath(root, targetId, dir.axis);
   if (path === null) {
-    return mapLeaves(root, node =>
+    const next = mapLeaves(root, node =>
       node.id === targetId
         ? {
             axis: dir.axis,
@@ -220,14 +269,17 @@ export function split(root, targetId, direction, newId) {
           }
         : node
     );
+    return balance(next);
   }
-  const items = flatten(nodeAt(root, path), dir.axis);
+  const run = nodeAt(root, path);
+  const items = flatten(run, dir.axis);
   const index = items.findIndex(item => item.node.id === targetId);
   items.splice(dir.before ? index : index + 1, 0, {
     node: added,
     share: items[index].share,
   });
-  return replaceAt(root, path, buildRun(dir.axis, items));
+  const manual = isManualRun(run, dir.axis);
+  return balance(replaceAt(root, path, buildRun(dir.axis, items, manual)));
 }
 
 /**
@@ -248,10 +300,13 @@ export function remove(root, id) {
   }
   const axis = nodeAt(root, parent).axis;
   const path = runPath(root, id, axis);
-  const items = flatten(nodeAt(root, path), axis).filter(
+  const run = nodeAt(root, path);
+  const items = flatten(run, axis).filter(
     item => item.node.id !== id || isSplit(item.node)
   );
-  return replaceAt(root, path, buildRun(axis, items));
+  return balance(
+    replaceAt(root, path, buildRun(axis, items, isManualRun(run, axis)))
+  );
 }
 
 /** Replaces leaf `oldId` with `newId`, keeping its position. */
@@ -273,7 +328,7 @@ export function mirror(root) {
     return root;
   }
   return {
-    axis: root.axis,
+    ...root,
     ratio: clampRatio(1 - root.ratio),
     first: mirror(root.second),
     second: mirror(root.first),
@@ -324,6 +379,7 @@ function reweight(node, axis, sizes) {
   return {
     node: {
       ...node,
+      manual: true,
       ratio: clampRatio(first.size / (first.size + second.size)),
       first: first.node,
       second: second.node,
@@ -582,6 +638,7 @@ export function serialize(root) {
       ? {
           axis: node.axis,
           ratio: Math.round(node.ratio * 10000) / 10000,
+          ...(node.manual ? { manual: true } : {}),
           first: encode(node.first),
           second: encode(node.second),
         }
@@ -625,9 +682,19 @@ export function deserialize(data, validIds) {
       if (!first || !second) {
         return first || second;
       }
-      return { axis: node.axis, ratio: clampRatio(node.ratio), first, second };
+      const decoded = {
+        axis: node.axis,
+        ratio: clampRatio(node.ratio),
+        first,
+        second,
+      };
+      if (node.manual === true) {
+        decoded.manual = true;
+      }
+      return decoded;
     };
-    return decode(data.root, 0);
+    // Layouts saved before balancing existed are balanced on load.
+    return balance(decode(data.root, 0));
   } catch (e) {
     return null;
   }

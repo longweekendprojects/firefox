@@ -122,12 +122,13 @@ add_task(async function test_keyboard_resize_and_restore_layout() {
     await addLoadedTab(),
   ];
   await BrowserTestUtils.switchTab(gBrowser, tabs[0]);
-  // Restore a saved layout: 0 | (1 over 2), ratio 0.3.
+  // Restore a saved layout: 0 | (1 over 2), resized by hand to 0.3.
   const layout = {
     version: 1,
     root: {
       axis: "row",
       ratio: 0.3,
+      manual: true,
       first: { id: 0 },
       second: {
         axis: "column",
