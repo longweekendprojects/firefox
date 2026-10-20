@@ -244,9 +244,9 @@ function replaceAt(root, path, node, depth = 0) {
  * is missing or `newId` already exists.
  *
  * When the target already sits in a run along the split's axis, the new leaf
- * joins that run with the target's share and every item shrinks in
- * proportion. Equal panes therefore stay equal: two halves become three
- * thirds. Otherwise the target is halved.
+ * joins that run with an equal share and every item shrinks in proportion.
+ * Two halves therefore become three thirds, even after a hand resize.
+ * Otherwise the target is halved.
  */
 export function split(root, targetId, direction, newId) {
   const dir = DIRECTIONS[direction];
@@ -274,11 +274,14 @@ export function split(root, targetId, direction, newId) {
   const run = nodeAt(root, path);
   const items = flatten(run, dir.axis);
   const index = items.findIndex(item => item.node.id === targetId);
+  const manual = isManualRun(run, dir.axis);
+  // A run the user resized gives the new pane an equal share of the run and
+  // shrinks the others in proportion, so hand-set halves become thirds.
+  const total = items.reduce((sum, item) => sum + item.share, 0);
   items.splice(dir.before ? index : index + 1, 0, {
     node: added,
-    share: items[index].share,
+    share: total / items.length,
   });
-  const manual = isManualRun(run, dir.axis);
   return balance(replaceAt(root, path, buildRun(dir.axis, items, manual)));
 }
 

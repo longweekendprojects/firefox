@@ -256,9 +256,19 @@ add_task(function test_manual_sizes_are_kept() {
   );
   Assert.deepEqual(
     widths(M.split(M.remove(dragged, "C"), "B", "right", "C")),
-    { A: 540, B: 180, C: 180 },
-    "a new pane copies its source's share and the row scales to fit"
+    { A: 450, B: 150, C: 300 },
+    "a new pane gets an equal share and the row scales to fit"
   );
+  const halves = M.setRatio(M.fromIds(["A", "B"]), "", 0.49);
+  Assert.ok(halves.manual, "a drag marks the split as hand-set");
+  const thirds = widths(M.split(halves, "B", "right", "C"));
+  for (const id of ["A", "B", "C"]) {
+    Assert.less(
+      Math.abs(thirds[id] - 300),
+      10,
+      `hand-set halves become thirds (${id})`
+    );
+  }
   const bounds = M.ratioBounds(t, "", RECT, 100, 100);
   Assert.equal(bounds.min.toFixed(4), (0.1).toFixed(4), "A keeps its minimum");
   Assert.equal(

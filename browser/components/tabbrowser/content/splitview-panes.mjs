@@ -44,6 +44,8 @@ export const MIN_PANE_HEIGHT = 120;
 const GAP = 6;
 // Ratio change for one splitter arrow key press.
 const KEY_STEP = 0.02;
+// Pointer travel (px) before a splitter press counts as a resize.
+const DRAG_SLOP = 3;
 // Pointer travel, in CSS pixels, before a pane bar press becomes a drag.
 const DRAG_THRESHOLD = 5;
 // Half-size of the central drop zone that swaps two panes, as a fraction.
@@ -820,11 +822,20 @@ function onSplitterPointerDown(event) {
   }
   event.preventDefault();
   el.setPointerCapture(event.pointerId);
-  drag = { el, ratio: null };
+  drag = { el, ratio: null, x: event.clientX, y: event.clientY };
 }
 
 function onSplitterPointerMove(event) {
   if (!drag || event.target !== drag.el || !current) {
+    return;
+  }
+  // A click with a little pointer jitter is not a resize, so it must not
+  // mark the split as resized by hand.
+  if (
+    drag.ratio === null &&
+    Math.abs(event.clientX - drag.x) < DRAG_SLOP &&
+    Math.abs(event.clientY - drag.y) < DRAG_SLOP
+  ) {
     return;
   }
   const splitter = drag.el._splitter;
