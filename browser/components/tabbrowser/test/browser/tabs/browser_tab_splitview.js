@@ -208,9 +208,9 @@ add_task(async function test_split_view_panels() {
   const menu = document.getElementById("split-view-menu");
   const promiseMenuShown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
   EventUtils.synthesizeMouseAtCenter(
-    document
-      .getElementById(gBrowser.selectedTab.linkedPanel)
-      .querySelector(".split-pane-menu"),
+    document.querySelector(
+      `.split-pane-header[panel="${gBrowser.selectedTab.linkedPanel}"] .split-pane-menu`
+    ),
     {}
   );
   await promiseMenuShown;

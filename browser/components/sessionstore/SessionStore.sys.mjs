@@ -4305,11 +4305,64 @@ class _SessionStore {
 
     // restore tab content
     this.#restoreTab(tab, state);
+    this.#restoreSplitPane(tab, tabbrowser);
 
     // Notify of changes to closed objects.
     this.#notifyOfClosedObjectsChange();
 
     return tab;
+  }
+
+  /**
+   * Puts a reopened split view pane back beside the neighbor it had when it
+   * closed, rebuilding the split view if the neighbor is now alone.
+   *
+   * @param {MozTabbrowserTab} tab
+   * @param {object} tabbrowser
+   */
+  #restoreSplitPane(tab, tabbrowser) {
+    const stored = this.getCustomTabValue(tab, "splitPaneClosed");
+    if (!stored) {
+      return;
+    }
+    this.deleteCustomTabValue(tab, "splitPaneClosed");
+    let data;
+    try {
+      data = JSON.parse(stored);
+    } catch (e) {
+      return;
+    }
+    const { neighbor: key, direction } = data ?? {};
+    if (
+      typeof key != "string" ||
+      !key ||
+      !["left", "right", "up", "down"].includes(direction) ||
+      tab.pinned
+    ) {
+      return;
+    }
+    const neighbor = tabbrowser.tabs.find(
+      other =>
+        other !== tab &&
+        !other.closing &&
+        this.getCustomTabValue(other, "splitPaneKey") === key
+    );
+    if (!neighbor || neighbor.pinned || neighbor.hidden) {
+      return;
+    }
+    const splitview = neighbor.splitview;
+    if (splitview) {
+      if (splitview.canSplitPane(neighbor, direction)) {
+        splitview.splitPane(neighbor, direction, tab);
+      }
+      return;
+    }
+    const created = tabbrowser.addTabSplitView([neighbor, tab], {
+      insertBefore: neighbor,
+    });
+    if (direction != "right") {
+      created?.splitPane(neighbor, direction, tab);
+    }
   }
 
   /**

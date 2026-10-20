@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser, isBlankPageURL, MozXULElement, XPCOMUtils */
+/* global gBrowser, isBlankPageURL, MozXULElement, SessionStore, XPCOMUtils */
 
 const { DeferredTask } = ChromeUtils.importESModule(
   "resource://gre/modules/DeferredTask.sys.mjs"
@@ -28,6 +28,10 @@ const updateUrlbarButton = new DeferredTask(() => {
     button.removeAttribute("data-active-index");
   }
 }, 0);
+
+// Session values that let a reopened pane find its old neighbor.
+const PANE_KEY = "splitPaneKey";
+const CLOSED_PANE = "splitPaneClosed";
 
 // The recursive layout model and the pane renderer load on first use, so
 // windows without a split view pay nothing for them.
@@ -689,6 +693,41 @@ export class MozTabSplitViewWrapper extends MozXULElement {
       }
     }
     return M.focusAfterRemove(layout, tab);
+  }
+
+  /**
+   * Records where the pane of `tab` sits, so reopening the closed tab puts it
+   * back beside the same neighbor. Panes are matched by a key kept with each
+   * tab's session data, which survives the neighbor closing and reopening.
+   *
+   * @param {MozTabbrowserTab} tab A member tab that is about to close.
+   */
+  notePaneClosing(tab) {
+    const M = layoutModel();
+    const layout = this.layout;
+    const path = M.parentPath(layout, tab);
+    const neighbor = M.focusAfterRemove(layout, tab);
+    if (path === null || !neighbor) {
+      return;
+    }
+    const split = M.nodeAt(layout, path);
+    const first = split.first.axis === undefined && split.first.id === tab;
+    const sides = split.axis == "row" ? ["left", "right"] : ["up", "down"];
+    const direction = first ? sides[0] : sides[1];
+    const key = t => {
+      let value = SessionStore.getCustomTabValue(t, PANE_KEY);
+      if (!value) {
+        value = Services.uuid.generateUUID().toString();
+        SessionStore.setCustomTabValue(t, PANE_KEY, value);
+      }
+      return value;
+    };
+    key(tab);
+    SessionStore.setCustomTabValue(
+      tab,
+      CLOSED_PANE,
+      JSON.stringify({ neighbor: key(neighbor), direction })
+    );
   }
 
   /**

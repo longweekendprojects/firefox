@@ -153,16 +153,80 @@ add_task(async function test_undo_close_member() {
   );
   const reopened = SessionStore.undoCloseTab(window, 0);
   await restoredPromise;
-  Assert.ok(!reopened.splitview, "reopened pane is an ordinary tab");
+  Assert.equal(reopened.splitview, sv, "reopened pane rejoins its split");
   Assert.ok(reopened.selected, "reopened tab selected");
-  Assert.equal(sv.tabs.length, 2, "split unchanged by undo");
-  Assert.equal(headerCount(), 0, "split hidden behind the reopened tab");
+  Assert.equal(sv.tabs.length, 3, "split has three panes again");
+  Assert.equal(headerCount(), 3, "every pane shows");
+  Assert.less(
+    rectOf(tabs[0]).x,
+    rectOf(reopened).x,
+    "reopened pane is back to the right of A"
+  );
+  Assert.less(
+    rectOf(reopened).y,
+    rectOf(tabs[2]).y,
+    "reopened pane is back above C"
+  );
   Assert.equal(reopened.linkedBrowser.currentURI.spec, PAGE, "page restored");
 
   // Closing the reopened tab must not resurrect stale split membership.
   await TabStateFlusher.flush(reopened.linkedBrowser);
   BrowserTestUtils.removeTab(reopened);
   await closeSplit(sv);
+});
+
+function rectOf(tab) {
+  return document.getElementById(tab.linkedPanel).getBoundingClientRect();
+}
+
+add_task(async function test_accel_z_reopens_closed_pane() {
+  const { sv, tabs } = await threePaneSplit();
+  const [, , c] = tabs;
+  await BrowserTestUtils.switchTab(gBrowser, c);
+  await TabStateFlusher.flush(c.linkedBrowser);
+  BrowserTestUtils.removeTab(c);
+  await TestUtils.waitForCondition(() => sv.tabs.length == 2);
+  // Two panes left: closing one more unsplits into a plain tab.
+  const b = tabs[1];
+  await BrowserTestUtils.switchTab(gBrowser, b);
+  await TabStateFlusher.flush(b.linkedBrowser);
+  BrowserTestUtils.removeTab(b);
+  await TestUtils.waitForCondition(() => !sv.isConnected);
+
+  gBrowser.selectedBrowser.focus();
+  let restored = BrowserTestUtils.waitForEvent(
+    gBrowser.tabContainer,
+    "SSTabRestored"
+  );
+  EventUtils.synthesizeKey("z", { accelKey: true });
+  await restored;
+  const b2 = gBrowser.selectedTab;
+  Assert.ok(b2.splitview, "Accel+Z rebuilds the split");
+  Assert.equal(b2.splitview.tabs.length, 2, "two panes again");
+  Assert.less(rectOf(tabs[0]).x, rectOf(b2).x, "B back to the right of A");
+
+  restored = BrowserTestUtils.waitForEvent(
+    gBrowser.tabContainer,
+    "SSTabRestored"
+  );
+  gBrowser.selectedBrowser.focus();
+  EventUtils.synthesizeKey("z", { accelKey: true });
+  await restored;
+  const c2 = gBrowser.selectedTab;
+  Assert.equal(c2.splitview, b2.splitview, "C rejoins the same split");
+  Assert.less(rectOf(b2).y, rectOf(c2).y, "C back below B");
+
+  // A text field keeps Accel+Z for its own undo.
+  const closedBefore = SessionStore.getClosedTabCountForWindow(window);
+  gURLBar.focus();
+  EventUtils.synthesizeKey("z", { accelKey: true });
+  await TestUtils.waitForTick();
+  Assert.equal(
+    SessionStore.getClosedTabCountForWindow(window),
+    closedBefore,
+    "nothing reopened from a text field"
+  );
+  await closeSplit(c2.splitview);
 });
 
 add_task(async function test_private_window() {
@@ -308,9 +372,9 @@ add_task(async function test_accessible_names_and_roles() {
     Ci.nsIAccessibilityService
   );
   const { sv, tabs } = await threePaneSplit();
-  const header = document
-    .getElementById(tabs[1].linkedPanel)
-    .querySelector(".split-pane-header");
+  const header = document.querySelector(
+    `.split-pane-header[panel="${tabs[1].linkedPanel}"]`
+  );
   await TestUtils.waitForCondition(
     () => header.querySelector(".split-pane-back").getAttribute("aria-label"),
     "header strings localized"

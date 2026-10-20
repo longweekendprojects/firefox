@@ -117,6 +117,23 @@
   }
 }
 
+/* Headers of top-edge panes sit in the toolbar row, over the space of the
+   hidden window controls. */
+#split-pane-toolbar {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  > .split-pane-header {
+    position: absolute;
+    inset-block: 0;
+    box-sizing: border-box;
+    pointer-events: auto;
+    background-color: transparent;
+    -moz-window-dragging: no-drag;
+  }
+}
+
 /* Page fullscreen shows only the selected pane, edge to edge. */
 :root[inDOMFullscreen] {
   #split-pane-splitters,

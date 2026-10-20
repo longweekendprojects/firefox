@@ -11,8 +11,11 @@
  * direct children of tabpanels; this module only positions them, adds a small
  * header (Back, Forward, Reload, address, Close) to each visible pane, and
  * draws one splitter per split. While panes are shown, the window's own
- * navigation controls are hidden, because each pane has its own. Everything it adds is removed when the split view is hidden, so
- * a window without a visible split view keeps no listeners, observers, or DOM.
+ * navigation controls are hidden, because each pane has its own. Panes along
+ * the top edge show their header in the toolbar row, in the space those
+ * controls leave, so the window keeps a single row of controls. Everything it
+ * adds is removed when the split view is hidden, so a window without a
+ * visible split view keeps no listeners, observers, or DOM.
  */
 
 const M = ChromeUtils.importESModule(
@@ -22,6 +25,7 @@ const M = ChromeUtils.importESModule(
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const PANEL_EVENTS = [
   "command",
+  "contextmenu",
   "mousedown",
   "keydown",
   "focusin",
@@ -44,10 +48,24 @@ const KEY_STEP = 0.02;
 const DRAG_THRESHOLD = 5;
 // Half-size of the central drop zone that swaps two panes, as a fraction.
 const SWAP_ZONE = 0.2;
+// Narrowest header the toolbar row takes; narrower ones stay in their pane.
+const MIN_TOOLBAR_HEADER = 120;
+// Window controls hidden while panes are shown; pane headers use their space.
+const HIDDEN_NAV_IDS = new Set([
+  "back-button",
+  "forward-button",
+  "stop-reload-button",
+  "home-button",
+  "urlbar-container",
+]);
 
 /** The split view wrapper currently rendered in this window, if any. */
 let current = null;
 let splitterBox = null;
+/** Box in the toolbar row that holds the headers of top-edge panes. */
+let toolbarBox = null;
+/** Header of each pane being shown, by tab. */
+const headers = new Map();
 let resizeObserver = null;
 let pendingFrame = 0;
 let sheetLoaded = false;
@@ -71,6 +89,15 @@ const handler = {
         break;
       case "mousedown":
         onHeaderMouseDown(event);
+        break;
+      case "contextmenu":
+        // The toolbar's own context menu does not apply to pane headers.
+        if (event.currentTarget === toolbarBox) {
+          event.stopPropagation();
+          if (!event.target.classList?.contains("split-pane-url")) {
+            event.preventDefault();
+          }
+        }
         break;
       case "keydown":
         if (event.target.classList?.contains("split-pane-url")) {
@@ -130,16 +157,41 @@ export function render(wrapper) {
   current = wrapper;
 
   const layout = wrapper.layout;
-  const { leaves, splitters } = M.computeLayout(layout, contentRect(), GAP);
+  const area = contentRect();
+  const { leaves, splitters } = M.computeLayout(layout, area, GAP);
+  const slot = toolbarSlot();
+  const panels = slot && gBrowser.tabpanels.getBoundingClientRect();
   for (const { id: tab, x, y, width, height } of leaves) {
     const panel = document.getElementById(tab.linkedPanel);
     if (!panel) {
       continue;
     }
-    if (!panel.classList.contains("split-pane")) {
-      panel.classList.add("split-pane");
-      panel.prepend(createHeader(tab));
+    panel.classList.add("split-pane");
+    let header = headers.get(tab);
+    if (!header) {
+      header = createHeader(tab);
+      headers.set(tab, header);
+      panel.prepend(header);
       updateHeader(tab);
+    }
+    // A top-edge pane shows its header in the toolbar row, over its own
+    // columns and clear of the toolbar's remaining buttons.
+    let start = 0;
+    let end = 0;
+    if (slot && y <= area.y + 0.5) {
+      start = Math.max(panels.left + x, slot.left) - slot.origin;
+      end = Math.min(panels.left + x + width, slot.right) - slot.origin;
+    }
+    if (end - start >= MIN_TOOLBAR_HEADER) {
+      if (header.parentNode !== toolbarBox) {
+        toolbarBox.append(header);
+      }
+      header.style.left = start + "px";
+      header.style.width = end - start + "px";
+    } else if (header.parentNode !== panel) {
+      header.style.removeProperty("left");
+      header.style.removeProperty("width");
+      panel.prepend(header);
     }
     const style = panel.style;
     style.left = x + "px";
@@ -171,12 +223,13 @@ export function detach(wrapper, tabs) {
  */
 export function clear(tabs) {
   for (const tab of tabs) {
+    headers.get(tab)?.remove();
+    headers.delete(tab);
     const panel = document.getElementById(tab.linkedPanel);
     if (!panel?.classList.contains("split-pane")) {
       continue;
     }
     panel.classList.remove("split-pane");
-    panel.querySelector(":scope > .split-pane-header")?.remove();
     for (const property of ["left", "top", "width", "height"]) {
       panel.style.removeProperty(property);
     }
@@ -233,8 +286,21 @@ function attach() {
   }
   gBrowser.tabbox.append(splitterBox);
 
+  const navbar = document.getElementById("nav-bar");
+  if (navbar) {
+    toolbarBox = document.createElementNS(HTML_NS, "div");
+    toolbarBox.id = "split-pane-toolbar";
+    for (const type of PANEL_EVENTS) {
+      toolbarBox.addEventListener(type, handler);
+    }
+    navbar.append(toolbarBox);
+  }
+
   resizeObserver = new ResizeObserver(scheduleRender);
   resizeObserver.observe(tabpanels);
+  if (navbar) {
+    resizeObserver.observe(navbar);
+  }
 }
 
 function teardown() {
@@ -248,6 +314,12 @@ function teardown() {
   grab = null;
   splitterBox?.remove();
   splitterBox = null;
+  toolbarBox?.remove();
+  toolbarBox = null;
+  for (const header of headers.values()) {
+    header.remove();
+  }
+  headers.clear();
   drag = null;
   gBrowser.removeTabsProgressListener(progressListener);
   const tabpanels = gBrowser.tabpanels;
@@ -282,10 +354,61 @@ function contentRect() {
   };
 }
 
+/**
+ * Free span of the toolbar row, in window coordinates: the span of the hidden
+ * window controls, widened up to the nearest visible control on each side.
+ * Null when the toolbar row is not shown.
+ */
+function toolbarSlot() {
+  const navbar = document.getElementById("nav-bar");
+  if (!toolbarBox || !navbar) {
+    return null;
+  }
+  const bar = navbar.getBoundingClientRect();
+  if (!bar.width || !bar.height) {
+    return null;
+  }
+  let hiddenStart = Infinity;
+  let hiddenEnd = -Infinity;
+  for (const id of HIDDEN_NAV_IDS) {
+    const rect = document.getElementById(id)?.getBoundingClientRect();
+    if (rect?.width) {
+      hiddenStart = Math.min(hiddenStart, rect.left);
+      hiddenEnd = Math.max(hiddenEnd, rect.right);
+    }
+  }
+  if (hiddenStart >= hiddenEnd) {
+    return null;
+  }
+  let left = bar.left;
+  let right = bar.right;
+  const items = navbar.querySelectorAll(
+    ":scope > *, #nav-bar-customization-target > *"
+  );
+  for (const item of items) {
+    if (
+      item === toolbarBox ||
+      item.id == "nav-bar-customization-target" ||
+      HIDDEN_NAV_IDS.has(item.id)
+    ) {
+      continue;
+    }
+    const rect = item.getBoundingClientRect();
+    if (!rect.width || !item.checkVisibility({ visibilityProperty: true })) {
+      continue;
+    }
+    if (rect.right <= hiddenStart + 1) {
+      left = Math.max(left, rect.right);
+    } else if (rect.left >= hiddenEnd - 1) {
+      right = Math.min(right, rect.left);
+    }
+    // Items between the hidden controls, such as spacers, are covered.
+  }
+  return { left: left + GAP, right: right - GAP, origin: bar.left };
+}
+
 function headerFor(tab) {
-  return document
-    .getElementById(tab.linkedPanel)
-    ?.querySelector(":scope > .split-pane-header");
+  return headers.get(tab);
 }
 
 function createButton(className, image, l10nId) {
@@ -300,6 +423,7 @@ function createButton(className, image, l10nId) {
 function createHeader(tab) {
   const header = document.createXULElement("hbox");
   header.className = "split-pane-header";
+  header.setAttribute("panel", tab.linkedPanel);
   header.setAttribute("role", "toolbar");
   header._tab = tab;
 

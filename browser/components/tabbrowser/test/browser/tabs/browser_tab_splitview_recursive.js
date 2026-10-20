@@ -57,9 +57,9 @@ add_task(async function test_recursive_layout() {
 
   for (const tab of [a, b, c, d]) {
     Assert.equal(await visibility(tab), "visible", "every pane is visible");
-    const header = document
-      .getElementById(tab.linkedPanel)
-      .querySelector(".split-pane-header");
+    const header = document.querySelector(
+      `.split-pane-header[panel="${tab.linkedPanel}"]`
+    );
     Assert.ok(header, "pane has a header");
     await TestUtils.waitForCondition(() =>
       header.querySelector(".split-pane-url").value.includes("example.com")
@@ -258,9 +258,7 @@ add_task(async function test_pane_navigation_and_location() {
   const sv = gBrowser.addTabSplitView([a, b], { insertBefore: a });
   await TestUtils.waitForTick();
   const header = tab =>
-    document
-      .getElementById(tab.linkedPanel)
-      .querySelector(".split-pane-header");
+    document.querySelector(`.split-pane-header[panel="${tab.linkedPanel}"]`);
 
   // Navigate pane B from its own address field.
   const input = header(b).querySelector(".split-pane-url");
@@ -332,9 +330,9 @@ add_task(async function test_extension_style_move_keeps_large_split() {
 });
 
 function paneHeader(tab) {
-  return document
-    .getElementById(tab.linkedPanel)
-    .querySelector(".split-pane-header");
+  return document.querySelector(
+    `.split-pane-header[panel="${tab.linkedPanel}"]`
+  );
 }
 
 async function splitFourWays(tab) {
@@ -397,6 +395,44 @@ add_task(async function test_window_navigation_hidden_while_panes_show() {
   }
   sv.close();
   BrowserTestUtils.removeTab(other);
+});
+
+add_task(async function test_top_pane_headers_share_the_toolbar_row() {
+  const [a, b, c] = [
+    await addLoadedTab(),
+    await addLoadedTab(),
+    await addLoadedTab(),
+  ];
+  await BrowserTestUtils.switchTab(gBrowser, a);
+  const sv = gBrowser.addTabSplitView([a, b], { insertBefore: a });
+  sv.splitPane(b, "down", c);
+  await TestUtils.waitForCondition(() => sv.tabs.length == 3);
+  await TestUtils.waitForTick();
+  await new Promise(r => requestAnimationFrame(r));
+  const navbar = document.getElementById("nav-bar");
+  const inToolbar = tab => navbar.contains(paneHeader(tab));
+  Assert.ok(inToolbar(a), "top-left pane header is in the toolbar row");
+  Assert.ok(inToolbar(b), "top-right pane header is in the toolbar row");
+  Assert.ok(!inToolbar(c), "lower pane keeps its header in the pane");
+  const bar = navbar.getBoundingClientRect();
+  const header = paneHeader(b).getBoundingClientRect();
+  Assert.greaterOrEqual(header.top, bar.top - 1, "header within the row");
+  Assert.lessOrEqual(header.bottom, bar.bottom + 1, "header within the row");
+  const menu = document
+    .getElementById("PanelUI-menu-button")
+    .getBoundingClientRect();
+  Assert.lessOrEqual(header.right, menu.left, "menu button stays clear");
+  Assert.greater(
+    rect(a).h,
+    rect(c).h,
+    "top pane has no header of its own, so it is taller"
+  );
+  sv.close();
+  await TestUtils.waitForCondition(() => !sv.isConnected);
+  Assert.ok(
+    !document.getElementById("split-pane-toolbar"),
+    "toolbar row cleaned up"
+  );
 });
 
 add_task(async function test_pane_reload_and_close_buttons() {

@@ -6656,6 +6656,9 @@ export class Tabbrowser {
     this.replaceInSuccession(aTab, aTab.successor);
     this.setSuccessor(aTab, null);
 
+    // Remember the pane's place so that reopening the tab restores it.
+    this.#notePaneClosing(aTab, skipSessionStore || !!adoptedByTab);
+
     // We're committed to closing the tab now.
     // Dispatch a notification.
     // We dispatch it before any teardown so that event listeners can
@@ -9230,6 +9233,23 @@ export class Tabbrowser {
       return;
     }
 
+    if (this.#isUndoCloseKey(aEvent)) {
+      if (
+        aEvent.defaultPrevented ||
+        this.#maybeRequestReplyFromRemoteContent(aEvent)
+      ) {
+        return;
+      }
+      const { SessionWindowUI } = this.documentGlobal;
+      if (lazy.SessionStore.lastClosedActions.length && SessionWindowUI) {
+        SessionWindowUI.restoreLastClosedTabOrWindowOrSession(
+          this.documentGlobal
+        );
+        aEvent.preventDefault();
+      }
+      return;
+    }
+
     switch (
       lazy.ShortcutUtils.getSystemActionForEvent(aEvent, {
         rtl: this.documentGlobal.RTL_UI,
@@ -9261,6 +9281,44 @@ export class Tabbrowser {
           aEvent.preventDefault();
         }
         break;
+    }
+  }
+
+  /**
+   * Whether `aEvent` is Accel+Z with nothing to undo in a text field, which
+   * reopens the most recently closed tab, pane, or window. Text fields and
+   * pages that handle the key themselves keep it.
+   *
+   * @param {KeyboardEvent} aEvent
+   */
+  #isUndoCloseKey(aEvent) {
+    const isMac = AppConstants.platform == "macosx";
+    if (
+      aEvent.key.toLowerCase() != "z" ||
+      aEvent.shiftKey ||
+      aEvent.altKey ||
+      !(isMac ? aEvent.metaKey && !aEvent.ctrlKey : aEvent.ctrlKey) ||
+      (!isMac && aEvent.metaKey)
+    ) {
+      return false;
+    }
+    const focused = this.document.commandDispatcher.focusedElement;
+    return !(
+      HTMLInputElement.isInstance(focused) ||
+      HTMLTextAreaElement.isInstance(focused) ||
+      focused?.isContentEditable
+    );
+  }
+
+  /**
+   * Lets a split view record where a closing pane sat, for undo close.
+   *
+   * @param {MozTabbrowserTab} aTab
+   * @param {boolean} aSkip Whether the close is not one to undo.
+   */
+  #notePaneClosing(aTab, aSkip) {
+    if (!aSkip && aTab.splitview?.tabs.length > 1) {
+      aTab.splitview.notePaneClosing(aTab);
     }
   }
 
