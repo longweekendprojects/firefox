@@ -55,11 +55,6 @@ export class AboutPrivateBrowsingParent extends JSWindowActorParent {
         break;
       }
       case "SearchHandoff": {
-        // A visible split view pane searches from its own address field.
-        let tab = win.gBrowser.getTabForBrowser(browser);
-        if (tab?.splitview?.focusLocation(tab, aMessage.data?.text)) {
-          break;
-        }
         let urlBar = win.gURLBar;
         let searchEngine = lazy.SearchService.defaultPrivateEngine;
         let isFirstChange = true;

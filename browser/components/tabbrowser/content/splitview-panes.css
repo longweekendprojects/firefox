@@ -28,6 +28,38 @@
   visibility: hidden;
 }
 
+/* The address bar stays focusable, but shows only as a command bar over the
+   selected pane while it has focus. It then sits in the top layer, so the
+   toolbar keeps its height. */
+:root[splitpanes] {
+  #urlbar-container {
+    min-height: calc(var(--urlbar-height) + 2 * var(--urlbar-container-padding-block));
+  }
+
+  #urlbar {
+    visibility: visible;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #urlbar:popover-open {
+    --urlbar-height: 44px;
+    font-size: 1.15em;
+    opacity: 1;
+    pointer-events: auto;
+    inset: auto;
+    left: var(--split-commandbar-left);
+    top: var(--split-commandbar-top);
+    width: var(--split-commandbar-width);
+    margin: 0;
+    padding: 0;
+    border: none;
+    overflow: visible;
+    color: inherit;
+    background: none;
+  }
+}
+
 .split-pane-header {
   display: flex;
   align-items: center;

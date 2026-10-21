@@ -787,14 +787,13 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   }
 
   /**
-   * Focuses the location field of a visible pane.
+   * Opens the address bar over a visible pane as a command bar.
    *
    * @param {MozTabbrowserTab} [tab] The pane's tab; the selected tab if unset.
-   * @param {string} [text] Text to type into the field.
-   * @returns {boolean} Whether a pane location field took focus.
+   * @returns {boolean} Whether the command bar opened.
    */
-  focusLocation(tab = gBrowser.selectedTab, text = "") {
-    return !!Panes?.focusLocation(tab, text);
+  focusLocation(tab = gBrowser.selectedTab) {
+    return !!Panes?.focusLocation(tab);
   }
 
   /**

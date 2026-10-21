@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser, isBlankPageURL, openTrustedLinkIn, UrlbarUtils, BrowserUtils,
+/* global gBrowser, gURLBar, isBlankPageURL, BrowserUtils,
    updateBookmarkToolbarVisibility */
 
 /**
@@ -55,6 +55,9 @@ const DRAG_THRESHOLD = 5;
 const SWAP_ZONE = 0.1;
 // Narrowest header the toolbar row takes; narrower ones stay in their pane.
 const MIN_TOOLBAR_HEADER = 120;
+const COMMAND_BAR_MARGIN = 12;
+const COMMAND_BAR_MIN_WIDTH = 320;
+const COMMAND_BAR_MAX_WIDTH = 720;
 // Window controls hidden while panes are shown; pane headers use their space.
 const HIDDEN_NAV_IDS = new Set([
   "back-button",
@@ -111,20 +114,14 @@ const handler = {
         }
         break;
       case "keydown":
-        if (event.target.classList?.contains("split-pane-url")) {
-          onUrlKeyDown(event);
-        } else if (event.target.classList?.contains("split-pane-splitter")) {
+        if (event.target.classList?.contains("split-pane-splitter")) {
           onSplitterKeyDown(event);
         }
         break;
       case "focusin":
-      case "focusout":
+        // The pane address field opens the command bar instead of editing.
         if (event.target.classList?.contains("split-pane-url")) {
-          const tab = event.target.closest(".split-pane-header")._tab;
-          event.target.value = displayURL(tab, event.type == "focusin");
-          if (event.type == "focusin") {
-            event.target.select();
-          }
+          focusLocation(event.target.closest(".split-pane-header")._tab);
         }
         break;
       case "pointerdown":
@@ -212,6 +209,9 @@ export function render(wrapper) {
     style.height = height + "px";
   }
   layoutSplitters(layout, splitters);
+  if (commandBar.isOpen || gURLBar.focused) {
+    commandBar.show();
+  }
 }
 
 /**
@@ -249,25 +249,87 @@ export function clear(tabs) {
 }
 
 /**
- * Focuses the address field of the pane showing `tab`.
+ * Selects the pane showing `tab` and opens the address bar over it as a
+ * command bar.
  *
  * @param {MozTabbrowserTab} tab
- * @param {string} [text] Text to type into the field instead of selecting it.
- * @returns {boolean} Whether a pane address field took focus.
+ * @returns {boolean} Whether the command bar opened.
  */
-export function focusLocation(tab, text = "") {
-  const input = headerFor(tab)?.querySelector(".split-pane-url");
-  if (!input) {
+export function focusLocation(tab) {
+  if (!current || tab?.splitview !== current) {
     return false;
   }
-  input.focus();
-  if (text) {
-    input.value = text;
-  } else {
-    input.select();
-  }
-  return true;
+  gBrowser.selectedTab = tab;
+  gURLBar.select();
+  gURLBar.view.autoOpen({ event: new CustomEvent("command") });
+  commandBar.show();
+  return gURLBar.focused;
 }
+
+const commandBar = {
+  handleEvent(event) {
+    switch (event.type) {
+      case "focus":
+        this.show();
+        break;
+      case "blur":
+        if (!gURLBar.view.isResultMenuOpen()) {
+          this.hide();
+        }
+        break;
+      case "keydown":
+        if (event.key == "Escape" && this.isOpen) {
+          gBrowser.selectedBrowser.focus();
+        }
+        break;
+    }
+  },
+
+  get isOpen() {
+    return gURLBar.matches(":popover-open");
+  },
+
+  show() {
+    const tab = gBrowser.selectedTab;
+    const panel = current && document.getElementById(tab.linkedPanel);
+    if (tab.splitview !== current || !panel) {
+      this.hide();
+      return;
+    }
+    const pane = panel.getBoundingClientRect();
+    const width = Math.min(
+      pane.width - 2 * COMMAND_BAR_MARGIN,
+      Math.max(COMMAND_BAR_MIN_WIDTH, pane.width * 0.6),
+      COMMAND_BAR_MAX_WIDTH
+    );
+    const style = document.documentElement.style;
+    style.setProperty(
+      "--split-commandbar-left",
+      pane.left + (pane.width - width) / 2 + "px"
+    );
+    style.setProperty(
+      "--split-commandbar-top",
+      pane.top + Math.max(COMMAND_BAR_MARGIN, pane.height * 0.25) + "px"
+    );
+    style.setProperty("--split-commandbar-width", width + "px");
+    if (!this.isOpen) {
+      gURLBar.setAttribute("popover", "manual");
+      gURLBar.showPopover();
+    }
+  },
+
+  hide() {
+    if (this.isOpen) {
+      gURLBar.hidePopover();
+    }
+    gURLBar.removeAttribute("popover");
+    for (const side of ["left", "top", "width"]) {
+      document.documentElement.style.removeProperty(
+        "--split-commandbar-" + side
+      );
+    }
+  },
+};
 
 function attach() {
   if (!sheetLoaded) {
@@ -308,6 +370,10 @@ function attach() {
     navbar.append(toolbarBox);
   }
 
+  for (const type of ["focus", "blur", "keydown"]) {
+    gURLBar.inputField.addEventListener(type, commandBar);
+  }
+
   resizeObserver = new ResizeObserver(scheduleRender);
   resizeObserver.observe(tabpanels);
   if (navbar) {
@@ -334,6 +400,10 @@ function teardown() {
   headers.clear();
   drag = null;
   gBrowser.removeTabsProgressListener(progressListener);
+  for (const type of ["focus", "blur", "keydown"]) {
+    gURLBar.inputField.removeEventListener(type, commandBar);
+  }
+  commandBar.hide();
   const tabpanels = gBrowser.tabpanels;
   for (const type of PANEL_EVENTS) {
     tabpanels.removeEventListener(type, handler);
@@ -483,7 +553,7 @@ function createHeader(tab) {
 
   const input = document.createElementNS(HTML_NS, "input");
   input.className = "split-pane-url";
-  input.setAttribute("spellcheck", "false");
+  input.readOnly = true;
   document.l10n.setAttributes(input, "tab-splitview-pane-address");
 
   header.append(
@@ -537,27 +607,23 @@ function updateHeader(tab) {
   header
     .querySelector(".split-pane-forward")
     .toggleAttribute("disabled", !canGoForward);
-  const input = header.querySelector(".split-pane-url");
-  if (document.activeElement !== input) {
-    input.value = displayURL(tab, false);
-  }
+  header.querySelector(".split-pane-url").value = displayURL(tab);
 }
 
 /**
- * Address of `tab` taken from browser state, never from page content, with
- * any credentials removed. Unfocused fields show only the site, such as
- * "example.com"; a focused field shows the full address for editing.
+ * Site of `tab`, such as "example.com", taken from browser state, never
+ * from page content.
  */
-function displayURL(tab, full) {
+function displayURL(tab) {
   const uri = tab.linkedBrowser.currentURI;
   if (!uri || isBlankPageURL(uri.spec)) {
     return "";
   }
   try {
     const exposable = Services.io.createExposableURI(uri);
-    return full
-      ? exposable.displaySpec
-      : BrowserUtils.formatURIForDisplay(exposable, { onlyBaseDomain: true });
+    return BrowserUtils.formatURIForDisplay(exposable, {
+      onlyBaseDomain: true,
+    });
   } catch (e) {
     return uri.spec;
   }
@@ -608,43 +674,6 @@ function onHeaderMouseDown(event) {
   }
 }
 
-function onUrlKeyDown(event) {
-  const input = event.target;
-  const tab = input.closest(".split-pane-header")._tab;
-  if (event.key == "Enter") {
-    event.preventDefault();
-    navigate(tab, input.value);
-  } else if (event.key == "Escape") {
-    event.preventDefault();
-    input.value = displayURL(tab, true);
-    tab.linkedBrowser.focus();
-  }
-}
-
-async function navigate(tab, text) {
-  text = text.trim();
-  if (!text) {
-    return;
-  }
-  const browser = tab.linkedBrowser;
-  const { url, postData, mayInheritPrincipal } =
-    await UrlbarUtils.getShortcutOrURIAndPostData(text);
-  // The pane may have closed or changed while the lookup ran.
-  if (!tab.isConnected || tab.closing || tab.linkedBrowser !== browser) {
-    return;
-  }
-  if (/^\s*javascript:/i.test(url)) {
-    return;
-  }
-  openTrustedLinkIn(url, "current", {
-    targetBrowser: browser,
-    postData,
-    allowInheritPrincipal: mayInheritPrincipal,
-    allowThirdPartyFixup: true,
-  });
-  browser.focus();
-}
-
 /**
  * Starts a pane bar press. Every part of the bar except a focused address
  * field is a drag handle. A press that does not move acts as a click on the
@@ -658,9 +687,6 @@ function onHeaderPointerDown(event) {
   const input = event.target.classList.contains("split-pane-url")
     ? event.target
     : null;
-  if (input && document.activeElement === input) {
-    return;
-  }
   // Capture at once, so a fast drag keeps reporting while over a page.
   header.setPointerCapture(event.pointerId);
   const g = {

@@ -1366,10 +1366,6 @@ function loadOneOrMoreURIs(
 
 function openLocation(event) {
   if (window.location.href == AppConstants.BROWSER_CHROME_URL) {
-    // In a split view, focus the address field of the selected pane.
-    if (gBrowser.activeSplitView?.focusLocation()) {
-      return;
-    }
     let focusTarget = UrlbarUtils.getURLBarForFocus(window);
     focusTarget.select();
     focusTarget.view.autoOpen({ event });

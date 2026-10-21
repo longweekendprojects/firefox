@@ -261,17 +261,25 @@ add_task(async function test_pane_navigation_and_location() {
   const header = tab =>
     document.querySelector(`.split-pane-header[panel="${tab.linkedPanel}"]`);
 
-  // Navigate pane B from its own address field.
-  const input = header(b).querySelector(".split-pane-url");
-  input.focus();
-  input.value = "https://example.org/";
+  // Pane B's address field opens the command bar over B, which navigates B.
+  header(b).querySelector(".split-pane-url").focus();
+  await TestUtils.waitForCondition(
+    () => commandBarOver(b),
+    "command bar over B"
+  );
+  Assert.equal(gBrowser.selectedTab, b, "B is selected");
   const loaded = BrowserTestUtils.browserLoaded(
     b.linkedBrowser,
     false,
     "https://example.org/"
   );
+  gURLBar.value = "https://example.org/";
   EventUtils.synthesizeKey("KEY_Enter");
   await loaded;
+  await TestUtils.waitForCondition(
+    () => !commandBarOpen(),
+    "the command bar closes after navigating"
+  );
   Assert.equal(a.linkedBrowser.currentURI.spec, PAGE, "pane A did not move");
   await TestUtils.waitForCondition(
     () => !header(b).querySelector(".split-pane-back").hasAttribute("disabled"),
@@ -300,17 +308,17 @@ add_task(async function test_pane_navigation_and_location() {
     "B forward enabled"
   );
 
-  // Cmd-L targets the selected pane's field. Navigating focused pane B,
-  // which already selected it.
-  if (gBrowser.selectedTab != b) {
-    await BrowserTestUtils.switchTab(gBrowser, b);
-  }
+  // Cmd-L opens the command bar over the selected pane, and Escape closes it.
+  await BrowserTestUtils.switchTab(gBrowser, a);
   document.getElementById("Browser:OpenLocation").doCommand();
-  Assert.equal(
-    document.activeElement,
-    header(b).querySelector(".split-pane-url"),
-    "location command focuses the pane field"
+  await TestUtils.waitForCondition(
+    () => commandBarOver(a),
+    "location command opens the command bar over A"
   );
+  Assert.ok(gURLBar.value.includes("example.com"), "it shows A's address");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen(), "Escape closes it");
+  Assert.ok(!gURLBar.focused, "the address bar lost focus");
   sv.close();
   await TestUtils.waitForCondition(() => !sv.isConnected);
 });
@@ -329,6 +337,25 @@ add_task(async function test_extension_style_move_keeps_large_split() {
   sv.close();
   await TestUtils.waitForCondition(() => !sv.isConnected);
 });
+
+function commandBarOpen() {
+  return gURLBar.matches(":popover-open");
+}
+
+function commandBarOver(tab) {
+  if (!commandBarOpen() || !gURLBar.focused) {
+    return false;
+  }
+  const bar = gURLBar.getBoundingClientRect();
+  const pane = document.getElementById(tab.linkedPanel).getBoundingClientRect();
+  return (
+    bar.width > 0 &&
+    bar.left >= pane.left &&
+    bar.right <= pane.right &&
+    bar.top >= pane.top &&
+    bar.bottom <= pane.bottom
+  );
+}
 
 function paneHeader(tab) {
   return document.querySelector(
@@ -372,11 +399,10 @@ add_task(async function test_new_pane_is_blank_with_focused_address() {
     "though its other pane shows a site"
   );
   await TestUtils.waitForCondition(
-    () =>
-      document.activeElement ==
-      paneHeader(pane).querySelector(".split-pane-url"),
-    "the new pane's address field has focus"
+    () => commandBarOver(pane),
+    "the command bar opens over the new pane"
   );
+  Assert.equal(gURLBar.value, "", "the command bar starts empty");
   for (const t of [...tab.splitview.tabs]) {
     BrowserTestUtils.removeTab(t);
   }
@@ -695,15 +721,17 @@ add_task(async function test_drag_pane_header_moves_pane() {
     "a click on Close closes the pane"
   );
 
-  // A click without movement still focuses the pane's address field.
+  // A click without movement on the address field opens the command bar.
   const other = sv.tabs.find(t => !t.selected);
   const input = paneHeader(other).querySelector(".split-pane-url");
   EventUtils.synthesizeMouseAtCenter(input, {});
   await TestUtils.waitForCondition(
-    () => document.activeElement == input,
-    "a click focuses the address field"
+    () => commandBarOver(other),
+    "a click opens the command bar over the pane"
   );
   Assert.equal(gBrowser.selectedTab, other, "and selects the pane");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen());
 
   for (const t of [...sv.tabs]) {
     BrowserTestUtils.removeTab(t);
