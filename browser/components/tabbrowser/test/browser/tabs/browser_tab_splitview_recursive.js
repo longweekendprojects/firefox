@@ -385,7 +385,13 @@ add_task(async function test_new_pane_is_blank_with_focused_address() {
 add_task(async function test_split_pane_from_plain_tab_builds_once() {
   for (const direction of ["right", "left", "up", "down"]) {
     const tab = await addLoadedTab();
-    gBrowser.selectedTab = tab;
+    await BrowserTestUtils.switchTab(gBrowser, tab);
+    await SpecialPowers.spawn(tab.linkedBrowser, [], () => {
+      const sizes = (content.wrappedJSObject.sizes = []);
+      content.addEventListener("resize", () =>
+        sizes.push(`${content.innerWidth}x${content.innerHeight}`)
+      );
+    });
     const tabCount = gBrowser.tabs.length;
     let layoutChanges = 0;
     const onLayout = () => layoutChanges++;
@@ -413,6 +419,19 @@ add_task(async function test_split_pane_from_plain_tab_builds_once() {
       down: b.y >= a.y + a.h - 1,
     }[direction];
     ok(placed, `${direction}: the new pane is on that side`);
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => requestAnimationFrame(r));
+    }
+    const sizes = await SpecialPowers.spawn(
+      tab.linkedBrowser,
+      [],
+      () => content.wrappedJSObject.sizes
+    );
+    is(
+      sizes.length,
+      1,
+      `${direction}: the page resizes once, to its pane (${sizes.join(", ")})`
+    );
     for (const t of [...splitview.tabs]) {
       BrowserTestUtils.removeTab(t);
     }

@@ -168,6 +168,7 @@ export function render(wrapper) {
   current = wrapper;
 
   const layout = wrapper.layout;
+  placeNewPanels(layout);
   const area = contentRect();
   const { leaves, splitters } = M.computeLayout(layout, area, GAP);
   const slot = toolbarSlot();
@@ -355,6 +356,48 @@ function scheduleRender() {
 }
 
 /** Area inside tabpanels available to panes. */
+/**
+ * Gives panels that just joined the split their pane geometry without
+ * flushing layout. Otherwise the measuring flush in `render` lays them out
+ * side by side first, and their pages briefly draw at that size.
+ *
+ * @param {object} layout
+ */
+function placeNewPanels(layout) {
+  const unplaced = M.leafIds(layout)
+    .map(tab => document.getElementById(tab.linkedPanel))
+    .filter(panel => panel && !panel.classList.contains("split-pane"));
+  if (!unplaced.length) {
+    return;
+  }
+  const bounds = window.windowUtils.getBoundsWithoutFlushing(
+    gBrowser.tabpanels
+  );
+  const area = {
+    x: GAP,
+    y: GAP,
+    width: Math.max(0, bounds.width - 2 * GAP),
+    height: Math.max(0, bounds.height - 2 * GAP),
+  };
+  for (const { id: tab, x, y, width, height } of M.computeLayout(
+    layout,
+    area,
+    GAP
+  ).leaves) {
+    const panel = document.getElementById(tab.linkedPanel);
+    if (!unplaced.includes(panel)) {
+      continue;
+    }
+    panel.classList.add("split-pane");
+    Object.assign(panel.style, {
+      left: x + "px",
+      top: y + "px",
+      width: width + "px",
+      height: height + "px",
+    });
+  }
+}
+
 function contentRect() {
   const { clientWidth, clientHeight } = gBrowser.tabpanels;
   return {
