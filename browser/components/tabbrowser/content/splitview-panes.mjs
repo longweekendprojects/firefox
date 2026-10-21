@@ -23,6 +23,11 @@ const M = ChromeUtils.importESModule(
   "moz-src:///browser/components/tabbrowser/splitview/SplitLayoutModel.sys.mjs"
 );
 
+const CommandBar = ChromeUtils.importESModule(
+  "chrome://browser/content/tabbrowser/command-bar.mjs",
+  { global: "current" }
+);
+
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const PANEL_EVENTS = [
   "command",
@@ -55,9 +60,6 @@ const DRAG_THRESHOLD = 5;
 const SWAP_ZONE = 0.1;
 // Narrowest header the toolbar row takes; narrower ones stay in their pane.
 const MIN_TOOLBAR_HEADER = 120;
-const COMMAND_BAR_MARGIN = 12;
-const COMMAND_BAR_MIN_WIDTH = 320;
-const COMMAND_BAR_MAX_WIDTH = 720;
 // Window controls hidden while panes are shown; pane headers use their space.
 const HIDDEN_NAV_IDS = new Set([
   "back-button",
@@ -209,8 +211,8 @@ export function render(wrapper) {
     style.height = height + "px";
   }
   layoutSplitters(layout, splitters);
-  if (commandBar.isOpen || gURLBar.focused) {
-    commandBar.show();
+  if (CommandBar.isOpen() || gURLBar.focused) {
+    CommandBar.show();
   }
 }
 
@@ -262,74 +264,9 @@ export function focusLocation(tab) {
   gBrowser.selectedTab = tab;
   gURLBar.select();
   gURLBar.view.autoOpen({ event: new CustomEvent("command") });
-  commandBar.show();
+  CommandBar.show();
   return gURLBar.focused;
 }
-
-const commandBar = {
-  handleEvent(event) {
-    switch (event.type) {
-      case "focus":
-        this.show();
-        break;
-      case "blur":
-        if (!gURLBar.view.isResultMenuOpen()) {
-          this.hide();
-        }
-        break;
-      case "keydown":
-        if (event.key == "Escape" && this.isOpen) {
-          gBrowser.selectedBrowser.focus();
-        }
-        break;
-    }
-  },
-
-  get isOpen() {
-    return gURLBar.matches(":popover-open");
-  },
-
-  show() {
-    const tab = gBrowser.selectedTab;
-    const panel = current && document.getElementById(tab.linkedPanel);
-    if (tab.splitview !== current || !panel) {
-      this.hide();
-      return;
-    }
-    const pane = panel.getBoundingClientRect();
-    const width = Math.min(
-      pane.width - 2 * COMMAND_BAR_MARGIN,
-      Math.max(COMMAND_BAR_MIN_WIDTH, pane.width * 0.6),
-      COMMAND_BAR_MAX_WIDTH
-    );
-    const style = document.documentElement.style;
-    style.setProperty(
-      "--split-commandbar-left",
-      pane.left + (pane.width - width) / 2 + "px"
-    );
-    style.setProperty(
-      "--split-commandbar-top",
-      pane.top + Math.max(COMMAND_BAR_MARGIN, pane.height * 0.25) + "px"
-    );
-    style.setProperty("--split-commandbar-width", width + "px");
-    if (!this.isOpen) {
-      gURLBar.setAttribute("popover", "manual");
-      gURLBar.showPopover();
-    }
-  },
-
-  hide() {
-    if (this.isOpen) {
-      gURLBar.hidePopover();
-    }
-    gURLBar.removeAttribute("popover");
-    for (const side of ["left", "top", "width"]) {
-      document.documentElement.style.removeProperty(
-        "--split-commandbar-" + side
-      );
-    }
-  },
-};
 
 function attach() {
   if (!sheetLoaded) {
@@ -370,9 +307,9 @@ function attach() {
     navbar.append(toolbarBox);
   }
 
-  for (const type of ["focus", "blur", "keydown"]) {
-    gURLBar.inputField.addEventListener(type, commandBar);
-  }
+  // The address bar is hidden while panes show, so whenever it takes focus
+  // it shows as a command bar over the selected pane.
+  gURLBar.inputField.addEventListener("focus", CommandBar.show);
 
   resizeObserver = new ResizeObserver(scheduleRender);
   resizeObserver.observe(tabpanels);
@@ -400,10 +337,8 @@ function teardown() {
   headers.clear();
   drag = null;
   gBrowser.removeTabsProgressListener(progressListener);
-  for (const type of ["focus", "blur", "keydown"]) {
-    gURLBar.inputField.removeEventListener(type, commandBar);
-  }
-  commandBar.hide();
+  gURLBar.inputField.removeEventListener("focus", CommandBar.show);
+  CommandBar.hide();
   const tabpanels = gBrowser.tabpanels;
   for (const type of PANEL_EVENTS) {
     tabpanels.removeEventListener(type, handler);

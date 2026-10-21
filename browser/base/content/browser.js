@@ -1369,6 +1369,17 @@ function openLocation(event) {
     let focusTarget = UrlbarUtils.getURLBarForFocus(window);
     focusTarget.select();
     focusTarget.view.autoOpen({ event });
+    if (
+      focusTarget == gURLBar &&
+      gURLBar.focused &&
+      window.toolbar.visible &&
+      !document.documentElement.hasAttribute("customizing")
+    ) {
+      ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/command-bar.mjs",
+        { global: "current" }
+      ).show();
+    }
     return;
   }
 

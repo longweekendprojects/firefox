@@ -1,0 +1,106 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* The address bar shown as a floating command bar over the page. It keeps
+   its place in the toolbar while lifted into the top layer, so the toolbar
+   keeps its height. */
+#urlbar-container:has(> #urlbar[commandbar]) {
+  min-height: calc(var(--urlbar-height) + 2 * var(--urlbar-container-padding-block));
+}
+
+#urlbar[commandbar] {
+  --urlbar-height: 56px;
+  --urlbar-icon-padding: 10px;
+  --urlbar-joint-background-overlap: 32px;
+  --urlbar-joint-background-shadow-margin: 48px;
+  --urlbar-background-border-radius: 12px;
+  --urlbar-background-border-top-radius-open: 12px;
+  --urlbar-background-color-focus: light-dark(#ffffff, #1c1b22);
+  --urlbar-background-border: 1px solid light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.12));
+  --urlbar-background-border-open: var(--urlbar-background-border);
+  --urlbar-background-border-focused: var(--urlbar-background-border);
+  --urlbar-background-outline-focused: none;
+  --urlbar-input-container-outline-open: none;
+  --urlbar-input-container-outline-open-focused: none;
+  --urlbar-background-box-shadow-open: 0 10px 28px rgb(0 0 0 / 0.32), 0 1px 4px rgb(0 0 0 / 0.16);
+  --urlbarView-row-gutter: 2px;
+  --urlbarView-padding: 8px;
+  --urlbarview-row-min-height: 44px;
+  --urlbarView-row-border-radius: 8px;
+  --urlbarview-background-color-hover: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.06));
+  --urlbarview-background-color-selected: AccentColor;
+  --urlbarview-text-color-selected: AccentColorText;
+  --urlbarview-separator-color: light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1));
+
+  &:popover-open {
+    position: fixed;
+    inset: auto;
+    left: var(--commandbar-left);
+    top: var(--commandbar-top);
+    width: var(--commandbar-width);
+    height: var(--urlbar-height);
+    margin: 0;
+    padding: 0;
+    border: none;
+    overflow: visible;
+    color: light-dark(rgb(21 20 26), rgb(251 251 254));
+    background: none;
+  }
+
+  .urlbar-input {
+    font-size: 1.35em;
+  }
+
+  .urlbar-input-container {
+    padding-inline: 8px;
+  }
+
+  :is(#tracking-protection-icon-container, #page-action-buttons, .urlbar-go-button, #notification-popup-box) {
+    display: none;
+  }
+
+  &:not([searchmode]) .searchmode-switcher {
+    display: none;
+  }
+
+  /* A search icon leads an empty or edited bar. */
+  &[pageproxystate="invalid"]:not([searchmode]) .urlbar-input-container::before {
+    content: "";
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-inline: 10px 6px;
+    background: url("chrome://global/skin/icons/search-glass.svg") center / 16px no-repeat;
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+
+  .urlbarView-title {
+    font-weight: 500;
+  }
+
+  /* Open tabs say "Switch to Tab" at the end of the row, then an arrow. */
+  .urlbarView-row[type="switchtab"] {
+    .urlbarView-row-body-top-no-wrap {
+      flex-grow: 1;
+      max-width: none;
+    }
+
+    .urlbarView-action.urlbarView-switchToTab {
+      margin-inline-start: auto;
+      padding-block: 4px;
+      padding-inline: 8px 32px;
+      border-color: transparent;
+      background-image: url("chrome://global/skin/icons/arrow-right.svg");
+      background-position: right 4px center;
+      background-size: 16px;
+      fill: currentColor;
+      opacity: 0.6;
+    }
+
+    &:is([selected], :hover) .urlbarView-switchToTab {
+      opacity: 1;
+    }
+  }
+}

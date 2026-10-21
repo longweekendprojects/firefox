@@ -6,6 +6,8 @@ browser.jar:
    content/browser/tabbrowser/browser-allTabsMenu.js      (content/browser-allTabsMenu.js)
    content/browser/tabbrowser/browser-ctrlTab.js          (content/browser-ctrlTab.js)
    content/browser/tabbrowser/browser-fullZoom.js         (content/browser-fullZoom.js)
+   content/browser/tabbrowser/command-bar.css            (content/command-bar.css)
+   content/browser/tabbrowser/command-bar.mjs            (content/command-bar.mjs)
    content/browser/tabbrowser/drag-and-drop.js            (content/drag-and-drop.js)
    content/browser/tabbrowser/opentabs.css                (content/opentabs.css)
    content/browser/tabbrowser/opentabs.html               (content/opentabs.html)

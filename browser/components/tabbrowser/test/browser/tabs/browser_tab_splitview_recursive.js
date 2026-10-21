@@ -323,6 +323,34 @@ add_task(async function test_pane_navigation_and_location() {
   await TestUtils.waitForCondition(() => !sv.isConnected);
 });
 
+add_task(async function test_location_opens_command_bar_on_plain_tab() {
+  const tab = await addLoadedTab();
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  gURLBar.focus();
+  Assert.ok(
+    !commandBarOpen(),
+    "focusing the toolbar address bar keeps it there"
+  );
+  gBrowser.selectedBrowser.focus();
+
+  document.getElementById("Browser:OpenLocation").doCommand();
+  await TestUtils.waitForCondition(
+    () => commandBarOpen() && gURLBar.focused,
+    "location command opens the command bar over a plain tab"
+  );
+  const bar = gURLBar.getBoundingClientRect();
+  const page = gBrowser.selectedBrowser.getBoundingClientRect();
+  Assert.ok(
+    bar.left > page.left && bar.right < page.right && bar.top > page.top,
+    "the command bar sits over the page"
+  );
+  Assert.ok(gURLBar.value.includes("example.com"), "it shows the address");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen(), "Escape closes it");
+  Assert.ok(!gURLBar.hasAttribute("popover"), "the bar is back in the toolbar");
+  BrowserTestUtils.removeTab(tab);
+});
+
 add_task(async function test_extension_style_move_keeps_large_split() {
   const tabs = [
     await addLoadedTab(),
