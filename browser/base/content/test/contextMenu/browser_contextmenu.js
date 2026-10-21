@@ -105,7 +105,23 @@ add_task(async function test_xul_text_link_label() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -222,7 +238,23 @@ add_task(async function test_plaintext() {
 const kLinkItems = [
   "context-openlinkintab",
   true,
-  ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+  ...(hasSplitViews
+    ? [
+        "context-openlinkinsplitview-menu",
+        true,
+        [
+          "context-openlinkinsplitview",
+          true,
+          "context-openlinkinsplitview-left",
+          true,
+          "context-openlinkinsplitview-up",
+          true,
+          "context-openlinkinsplitview-down",
+          true,
+        ],
+        null,
+      ]
+    : []),
   ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
   // We need a blank entry here because the containers submenu is
   // dynamically generated with no ids.
@@ -303,7 +335,23 @@ add_task(async function test_linkpreviewcommand() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -358,7 +406,23 @@ add_task(async function test_linkpreviewcommand_disabled() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -1989,7 +2053,23 @@ add_task(async function test_select_text_link() {
       true,
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2070,7 +2150,23 @@ add_task(async function test_imagelink() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2338,7 +2434,23 @@ add_task(async function test_svg_link() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2385,7 +2497,23 @@ add_task(async function test_svg_link() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2432,7 +2560,23 @@ add_task(async function test_svg_link() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2481,7 +2625,23 @@ add_task(async function test_svg_relative_link() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2528,7 +2688,23 @@ add_task(async function test_svg_relative_link() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2575,7 +2751,23 @@ add_task(async function test_svg_relative_link() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2711,7 +2903,23 @@ add_task(async function test_background_image() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.
@@ -2826,7 +3034,23 @@ add_task(async function test_strip_on_share_on_secure_about_page() {
     [
       "context-openlinkintab",
       true,
-      ...(hasSplitViews ? ["context-openlinkinsplitview", true] : []),
+      ...(hasSplitViews
+        ? [
+            "context-openlinkinsplitview-menu",
+            true,
+            [
+              "context-openlinkinsplitview",
+              true,
+              "context-openlinkinsplitview-left",
+              true,
+              "context-openlinkinsplitview-up",
+              true,
+              "context-openlinkinsplitview-down",
+              true,
+            ],
+            null,
+          ]
+        : []),
       ...(hasContainers ? ["context-openlinkinusercontext-menu", true] : []),
       // We need a blank entry here because the containers submenu is
       // dynamically generated with no ids.

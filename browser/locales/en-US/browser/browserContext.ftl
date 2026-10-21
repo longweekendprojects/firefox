@@ -145,6 +145,22 @@ main-context-menu-open-link-split-view =
     .label = Open Link in Split View
     .accesskey = M
 
+main-context-menu-open-link-split-right =
+    .label = To the Right
+    .accesskey = R
+
+main-context-menu-open-link-split-left =
+    .label = To the Left
+    .accesskey = L
+
+main-context-menu-open-link-split-up =
+    .label = Above
+    .accesskey = A
+
+main-context-menu-open-link-split-down =
+    .label = Below
+    .accesskey = B
+
 main-context-menu-open-link-container-tab =
     .label = Open Link in New Container Tab
     .accesskey = w

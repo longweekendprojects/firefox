@@ -119,7 +119,7 @@ add_task(async function test_link_contextmenu() {
 
   const expectedArray = [
     "context-openlinkintab",
-    ...(expectSplitView ? ["context-openlinkinsplitview"] : []),
+    ...(expectSplitView ? ["context-openlinkinsplitview-menu"] : []),
     ...(expectOpenLinkInUserContextMenu
       ? ["context-openlinkinusercontext-menu"]
       : []),
@@ -381,7 +381,7 @@ add_task(async function test_link_contextmenu_mobile() {
 
   const expectedArray = [
     "context-openlinkintab",
-    ...(expectSplitView ? ["context-openlinkinsplitview"] : []),
+    ...(expectSplitView ? ["context-openlinkinsplitview-menu"] : []),
     ...(expectOpenLinkInUserContextMenu
       ? ["context-openlinkinusercontext-menu"]
       : []),

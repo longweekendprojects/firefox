@@ -71,6 +71,13 @@ const withTabMenu = async function (tab, callback) {
   return await contextMenuHidden;
 };
 
+async function openSplitSubmenu(contextMenu) {
+  const menu = contextMenu.querySelector("#context-openlinkinsplitview-menu");
+  const shown = BrowserTestUtils.waitForPopupEvent(menu.menupopup, "shown");
+  menu.openMenu(true);
+  await shown;
+}
+
 add_task(async function test_contextMenuMoveTabsToNewSplitView() {
   const tab1 = await addTab();
   const tab2 = await addTab();
@@ -825,7 +832,7 @@ add_task(async function test_open_link_in_split_view_from_container() {
   await popupShown;
 
   let openLinkInSplitViewItem = contextMenu.querySelector(
-    "#context-openlinkinsplitview"
+    "#context-openlinkinsplitview-menu"
   );
   ok(openLinkInSplitViewItem, "Open Link in Split View menu item exists");
   ok(
@@ -834,7 +841,10 @@ add_task(async function test_open_link_in_split_view_from_container() {
   );
 
   let popupHidden = BrowserTestUtils.waitForPopupEvent(contextMenu, "hidden");
-  contextMenu.activateItem(openLinkInSplitViewItem);
+  await openSplitSubmenu(contextMenu);
+  contextMenu.activateItem(
+    contextMenu.querySelector("#context-openlinkinsplitview")
+  );
   await popupHidden;
 
   await splitViewCreated;
@@ -902,7 +912,7 @@ add_task(async function test_open_link_in_split_view_hidden_on_hidden_tab() {
   await popupShown;
 
   let openLinkInSplitViewItem = contextMenu.querySelector(
-    "#context-openlinkinsplitview"
+    "#context-openlinkinsplitview-menu"
   );
   ok(openLinkInSplitViewItem, "Open Link in Split View menu item exists");
   ok(
@@ -918,60 +928,53 @@ add_task(async function test_open_link_in_split_view_hidden_on_hidden_tab() {
   FirefoxViewHandler.tab = null;
 });
 
-add_task(
-  async function test_open_link_in_split_view_hidden_when_in_split_view() {
-    const testPageUrl = httpURL("file_anchor_elements.html");
-
-    let tab1 = BrowserTestUtils.addTab(gBrowser, testPageUrl, {
+add_task(async function test_open_link_in_split_view_adds_a_pane() {
+  const testPageUrl = httpURL("file_anchor_elements.html");
+  const tabs = [];
+  for (let i = 0; i < 2; i++) {
+    let tab = BrowserTestUtils.addTab(gBrowser, testPageUrl, {
       skipAnimation: true,
     });
-    await BrowserTestUtils.browserLoaded(
-      tab1.linkedBrowser,
-      false,
-      testPageUrl
-    );
-
-    let tab2 = BrowserTestUtils.addTab(gBrowser, testPageUrl, {
-      skipAnimation: true,
-    });
-    await BrowserTestUtils.browserLoaded(
-      tab2.linkedBrowser,
-      false,
-      testPageUrl
-    );
-
-    gBrowser.addTabSplitView([tab1, tab2]);
-    gBrowser.selectedTab = tab1;
-
-    const contextMenu = document.getElementById("contentAreaContextMenu");
-    let popupShown = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
-
-    await BrowserTestUtils.synthesizeMouseAtCenter(
-      "#a_with_href",
-      { type: "contextmenu", button: 2 },
-      tab1.linkedBrowser
-    );
-    await popupShown;
-
-    let openLinkInSplitViewItem = contextMenu.querySelector(
-      "#context-openlinkinsplitview"
-    );
-    ok(openLinkInSplitViewItem, "Open Link in Split View menu item exists");
-    ok(
-      !BrowserTestUtils.isVisible(openLinkInSplitViewItem),
-      "Open Link in Split View menu item is hidden when current tab is in a split view"
-    );
-
-    let popupHidden = BrowserTestUtils.waitForPopupEvent(contextMenu, "hidden");
-    contextMenu.hidePopup();
-    await popupHidden;
-
-    tab1.splitview.close();
-    while (gBrowser.tabs.length > 1) {
-      BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
-    }
+    await BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, testPageUrl);
+    tabs.push(tab);
   }
-);
+  const [tab1, tab2] = tabs;
+  const splitview = gBrowser.addTabSplitView([tab1, tab2]);
+  gBrowser.selectedTab = tab1;
+
+  const contextMenu = document.getElementById("contentAreaContextMenu");
+  let popupShown = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    "#a_with_href",
+    { type: "contextmenu", button: 2 },
+    tab1.linkedBrowser
+  );
+  await popupShown;
+  ok(
+    BrowserTestUtils.isVisible(
+      contextMenu.querySelector("#context-openlinkinsplitview-menu")
+    ),
+    "Open Link in Split View is shown in a split view"
+  );
+  let popupHidden = BrowserTestUtils.waitForPopupEvent(contextMenu, "hidden");
+  await openSplitSubmenu(contextMenu);
+  contextMenu.activateItem(
+    contextMenu.querySelector("#context-openlinkinsplitview-down")
+  );
+  await popupHidden;
+  await TestUtils.waitForCondition(() => splitview.tabs.length == 3);
+  const linkTab = splitview.tabs.find(t => t != tab1 && t != tab2);
+  is(gBrowser.selectedTab, linkTab, "the link pane is selected");
+  const r1 = tab1.linkedBrowser.getBoundingClientRect();
+  const r3 = linkTab.linkedBrowser.getBoundingClientRect();
+  Assert.greaterOrEqual(r3.top, r1.bottom, "the link opened below its pane");
+  Assert.less(Math.abs(r3.left - r1.left), 2, "in the same column");
+
+  splitview.close();
+  while (gBrowser.tabs.length > 1) {
+    BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
+});
 
 add_task(async function test_about_opentabs_cannot_be_pinned() {
   const tab1 = await addTab();

@@ -528,7 +528,6 @@ export class nsContextMenu {
     let showSplitViews = Services.prefs.getBoolPref(
       "browser.tabs.splitView.enabled"
     );
-    let currentTabInSplitView = !!window.gBrowser?.selectedTab?.splitview;
     let showSmartWindow = lazy.AIWindow.isAIWindowEnabled();
     this.showItem("context-openlink", shouldShow && !isWindowPrivate);
     this.showItem(
@@ -550,16 +549,19 @@ export class nsContextMenu {
       "context-previewlink",
       lazy.LinkPreview.shouldShowContextMenu(this)
     );
-    let isHiddenTab = !!window.gBrowser?.getTabForBrowser(this.browser)?.hidden;
-    let isPinnedTab = !!window.gBrowser?.getTabForBrowser(this.browser)?.pinned;
-    this.showItem(
-      "context-openlinkinsplitview",
-      shouldShow &&
-        showSplitViews &&
-        !currentTabInSplitView &&
-        !isHiddenTab &&
-        !isPinnedTab
-    );
+    let linkTab = window.gBrowser?.getTabForBrowser(this.browser);
+    let showSplitMenu =
+      shouldShow && showSplitViews && !linkTab?.hidden && !linkTab?.pinned;
+    this.showItem("context-openlinkinsplitview-menu", showSplitMenu);
+    if (showSplitMenu) {
+      for (let splitItem of this.document.getElementById(
+        "context-openlinkinsplitview-popup"
+      ).children) {
+        splitItem.disabled =
+          !!linkTab?.splitview &&
+          !linkTab.splitview.canSplitPane(linkTab, splitItem.dataset.direction);
+      }
+    }
   }
 
   initNavigationItems() {
@@ -1586,7 +1588,12 @@ export class nsContextMenu {
   }
 
   // Open linked-to URL in a new split view
-  openLinkInSplitView() {
+  /**
+   * Opens the link in a new pane beside the pane of this browser.
+   *
+   * @param {"left"|"right"|"up"|"down"} [direction]
+   */
+  openLinkInSplitView(direction = "right") {
     let win = this.window;
     let currentTab = win.gBrowser.getTabForBrowser(this.browser);
     let userContextId = currentTab ? currentTab.userContextId : 0;
@@ -1596,12 +1603,21 @@ export class nsContextMenu {
       inBackground: false,
       resolveOnNewTabCreated: browser => {
         let linkTab = win.gBrowser.getTabForBrowser(browser);
-        if (linkTab && currentTab) {
-          win.gBrowser.addTabSplitView([currentTab, linkTab], {
+        if (!linkTab || !currentTab) {
+          return;
+        }
+        let splitview = currentTab.splitview;
+        if (splitview) {
+          splitview.splitPane(currentTab, direction, linkTab);
+        } else {
+          splitview = win.gBrowser.addTabSplitView([currentTab, linkTab], {
             insertBefore: currentTab,
           });
-          win.gBrowser.selectedTab = linkTab;
+          if (direction != "right") {
+            splitview?.splitPane(currentTab, direction, linkTab);
+          }
         }
+        win.gBrowser.selectedTab = linkTab;
       },
     };
 
