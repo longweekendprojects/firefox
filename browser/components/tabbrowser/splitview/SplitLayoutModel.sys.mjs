@@ -12,8 +12,8 @@
  * "row" places first left of second; "column" places first above second.
  * `ratio` is the share of the first child, in (0, 1).
  *
- * Splits are balanced: each child's share is proportional to its number of
- * leaves, so every pane gets the same area however the tree is nested.
+ * Splits are balanced like a grid: each child's share is proportional to
+ * the number of panes it holds side by side along the split's axis.
  * A split the user resized carries `manual: true` and keeps its ratio.
  * Leaf ids are opaque primitives chosen by the caller.
  * Split nodes are addressed by path strings of "0" (first) and "1" (second);
@@ -181,13 +181,24 @@ function isManualRun(node, axis) {
   );
 }
 
-function leafCount(node) {
-  return isSplit(node) ? leafCount(node.first) + leafCount(node.second) : 1;
+/**
+ * Number of panes laid side by side along `axis` in `node`: a run along the
+ * axis adds its parts, and a split across it takes its widest part.
+ */
+function span(node, axis) {
+  if (!isSplit(node)) {
+    return 1;
+  }
+  const first = span(node.first, axis);
+  const second = span(node.second, axis);
+  return node.axis === axis ? first + second : Math.max(first, second);
 }
 
 /**
  * Gives every split that was not resized by hand a ratio proportional to the
- * leaves on each side, so all panes get equal areas. Reuses unchanged nodes.
+ * panes each side holds along its axis. Panes then line up like a grid:
+ * three panes in a row take a third each, and splitting one of them down
+ * halves only that pane. Reuses unchanged nodes.
  */
 function balance(node) {
   if (!node || !isSplit(node)) {
@@ -197,7 +208,8 @@ function balance(node) {
   const second = balance(node.second);
   const ratio = node.manual
     ? node.ratio
-    : leafCount(first) / (leafCount(first) + leafCount(second));
+    : span(first, node.axis) /
+      (span(first, node.axis) + span(second, node.axis));
   if (
     first === node.first &&
     second === node.second &&
