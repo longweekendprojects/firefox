@@ -358,6 +358,8 @@ tab-splitview-pane-menu =
 tab-splitview-pane-close =
     .tooltiptext = Close this pane
     .aria-label = Close pane
+# Shown over a pane while another pane is dragged onto its center.
+tab-splitview-pane-drop-swap = Swap panes
 
 ##
 tab-devtools-splitter =

@@ -50,7 +50,9 @@ const DRAG_SLOP = 3;
 // Pointer travel, in CSS pixels, before a pane bar press becomes a drag.
 const DRAG_THRESHOLD = 5;
 // Half-size of the central drop zone that swaps two panes, as a fraction.
-const SWAP_ZONE = 0.2;
+// It is small because most drops mean to split, and the indicator says when
+// a drop will swap.
+const SWAP_ZONE = 0.1;
 // Narrowest header the toolbar row takes; narrower ones stay in their pane.
 const MIN_TOOLBAR_HEADER = 120;
 // Window controls hidden while panes are shown; pane headers use their space.
@@ -667,6 +669,12 @@ function onHeaderPointerMove(event) {
     grab.indicator = document.createElementNS(HTML_NS, "div");
     grab.indicator.className = "split-pane-drop";
     grab.indicator.hidden = true;
+    const swap = document.createElementNS(HTML_NS, "div");
+    swap.className = "split-pane-drop-swap";
+    const label = document.createElementNS(HTML_NS, "span");
+    document.l10n.setAttributes(label, "tab-splitview-pane-drop-swap");
+    swap.append(label);
+    grab.indicator.append(swap);
     splitterBox.append(grab.indicator);
   }
   grab.drop = dropTarget(event.clientX, event.clientY);
@@ -754,6 +762,7 @@ function showDropIndicator(indicator, drop) {
   }
   const box = gBrowser.tabbox.getBoundingClientRect();
   const { zone, rect } = drop;
+  indicator.setAttribute("zone", zone);
   const half = { w: rect.width / 2, h: rect.height / 2 };
   const x = rect.left - box.left + (zone == "right" ? half.w : 0);
   const y = rect.top - box.top + (zone == "down" ? half.h : 0);

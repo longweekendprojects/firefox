@@ -174,3 +174,30 @@
   border-radius: var(--border-radius-medium);
   background-color: var(--background-color-dimmed);
 }
+
+/* A drop on the center of a pane swaps the two panes, so the indicator
+   says so in words. */
+.split-pane-drop-swap {
+  display: none;
+
+  .split-pane-drop[zone="swap"] > & {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-small);
+    font-size: var(--font-size-large);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-color);
+  }
+
+  &::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background: url("chrome://global/skin/icons/swap-horizontal-20.svg") center / contain no-repeat;
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+}

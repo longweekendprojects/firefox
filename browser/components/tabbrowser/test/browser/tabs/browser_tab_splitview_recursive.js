@@ -521,7 +521,14 @@ add_task(async function test_accel_w_after_clicking_a_pane() {
   }
 });
 
-async function dragHeader(tab, target, fx, fy, part = ".split-pane-url") {
+async function dragHeader(
+  tab,
+  target,
+  fx,
+  fy,
+  part = ".split-pane-url",
+  beforeDrop = null
+) {
   // Every part of the pane bar is a drag handle.
   gBrowser.selectedBrowser.focus();
   const handle = paneHeader(tab).querySelector(part);
@@ -549,6 +556,7 @@ async function dragHeader(tab, target, fx, fy, part = ".split-pane-url") {
     );
     await TestUtils.waitForTick();
   }
+  await beforeDrop?.();
   at(end.x, end.y, "mouseup");
   await TestUtils.waitForTick();
 }
@@ -562,7 +570,14 @@ add_task(async function test_drag_pane_header_moves_pane() {
   const before = M.leafIds(sv.layout);
   const [a, , , d] = before;
 
-  await dragHeader(a, d, 0.5, 0.5);
+  await dragHeader(a, d, 0.5, 0.5, undefined, async () => {
+    const indicator = document.querySelector(".split-pane-drop");
+    Assert.equal(indicator.getAttribute("zone"), "swap", "a center drop swaps");
+    const swap = indicator.querySelector(".split-pane-drop-swap");
+    await TestUtils.waitForCondition(() => swap.textContent, "swap text");
+    Assert.ok(swap.getBoundingClientRect().width, "the swap label shows");
+    Assert.equal(swap.textContent, "Swap panes", "and says it swaps");
+  });
   Assert.deepEqual(
     M.leafIds(sv.layout),
     before.map(
@@ -584,6 +599,20 @@ add_task(async function test_drag_pane_header_moves_pane() {
   const rf = rect(first);
   const rs = rect(second);
   Assert.greater(rf.x, rs.x, "the moved pane sits to the right");
+
+  // Off center, a drop splits the pane rather than swapping with it.
+  const [g, h] = M.leafIds(sv.layout);
+  await dragHeader(g, h, 0.5, 0.65, undefined, () => {
+    const indicator = document.querySelector(".split-pane-drop");
+    Assert.equal(indicator.getAttribute("zone"), "down", "near center splits");
+    Assert.equal(
+      indicator.querySelector(".split-pane-drop-swap").getBoundingClientRect()
+        .width,
+      0,
+      "and shows no swap label"
+    );
+  });
+  Assert.equal(M.leafIds(sv.layout).length, 4, "no pane lost on a split");
   Assert.ok(
     !document.querySelector(".split-pane-drop"),
     "the drop indicator is removed"
