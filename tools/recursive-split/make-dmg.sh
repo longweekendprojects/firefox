@@ -3,6 +3,12 @@
 #
 # Every DMG carries its build time in its file name, its volume name and the
 # app version that Finder shows, so an installed copy can be matched to it.
+#
+# Artifact builds reuse the downloaded build ID, and Firefox clears a
+# profile's cached browser code only when that ID changes. The DMG app
+# therefore carries a .purgecaches flag, which makes Firefox rebuild the cache
+# at each launch. Without it, an installed copy keeps running the code of the
+# first DMG that profile ever ran.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 here=tools/recursive-split
@@ -20,6 +26,7 @@ hdiutil attach -quiet -nobrowse -mountpoint $work/mnt obj-artifact/dist/firefox-
 ditto $work/mnt/Nightly.app $work/stage/Nightly.app
 hdiutil detach -quiet $work/mnt
 $here/fix-helpers.sh $work/stage/Nightly.app > /dev/null
+touch $work/stage/Nightly.app/Contents/Resources/browser/.purgecaches
 plutil -replace CFBundleShortVersionString -string "157.0.1 split $stamp" \
   $work/stage/Nightly.app/Contents/Info.plist
 $here/run-guarded.sh 900 40 8000 -- $py ./mach macos-sign -a $work/stage/Nightly.app > /tmp/ff-sign.log 2>&1
