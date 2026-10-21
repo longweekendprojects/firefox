@@ -8,8 +8,9 @@ app=/Applications/Nightly.app
 mnt=$(mktemp -d /tmp/nightly-dmg.XXXX)
 
 if pgrep -f "^$app/Contents/MacOS/firefox" > /dev/null; then
-  osascript -e "tell application \"$app\" to quit"
-  for _ in $(seq 60); do
+  # Nightly may ask to confirm closing tabs; wait for that answer.
+  osascript -e "with timeout of 5 seconds" -e "tell application \"$app\" to quit" -e "end timeout" 2> /dev/null || true
+  for _ in $(seq 300); do
     pgrep -f "^$app/Contents/MacOS/firefox" > /dev/null || break
     sleep 1
   done
