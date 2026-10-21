@@ -133,6 +133,21 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    */
   set hasActiveTab(val) {
     this.toggleAttribute("hasactivetab", val);
+    if (!val) {
+      // A split unfolded in the collapsed sidebar folds again once the user
+      // leaves it.
+      this.removeAttribute("unfolded");
+    }
+  }
+
+  /**
+   * Updates the pane count that the collapsed sidebar shows on a folded
+   * split.
+   */
+  #updatePaneCount() {
+    const count = this.tabs.length;
+    this.setAttribute("panecount", count);
+    this.setAttribute("hiddenpanes", `+${count - 1}`);
   }
 
   get multiselected() {
@@ -153,6 +168,8 @@ export class MozTabSplitViewWrapper extends MozXULElement {
     // Set up TabSelect listener, as this gets
     // removed in disconnectedCallback
     this.documentGlobal.addEventListener("TabSelect", this);
+    this.addEventListener("click", this);
+    this.#updatePaneCount();
 
     this.#observeTabChanges();
     this.#restorePanelWidths();
@@ -180,6 +197,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   disconnectedCallback() {
     this.#tabChangeObserver?.disconnect();
     this.documentGlobal.removeEventListener("TabSelect", this);
+    this.removeEventListener("click", this);
     this.#deactivate();
     this.#resetPanelWidths();
     this.container.dispatchEvent(
@@ -204,6 +222,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
           Panes?.clear(removed);
         }
         if (children.length) {
+          this.#updatePaneCount();
           this.hasActiveTab = this.tabs.some(tab => tab.selected);
           this.tabs.forEach((tab, index) => {
             // Renumber tabs so that a11y tools can tell users that a given
@@ -759,6 +778,19 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    */
   focusLocation(tab = gBrowser.selectedTab, text = "") {
     return !!Panes?.focusLocation(tab, text);
+  }
+
+  /**
+   * A click on the split itself, outside its tabs, is a click on the pane
+   * count of the collapsed sidebar. It folds or unfolds the split.
+   *
+   * @param {MouseEvent} event
+   */
+  on_click(event) {
+    if (event.target !== this || event.button != 0) {
+      return;
+    }
+    this.toggleAttribute("unfolded");
   }
 
   /**

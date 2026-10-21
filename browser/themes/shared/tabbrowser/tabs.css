@@ -1791,6 +1791,38 @@ tab-group > tab-split-view-wrapper {
   }
 }
 
+/* In the collapsed sidebar each pane takes a full row, so a split of three
+   or more panes folds to one pane and a pane count. Clicking the count
+   unfolds the split; leaving the split folds it again. */
+#tabbrowser-tabs[orient="vertical"]:not([expanded]) tab-split-view-wrapper:not([panecount="1"], [panecount="2"]) {
+  &::after {
+    content: attr(hiddenpanes);
+    justify-self: stretch;
+    margin-inline: var(--tab-collapsed-split-pill-offset);
+    padding-block: 2px;
+    border-radius: var(--tab-border-radius);
+    font-size: var(--font-size-small);
+    text-align: center;
+    color: var(--toolbarbutton-icon-fill);
+    cursor: pointer;
+  }
+
+  &:hover::after {
+    background-color: var(--tab-hover-background-color);
+  }
+
+  &[unfolded]::after {
+    content: "\2212";
+  }
+
+  &:not([unfolded]) {
+    &[hasactivetab] > .tabbrowser-tab:not([selected]),
+    &:not([hasactivetab]) > .tabbrowser-tab:not(:first-child) {
+      display: none;
+    }
+  }
+}
+
 /* During expand-on-hover collapse animation, keep split-tab icons
    constrained to the collapsed pill geometry to avoid mid-transition drifting. */
 :root[sidebar-expand-on-hover]

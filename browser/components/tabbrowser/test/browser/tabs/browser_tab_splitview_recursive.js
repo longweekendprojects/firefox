@@ -649,3 +649,50 @@ add_task(async function test_panes_resize_evenly() {
     BrowserTestUtils.removeTab(t);
   }
 });
+
+add_task(async function test_collapsed_sidebar_folds_large_splits() {
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
+  SidebarController._state.launcherExpanded = false;
+  await TestUtils.waitForCondition(
+    () => !gBrowser.tabContainer.hasAttribute("expanded")
+  );
+  const tabs = [];
+  for (let i = 0; i < 4; i++) {
+    tabs.push(await addLoadedTab());
+  }
+  const [a, b, c, d] = tabs;
+  await BrowserTestUtils.switchTab(gBrowser, a);
+  const sv = gBrowser.addTabSplitView([a, b], { insertBefore: a });
+  sv.splitPane(b, "right", c);
+  sv.splitPane(c, "right", d);
+  await TestUtils.waitForCondition(() => sv.tabs.length == 4);
+  await BrowserTestUtils.switchTab(gBrowser, c);
+  const shown = () => sv.tabs.filter(t => t.getBoundingClientRect().height);
+
+  await TestUtils.waitForCondition(() => shown().length == 1);
+  Assert.deepEqual(shown(), [c], "a folded split shows only its pane");
+  Assert.equal(sv.getAttribute("hiddenpanes"), "+3", "and a pane count");
+
+  const r = sv.getBoundingClientRect();
+  const count = document.elementFromPoint(r.left + r.width / 2, r.bottom - 6);
+  Assert.equal(count, sv, "the pane count is part of the split");
+  EventUtils.synthesizeMouseAtPoint(r.left + r.width / 2, r.bottom - 6, {});
+  await TestUtils.waitForCondition(() => shown().length == 4);
+  Assert.ok(sv.hasAttribute("unfolded"), "clicking the count unfolds");
+  Assert.equal(gBrowser.selectedTab, c, "and keeps the selected pane");
+
+  const other = await addLoadedTab();
+  await BrowserTestUtils.switchTab(gBrowser, other);
+  Assert.ok(!sv.hasAttribute("unfolded"), "leaving the split folds it");
+  Assert.deepEqual(shown(), [a], "an inactive folded split shows its first");
+
+  SidebarController._state.launcherExpanded = true;
+  await TestUtils.waitForCondition(() =>
+    gBrowser.tabContainer.hasAttribute("expanded")
+  );
+  Assert.equal(shown().length, 4, "the expanded sidebar never folds");
+  for (const tab of [...sv.tabs, other]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+  await SpecialPowers.popPrefEnv();
+});
