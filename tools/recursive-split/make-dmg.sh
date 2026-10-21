@@ -1,5 +1,6 @@
 #!/bin/bash
-# Builds, packages and ad-hoc signs a test DMG on the Desktop.
+# Builds, packages and ad-hoc signs a test DMG on the Desktop, then installs
+# it into /Applications and reopens Nightly.
 #
 # Every DMG carries its build time in its file name, its volume name and the
 # app version that Finder shows, so an installed copy can be matched to it.
@@ -39,3 +40,6 @@ rm -f "$out"
 hdiutil create -quiet -volname "Nightly Split $stamp" -srcfolder $work/dmgsrc -ov -format UDZO -fs HFS+ "$out"
 codesign --sign - "$out"
 echo "$out"
+
+# Install right away so the change can be tried at once.
+$here/install-dmg.sh "$out"
