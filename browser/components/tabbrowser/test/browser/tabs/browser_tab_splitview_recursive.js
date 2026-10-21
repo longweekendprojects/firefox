@@ -351,6 +351,58 @@ add_task(async function test_location_opens_command_bar_on_plain_tab() {
   BrowserTestUtils.removeTab(tab);
 });
 
+add_task(async function test_command_bar_results_stay_under_it() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.urlbar.suggest.topsites", true],
+      [
+        "browser.newtabpage.activity-stream.default.sites",
+        "https://example.org/,https://mozilla.org/",
+      ],
+    ],
+  });
+  const tab = await addLoadedTab();
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  gURLBar.focus();
+  EventUtils.sendString("exa");
+  await TestUtils.waitForCondition(
+    () => gURLBar.view.isOpen,
+    "results open in the toolbar first"
+  );
+  document.getElementById("Browser:OpenLocation").doCommand();
+  await TestUtils.waitForCondition(
+    () => commandBarOpen() && gURLBar.view.isOpen,
+    "the command bar opens with its results"
+  );
+  await new Promise(r => requestAnimationFrame(r));
+  const bar = gURLBar.getBoundingClientRect();
+  const results = gURLBar.panel.getBoundingClientRect();
+  Assert.lessOrEqual(
+    Math.abs(results.left - bar.left) + Math.abs(results.right - bar.right),
+    16,
+    "the results are as wide as the bar"
+  );
+  Assert.greaterOrEqual(
+    results.top,
+    bar.bottom - 8,
+    "the results start below the input"
+  );
+
+  EventUtils.sendString("typed");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen(), "Escape closes it");
+  document.getElementById("Browser:OpenLocation").doCommand();
+  await TestUtils.waitForCondition(() => commandBarOpen() && gURLBar.focused);
+  Assert.ok(
+    gURLBar.value.includes("example.com"),
+    "Escape threw away the typed text"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen());
+  BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_extension_style_move_keeps_large_split() {
   const tabs = [
     await addLoadedTab(),

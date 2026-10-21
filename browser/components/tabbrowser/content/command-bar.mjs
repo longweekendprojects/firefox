@@ -45,6 +45,11 @@ export function show() {
   gURLBar.setAttribute("commandbar", "");
   gURLBar.setAttribute("popover", "manual");
   gURLBar.showPopover();
+  // The results anchor to the bar, so they must sit above it in the top layer.
+  if (gURLBar.panel.matches(":popover-open")) {
+    gURLBar.panel.hidePopover();
+    gURLBar.panel.showPopover();
+  }
   gURLBar.inputField.addEventListener("blur", handler);
   gURLBar.inputField.addEventListener("keydown", handler);
   window.addEventListener("resize", handler);
@@ -53,20 +58,27 @@ export function show() {
 /** Centers the open command bar over the selected page. */
 export function position() {
   const area = gBrowser.selectedBrowser.getBoundingClientRect();
-  const width = Math.min(
-    area.width - 2 * MARGIN,
-    Math.max(MIN_WIDTH, area.width * WIDTH_FRACTION),
-    MAX_WIDTH
+  const width = Math.max(
+    Math.min(
+      area.width - 2 * MARGIN,
+      Math.max(MIN_WIDTH, area.width * WIDTH_FRACTION),
+      MAX_WIDTH
+    ),
+    Math.min(MIN_WIDTH, window.innerWidth - 2 * MARGIN)
+  );
+  const left = Math.max(
+    MARGIN,
+    Math.min(
+      area.left + (area.width - width) / 2,
+      window.innerWidth - MARGIN - width
+    )
   );
   const offset = Math.max(
     MARGIN,
     Math.min(area.height * TOP_FRACTION, area.height - RESULTS_ROOM)
   );
   const style = document.documentElement.style;
-  style.setProperty(
-    "--commandbar-left",
-    area.left + (area.width - width) / 2 + "px"
-  );
+  style.setProperty("--commandbar-left", left + "px");
   style.setProperty("--commandbar-top", area.top + offset + "px");
   style.setProperty("--commandbar-width", width + "px");
 }
@@ -96,6 +108,7 @@ const handler = {
         break;
       case "keydown":
         if (event.key == "Escape") {
+          gURLBar.handleRevert();
           gBrowser.selectedBrowser.focus();
         }
         break;
