@@ -1851,7 +1851,8 @@ tab-group > tab-split-view-wrapper {
    grows with the pane count. The collapsed sidebar gives each pane a full
    row, so it folds splits of three or more panes. The expanded sidebar folds
    splits too many for one row. Clicking the count unfolds the split, and
-   leaving the split folds it again. */
+   leaving the split folds it again. A folded split shows the pane the user
+   last selected. */
 #tabbrowser-tabs[orient="vertical"]:not([expanded]) tab-split-view-wrapper[foldable],
 #tabbrowser-tabs[orient="vertical"][expanded] tab-split-view-wrapper[foldable="always"] {
   &::after {
@@ -1873,11 +1874,8 @@ tab-group > tab-split-view-wrapper {
     content: "\2212";
   }
 
-  &:not([unfolded]) {
-    &[hasactivetab] > .tabbrowser-tab:not([selected]),
-    &:not([hasactivetab]) > .tabbrowser-tab:not(:first-child) {
-      display: none;
-    }
+  &:not([unfolded]) > .tabbrowser-tab:not([foldshown]) {
+    display: none;
   }
 }
 

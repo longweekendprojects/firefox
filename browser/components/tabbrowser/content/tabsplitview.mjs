@@ -151,7 +151,11 @@ export class MozTabSplitViewWrapper extends MozXULElement {
    * splits too many for one row also fold in the expanded sidebar.
    */
   #updatePaneCount() {
-    const count = this.tabs.length;
+    const tabs = this.tabs;
+    const count = tabs.length;
+    if (!tabs.some(tab => tab.hasAttribute("foldshown"))) {
+      this.#setFoldShown(tabs.find(tab => tab.selected) ?? tabs[0]);
+    }
     this.setAttribute("hiddenpanes", `+${count - 1}`);
     if (count >= FOLD_ALWAYS) {
       this.setAttribute("foldable", "always");
@@ -230,6 +234,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
           // Drop tabs that left the wrapper so no stale references remain,
           // and clear their panels' split view state.
           this.#tabs = this.#tabs.filter(tab => children.includes(tab));
+          removed.forEach(tab => tab.removeAttribute("foldshown"));
           gBrowser.tabpanels.removeTabsFromSplitview(removed);
           Panes?.clear(removed);
         }
@@ -793,6 +798,18 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   }
 
   /**
+   * Marks the pane that a folded split shows: the pane the user last
+   * selected, so the split keeps its icon after the user leaves it.
+   *
+   * @param {MozTabbrowserTab} [tab]
+   */
+  #setFoldShown(tab) {
+    for (const other of this.tabs) {
+      other.toggleAttribute("foldshown", other === tab);
+    }
+  }
+
+  /**
    * A click on the split itself, outside its tabs, is a click on the pane
    * count of the collapsed sidebar. It folds or unfolds the split.
    *
@@ -812,6 +829,7 @@ export class MozTabSplitViewWrapper extends MozXULElement {
     const wasActive = this.hasActiveTab;
     this.hasActiveTab = event.target.splitview === this;
     if (this.hasActiveTab) {
+      this.#setFoldShown(event.target);
       this.#activate();
       // This check ensures we don't call suspend for every tab selection
       // or for a selected tab in a splitview that is being dragged to another window,

@@ -684,7 +684,7 @@ add_task(async function test_collapsed_sidebar_folds_large_splits() {
   const other = await addLoadedTab();
   await BrowserTestUtils.switchTab(gBrowser, other);
   Assert.ok(!sv.hasAttribute("unfolded"), "leaving the split folds it");
-  Assert.deepEqual(shown(), [a], "an inactive folded split shows its first");
+  Assert.deepEqual(shown(), [c], "a folded split keeps its last pane");
 
   SidebarController._state.launcherExpanded = true;
   await TestUtils.waitForCondition(() =>
@@ -698,7 +698,7 @@ add_task(async function test_collapsed_sidebar_folds_large_splits() {
   sv.splitPane(e, "right", f);
   await TestUtils.waitForCondition(() => sv.tabs.length == 6);
   await TestUtils.waitForCondition(() => shown().length == 1);
-  Assert.deepEqual(shown(), [a], "six panes fold in the expanded sidebar");
+  Assert.deepEqual(shown(), [c], "six panes fold in the expanded sidebar");
   Assert.equal(sv.getAttribute("hiddenpanes"), "+5", "with a pane count");
   const row = sv.getBoundingClientRect();
   EventUtils.synthesizeMouseAtPoint(
