@@ -976,6 +976,75 @@ add_task(async function test_open_link_in_split_view_adds_a_pane() {
   }
 });
 
+add_task(async function test_open_link_in_split_view_from_plain_tab() {
+  const testPageUrl = httpURL("file_anchor_elements.html");
+  const contextMenu = document.getElementById("contentAreaContextMenu");
+  for (const direction of ["right", "left", "up", "down"]) {
+    const tab = BrowserTestUtils.addTab(gBrowser, testPageUrl, {
+      skipAnimation: true,
+    });
+    gBrowser.selectedTab = tab;
+    await BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, testPageUrl);
+    const tabCount = gBrowser.tabs.length;
+    let layoutChanges = 0;
+    const onLayout = () => layoutChanges++;
+    gBrowser.tabContainer.addEventListener("SplitViewLayoutChanged", onLayout);
+
+    let popupShown = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      "#a_with_href",
+      { type: "contextmenu", button: 2 },
+      tab.linkedBrowser
+    );
+    await popupShown;
+    let popupHidden = BrowserTestUtils.waitForPopupEvent(contextMenu, "hidden");
+    await openSplitSubmenu(contextMenu);
+    const id =
+      direction == "right"
+        ? "#context-openlinkinsplitview"
+        : `#context-openlinkinsplitview-${direction}`;
+    contextMenu.activateItem(contextMenu.querySelector(id));
+    await popupHidden;
+    await TestUtils.waitForCondition(() => tab.splitview, "split created");
+    const splitview = tab.splitview;
+    await new Promise(r => requestAnimationFrame(r));
+    await TestUtils.waitForTick();
+    gBrowser.tabContainer.removeEventListener(
+      "SplitViewLayoutChanged",
+      onLayout
+    );
+
+    is(gBrowser.tabs.length, tabCount + 1, `${direction}: one new tab`);
+    is(splitview.tabs.length, 2, `${direction}: two panes`);
+    is(layoutChanges, 0, `${direction}: the layout is built once`);
+    is(
+      document.querySelectorAll(".split-pane-splitter:not([hidden])").length,
+      1,
+      `${direction}: one divider`
+    );
+    const linkTab = splitview.tabs.find(t => t != tab);
+    is(
+      gBrowser.selectedTab,
+      linkTab,
+      `${direction}: the link pane is selected`
+    );
+    const a = tab.linkedBrowser.getBoundingClientRect();
+    const b = linkTab.linkedBrowser.getBoundingClientRect();
+    const placed = {
+      right: b.left >= a.right,
+      left: b.right <= a.left,
+      up: b.bottom <= a.top,
+      down: b.top >= a.bottom,
+    }[direction];
+    ok(placed, `${direction}: the link opened on that side`);
+
+    splitview.close();
+    while (gBrowser.tabs.length > 1) {
+      BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+    }
+  }
+});
+
 add_task(async function test_about_opentabs_cannot_be_pinned() {
   const tab1 = await addTab();
   const tab2 = await addTab();

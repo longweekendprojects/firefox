@@ -1610,12 +1610,22 @@ export class nsContextMenu {
         if (splitview) {
           splitview.splitPane(currentTab, direction, linkTab);
         } else {
-          splitview = win.gBrowser.addTabSplitView([currentTab, linkTab], {
+          let linkFirst = direction == "left" || direction == "up";
+          win.gBrowser.addTabSplitView([currentTab, linkTab], {
             insertBefore: currentTab,
+            layout: {
+              version: 1,
+              root: {
+                axis:
+                  direction == "left" || direction == "right"
+                    ? "row"
+                    : "column",
+                ratio: 0.5,
+                first: { id: linkFirst ? 1 : 0 },
+                second: { id: linkFirst ? 0 : 1 },
+              },
+            },
           });
-          if (direction != "right") {
-            splitview?.splitPane(currentTab, direction, linkTab);
-          }
         }
         win.gBrowser.selectedTab = linkTab;
       },
