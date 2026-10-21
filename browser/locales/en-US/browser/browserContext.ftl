@@ -146,11 +146,11 @@ main-context-menu-open-link-split-view =
     .accesskey = M
 
 main-context-menu-open-link-split-right =
-    .label = To the Right
+    .label = Right
     .accesskey = R
 
 main-context-menu-open-link-split-left =
-    .label = To the Left
+    .label = Left
     .accesskey = L
 
 main-context-menu-open-link-split-up =
