@@ -382,6 +382,43 @@ add_task(async function test_new_pane_is_blank_with_focused_address() {
   }
 });
 
+add_task(async function test_split_pane_from_plain_tab_builds_once() {
+  for (const direction of ["right", "left", "up", "down"]) {
+    const tab = await addLoadedTab();
+    gBrowser.selectedTab = tab;
+    const tabCount = gBrowser.tabs.length;
+    let layoutChanges = 0;
+    const onLayout = () => layoutChanges++;
+    gBrowser.tabContainer.addEventListener("SplitViewLayoutChanged", onLayout);
+    BrowserCommands.splitPane(direction);
+    await TestUtils.waitForCondition(() => tab.splitview, "split created");
+    const splitview = tab.splitview;
+    await new Promise(r => requestAnimationFrame(r));
+    await TestUtils.waitForTick();
+    gBrowser.tabContainer.removeEventListener(
+      "SplitViewLayoutChanged",
+      onLayout
+    );
+
+    is(gBrowser.tabs.length, tabCount + 1, `${direction}: one new tab`);
+    is(splitview.tabs.length, 2, `${direction}: two panes`);
+    is(layoutChanges, 0, `${direction}: the layout is built once`);
+    const pane = splitview.tabs.find(t => t != tab);
+    const a = rect(tab);
+    const b = rect(pane);
+    const placed = {
+      right: b.x >= a.x + a.w - 1,
+      left: b.x + b.w <= a.x + 1,
+      up: b.y + b.h <= a.y + 1,
+      down: b.y >= a.y + a.h - 1,
+    }[direction];
+    ok(placed, `${direction}: the new pane is on that side`);
+    for (const t of [...splitview.tabs]) {
+      BrowserTestUtils.removeTab(t);
+    }
+  }
+});
+
 add_task(async function test_window_navigation_hidden_while_panes_show() {
   const ids = ["back-button", "forward-button", "urlbar-container"];
   const visible = id =>

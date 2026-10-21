@@ -125,13 +125,11 @@ var BrowserCommands = {
     if (splitview) {
       splitview.splitPane(tab, direction, newTab);
     } else {
-      splitview = gBrowser.addTabSplitView([tab, newTab], {
+      gBrowser.addTabSplitView([tab, newTab], {
         insertBefore: tab,
         trigger: "keyboard_shortcut",
+        direction,
       });
-      if (direction != "right") {
-        splitview?.splitPane(tab, direction, newTab);
-      }
     }
     gBrowser.selectedTab = newTab;
     gBrowser.addEventListener(

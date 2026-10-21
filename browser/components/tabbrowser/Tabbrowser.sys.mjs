@@ -4020,13 +4020,34 @@ export class Tabbrowser {
    *   Valid values: "menu_add", "menu_open".
    * @param {object} [options.layout]
    *   Serialized pane layout whose leaf ids are positions in `tabs`.
+   * @param {"left"|"right"|"up"|"down"} [options.direction]
+   *   Without `layout`, places the second of two tabs on this side of the
+   *   first.
    */
   addTabSplitView(
     tabs,
-    { id = null, insertBefore = null, trigger = null, layout = null } = {}
+    {
+      id = null,
+      insertBefore = null,
+      trigger = null,
+      layout = null,
+      direction = null,
+    } = {}
   ) {
     if (!tabs?.length) {
       throw new Error("Cannot create split view with zero tabs");
+    }
+    if (!layout && direction && tabs.length == 2) {
+      let secondFirst = direction == "left" || direction == "up";
+      layout = {
+        version: 1,
+        root: {
+          axis: direction == "left" || direction == "right" ? "row" : "column",
+          ratio: 0.5,
+          first: { id: secondFirst ? 1 : 0 },
+          second: { id: secondFirst ? 0 : 1 },
+        },
+      };
     }
 
     // Capture group information before tabs are moved
