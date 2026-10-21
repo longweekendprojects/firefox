@@ -6,9 +6,10 @@
 #
 # Artifact builds reuse the downloaded build ID, and Firefox clears a
 # profile's cached browser code only when that ID changes. The DMG app
-# therefore carries a .purgecaches flag, which makes Firefox rebuild the cache
-# at each launch. Without it, an installed copy keeps running the code of the
-# first DMG that profile ever ran.
+# therefore carries a .purgecaches flag. Firefox rebuilds the cache when it
+# sees the flag and then deletes it, so each install clears the cache once.
+# Without it, an installed copy keeps running the code of the first DMG that
+# profile ever ran.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 here=tools/recursive-split
