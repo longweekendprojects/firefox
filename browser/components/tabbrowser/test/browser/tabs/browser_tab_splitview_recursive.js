@@ -690,7 +690,26 @@ add_task(async function test_collapsed_sidebar_folds_large_splits() {
   await TestUtils.waitForCondition(() =>
     gBrowser.tabContainer.hasAttribute("expanded")
   );
-  Assert.equal(shown().length, 4, "the expanded sidebar never folds");
+  Assert.equal(shown().length, 4, "four panes fit in one expanded row");
+
+  const e = await addLoadedTab();
+  const f = await addLoadedTab();
+  sv.splitPane(d, "right", e);
+  sv.splitPane(e, "right", f);
+  await TestUtils.waitForCondition(() => sv.tabs.length == 6);
+  await TestUtils.waitForCondition(() => shown().length == 1);
+  Assert.deepEqual(shown(), [a], "six panes fold in the expanded sidebar");
+  Assert.equal(sv.getAttribute("hiddenpanes"), "+5", "with a pane count");
+  const row = sv.getBoundingClientRect();
+  EventUtils.synthesizeMouseAtPoint(
+    row.right - 8,
+    row.top + row.height / 2,
+    {}
+  );
+  await TestUtils.waitForCondition(() => shown().length == 6);
+  const tops = shown().map(t => Math.round(t.getBoundingClientRect().top));
+  Assert.equal(new Set(tops).size, 6, "an unfolded split lists one per row");
+
   for (const tab of [...sv.tabs, other]) {
     BrowserTestUtils.removeTab(tab);
   }

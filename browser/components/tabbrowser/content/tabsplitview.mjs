@@ -29,6 +29,11 @@ const updateUrlbarButton = new DeferredTask(() => {
   }
 }, 0);
 
+// Pane counts at which a split folds in the collapsed sidebar, and in the
+// expanded sidebar too, where five panes still fit in one row.
+const FOLD_COLLAPSED = 3;
+const FOLD_ALWAYS = 6;
+
 // Session values that let a reopened pane find its old neighbor.
 const PANE_KEY = "splitPaneKey";
 const CLOSED_PANE = "splitPaneClosed";
@@ -141,13 +146,20 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   }
 
   /**
-   * Updates the pane count that the collapsed sidebar shows on a folded
-   * split.
+   * Updates the pane count that a folded split shows in the vertical tab
+   * strip. Splits of three or more panes fold in the collapsed sidebar, and
+   * splits too many for one row also fold in the expanded sidebar.
    */
   #updatePaneCount() {
     const count = this.tabs.length;
-    this.setAttribute("panecount", count);
     this.setAttribute("hiddenpanes", `+${count - 1}`);
+    if (count >= FOLD_ALWAYS) {
+      this.setAttribute("foldable", "always");
+    } else if (count >= FOLD_COLLAPSED) {
+      this.setAttribute("foldable", "collapsed");
+    } else {
+      this.removeAttribute("foldable");
+    }
   }
 
   get multiselected() {
