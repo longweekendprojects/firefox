@@ -3088,7 +3088,11 @@ function setToolbarVisibility(
         } else {
           currentURI = gBrowser.currentURI;
         }
-        isVisible = BookmarkingUI.isOnNewTabPage(currentURI);
+        const splitview =
+          gBrowserInit.domContentLoaded && gBrowser.selectedTab.splitview;
+        isVisible = splitview
+          ? BookmarkingUI.isSplitOnNewTabPage(splitview)
+          : BookmarkingUI.isOnNewTabPage(currentURI);
         break;
       }
     }

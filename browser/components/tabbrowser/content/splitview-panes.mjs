@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser, isBlankPageURL, openTrustedLinkIn, UrlbarUtils, BrowserUtils */
+/* global gBrowser, isBlankPageURL, openTrustedLinkIn, UrlbarUtils, BrowserUtils,
+   updateBookmarkToolbarVisibility */
 
 /**
  * Renders the active split view as a recursive layout of panes.
@@ -78,7 +79,13 @@ let grab = null;
 const progressListener = {
   onLocationChange(browser, webProgress) {
     if (webProgress?.isTopLevel) {
-      updateHeader(gBrowser.getTabForBrowser(browser));
+      const tab = gBrowser.getTabForBrowser(browser);
+      updateHeader(tab);
+      // The bookmarks toolbar depends on every visible pane, and the window
+      // only updates it for the selected one.
+      if (current && tab?.splitview === current && !tab.selected) {
+        updateBookmarkToolbarVisibility();
+      }
     }
   },
 };

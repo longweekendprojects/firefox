@@ -1563,6 +1563,27 @@ var BookmarkingUI = {
     );
   },
 
+  /**
+   * Whether a split view counts as a new tab page for the bookmarks toolbar.
+   * The toolbar shows when any pane is a new tab page or an empty pane, so it
+   * does not appear and vanish, moving every pane, as focus moves between
+   * panes.
+   *
+   * @param {MozTabSplitViewWrapper} splitview
+   * @returns {boolean}
+   */
+  isSplitOnNewTabPage(splitview) {
+    return splitview.tabs.some(tab => {
+      const browser = tab.linkedBrowser;
+      const uri = browser?.currentURI;
+      return (
+        this.isOnNewTabPage(uri) ||
+        (uri?.spec == "about:blank" &&
+          BrowserUIUtils.checkEmptyPageOrigin(browser))
+      );
+    });
+  },
+
   _newTabURI(uriString) {
     let uri = this._newTabURICache.get(uriString);
     if (uri === undefined) {
@@ -1693,10 +1714,12 @@ var BookmarkingUI = {
     })();
 
     let emptyMsg = document.getElementById("personal-toolbar-empty");
-    emptyMsg.hidden = initialHiddenState;
-    if (checkHasBookmarks) {
-      emptyMsg.hidden = !(await PlacesToolbarHelper.getIsEmpty());
-    }
+    // Hiding the message while the bookmark check runs would collapse an
+    // empty toolbar for a moment and shift the page below it, so set the
+    // state once the check is done.
+    emptyMsg.hidden = checkHasBookmarks
+      ? !(await PlacesToolbarHelper.getIsEmpty())
+      : initialHiddenState;
   },
 
   _uninitView: function BUI__uninitView() {

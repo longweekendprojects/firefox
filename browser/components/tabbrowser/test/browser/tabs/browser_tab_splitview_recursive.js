@@ -363,6 +363,14 @@ add_task(async function test_new_pane_is_blank_with_focused_address() {
     "about:blank",
     "the new pane starts blank"
   );
+  Assert.ok(
+    BookmarkingUI.isSplitOnNewTabPage(tab.splitview),
+    "the bookmarks toolbar treats a split with an empty pane as a new tab"
+  );
+  Assert.ok(
+    !BookmarkingUI.isOnNewTabPage(tab.linkedBrowser.currentURI),
+    "though its other pane shows a site"
+  );
   await TestUtils.waitForCondition(
     () =>
       document.activeElement ==
