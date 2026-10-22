@@ -89,3 +89,7 @@
     justify-self: center;
   }
 }
+
+#sidebar-container[space-tint] {
+  background-image: linear-gradient(color-mix(in srgb, var(--space-tint-color) 10%, transparent), color-mix(in srgb, var(--space-tint-color) 10%, transparent));
+}

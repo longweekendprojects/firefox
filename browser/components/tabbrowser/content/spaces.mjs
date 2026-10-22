@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser, SessionStore, MozXULElement, gReduceMotion */
+/* global gBrowser, SessionStore, MozXULElement, gReduceMotion, AppConstants */
 
 /**
  * Spaces: named sets of tabs, each with its own pinned tabs, shown one at a
@@ -14,6 +14,10 @@
  * A tab's space is its "space" attribute, which SessionStore persists. Tabs
  * without one belong to the first space. The space list is shared by all
  * windows through a pref. The shown space always follows the selected tab.
+ *
+ * A horizontal swipe over the tab strip shows the next or previous space, and
+ * on macOS Ctrl+1 to Ctrl+9 show a space by position. The sidebar takes a
+ * tint of the shown space's color.
  */
 
 import { ContainerEditor } from "chrome://browser/content/usercontext/ContainerEditor.mjs";
@@ -38,6 +42,11 @@ let list = null;
 let contextMenu = null;
 let contextSpaceId = null;
 let initialized = false;
+// Horizontal scroll, in CSS pixels, that counts as a swipe between spaces.
+const SWIPE_DISTANCE = 80;
+// Pause in scroll events, in milliseconds, that ends a swipe.
+const SWIPE_END_DELAY = 200;
+let swipe = { distance: 0, done: false, timer: 0 };
 
 function readSpaces() {
   try {
@@ -113,12 +122,17 @@ export function init() {
   gBrowser.tabContainer.addEventListener("TabClose", onTabClose);
   gBrowser.tabContainer.addEventListener("SSTabRestoring", onTabRestoring);
   window.addEventListener("SSWindowRestored", onWindowRestored);
+  gBrowser.tabContainer.addEventListener("wheel", onWheel, { passive: false });
+  if (AppConstants.platform == "macosx") {
+    window.addEventListener("keydown", onKeyDown, { mozSystemGroup: true });
+  }
   Services.prefs.addObserver(LIST_PREF, onListChanged);
   window.addEventListener("unload", uninit, { once: true });
 }
 
 function uninit() {
   Services.prefs.removeObserver(LIST_PREF, onListChanged);
+  window.clearTimeout(swipe.timer);
 }
 
 function onTabOpen(event) {
@@ -136,6 +150,57 @@ function onTabSelect() {
   } else {
     lastSelected.set(id, tab);
   }
+}
+
+/** Shows the space `offset` places after the shown one, if there is one. */
+export function step(offset) {
+  let index = spaces.findIndex(s => s.id == activeId) + offset;
+  if (index >= 0 && index < spaces.length) {
+    switchTo(spaces[index].id);
+  }
+}
+
+function onWheel(event) {
+  if (spaces.length < 2 || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+    return;
+  }
+  event.preventDefault();
+  window.clearTimeout(swipe.timer);
+  swipe.timer = window.setTimeout(() => {
+    swipe = { distance: 0, done: false, timer: 0 };
+  }, SWIPE_END_DELAY);
+  if (swipe.done) {
+    return;
+  }
+  let pixels =
+    event.deltaMode == event.DOM_DELTA_PIXEL ? event.deltaX : event.deltaX * 16;
+  swipe.distance += pixels;
+  if (Math.abs(swipe.distance) >= SWIPE_DISTANCE) {
+    // One swipe moves one space, however far it goes.
+    swipe.done = true;
+    step(swipe.distance > 0 ? 1 : -1);
+  }
+}
+
+function onKeyDown(event) {
+  if (
+    !event.isTrusted ||
+    event.defaultPrevented ||
+    !event.ctrlKey ||
+    event.metaKey ||
+    event.altKey ||
+    event.shiftKey ||
+    !/^Digit[1-9]$/.test(event.code)
+  ) {
+    return;
+  }
+  let space = spaces[Number(event.code.at(-1)) - 1];
+  if (!space) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  switchTo(space.id);
 }
 
 function onTabClose(event) {
@@ -404,6 +469,24 @@ function render() {
   });
   list.replaceChildren(...buttons);
   bar.toggleAttribute("multiple", spaces.length > 1);
+  updateTint();
+}
+
+/** Tints the sidebar with the color of the shown space. */
+function updateTint() {
+  let container = document.getElementById("sidebar-container");
+  let button = list.querySelector("[checked]");
+  let color =
+    spaces.length > 1 &&
+    button &&
+    getComputedStyle(button).getPropertyValue("--identity-icon-color");
+  if (color) {
+    container?.style.setProperty("--space-tint-color", color);
+    container?.setAttribute("space-tint", "");
+  } else {
+    container?.style.removeProperty("--space-tint-color");
+    container?.removeAttribute("space-tint");
+  }
 }
 
 function getContextMenu() {

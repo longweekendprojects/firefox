@@ -314,3 +314,65 @@ add_task(async function test_restore_keeps_other_spaces_hidden_and_unloaded() {
   await BrowserTestUtils.closeWindow(win);
   Services.prefs.clearUserPref(LIST_PREF);
 });
+
+add_task(async function test_swipe_keys_and_tint() {
+  setSpaces(TWO_SPACES);
+  let start = gBrowser.selectedTab;
+  let pageA = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL1);
+  let container = document.getElementById("sidebar-container");
+  Assert.ok(container.hasAttribute("space-tint"), "The sidebar is tinted");
+  let tintA = container.style.getPropertyValue("--space-tint-color");
+
+  let switched = BrowserTestUtils.waitForEvent(
+    gBrowser.tabContainer,
+    "TabOpen"
+  );
+  for (let i = 0; i < 3; i++) {
+    EventUtils.synthesizeWheel(gBrowser.tabContainer, 20, 20, {
+      deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+      deltaX: 40,
+      deltaY: 0,
+    });
+  }
+  await switched;
+  Assert.equal(gSpaces.getActiveId(), "b", "Swiping left shows the next space");
+  Assert.notEqual(
+    container.style.getPropertyValue("--space-tint-color"),
+    tintA,
+    "The tint follows the space color"
+  );
+  let tabB = gBrowser.selectedTab;
+
+  // Wait for the swipe to end before the next one.
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 300));
+  for (let i = 0; i < 3; i++) {
+    EventUtils.synthesizeWheel(gBrowser.tabContainer, 20, 20, {
+      deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+      deltaX: -40,
+      deltaY: 0,
+    });
+  }
+  await TestUtils.waitForCondition(
+    () => gSpaces.getActiveId() == "a",
+    "Swiping right shows the previous space"
+  );
+
+  if (AppConstants.platform == "macosx") {
+    pageA.linkedBrowser.focus();
+    EventUtils.synthesizeKey("2", { ctrlKey: true });
+    Assert.equal(gSpaces.getActiveId(), "b", "Ctrl+2 shows the second space");
+    EventUtils.synthesizeKey("1", { ctrlKey: true });
+    Assert.equal(gSpaces.getActiveId(), "a", "Ctrl+1 shows the first space");
+  }
+
+  BrowserTestUtils.removeTab(pageA);
+  gBrowser.selectedTab = start;
+  setSpaces([TWO_SPACES[0]]);
+  BrowserTestUtils.removeTab(tabB);
+  Assert.ok(
+    !container.hasAttribute("space-tint"),
+    "A single space leaves the sidebar untinted"
+  );
+  Services.prefs.clearUserPref(LIST_PREF);
+});
