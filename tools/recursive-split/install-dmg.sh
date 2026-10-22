@@ -27,4 +27,4 @@ hdiutil detach -quiet "$mnt"
 rmdir "$mnt"
 xattr -dr com.apple.quarantine "$app" 2> /dev/null || true
 open -a "$app"
-plutil -extract CFBundleShortVersionString raw "$app/Contents/Info.plist"
+cat "$app/Contents/Resources/split-build.txt"
