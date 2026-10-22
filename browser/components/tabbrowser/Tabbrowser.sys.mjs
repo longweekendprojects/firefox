@@ -4186,8 +4186,24 @@ export class Tabbrowser {
     this.tabpanels.splitViewPanels = panels;
   }
 
-  openSplitViewMenu(anchorElement) {
+  /**
+   * @param {Element} anchorElement
+   * @param {object} [options]
+   * @param {MozTabbrowserTab} [options.paneTab]
+   *   The pane the menu was opened for, which it can separate.
+   * @param {MouseEvent} [options.event]
+   *   A context menu event to open the menu at, instead of the anchor.
+   */
+  openSplitViewMenu(anchorElement, { paneTab = null, event = null } = {}) {
     const menu = this.document.getElementById("split-view-menu");
+    menu.paneTab = paneTab;
+    this.document.getElementById("split-view-menu-separate-pane").hidden =
+      !paneTab;
+    if (event) {
+      menu.setAttribute("data-trigger-source", "icon");
+      menu.openPopupAtScreen(event.screenX, event.screenY, true, event);
+      return;
+    }
     const isFromFooter =
       anchorElement?.localName === "toolbarbutton" &&
       anchorElement?.parentElement?.localName === "split-view-footer";
@@ -10350,6 +10366,11 @@ export class Tabbrowser {
         .getElementById("split-view-menu")
         ?.getAttribute("data-trigger-source");
       switch (event.target.id) {
+        case "splitViewCmd_separatePane": {
+          let tab = this.document.getElementById("split-view-menu")?.paneTab;
+          tab?.splitview?.separatePane(tab);
+          break;
+        }
         case "splitViewCmd_separateTabs":
           this.#activeSplitView.unsplitTabs(`${source}_separate`);
           break;

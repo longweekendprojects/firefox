@@ -212,3 +212,28 @@
     fill: currentColor;
   }
 }
+
+/* Where a pane dragged over the tab strip lands: an outline around the tab
+   it splits with, or a line where it becomes its own tab. */
+.split-pane-strip-drop {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: var(--border-radius-medium);
+
+  &[mode="split"] {
+    outline: 2px solid var(--focus-outline-color);
+    outline-offset: -2px;
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+    background-color: color-mix(in srgb, var(--focus-outline-color) 15%, transparent);
+  }
+
+  &[mode="insert"] {
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+    background-color: var(--focus-outline-color);
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}

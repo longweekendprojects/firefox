@@ -3654,8 +3654,8 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 /* Pinned tiles: pinned tabs as a grid of large tiles in the expanded
    vertical tab strip, with as many rows as the tiles need. */
 #tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] {
-  --pinned-tile-height: 44px;
-  --pinned-tile-gap: var(--space-small);
+  --pinned-tile-height: 46px;
+  --pinned-tile-gap: 8px;
 
   height: auto !important;
   max-height: 60vh;
@@ -3666,7 +3666,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     grid-template-columns: repeat(var(--pinned-tile-columns, 4), minmax(0, 1fr)) !important;
     grid-auto-rows: var(--pinned-tile-height) !important;
     gap: var(--pinned-tile-gap);
-    padding: var(--space-small) var(--tab-inner-inline-margin) !important;
+    padding: 6px calc(var(--tab-inner-inline-margin) + 2px) 0 !important;
   }
 
   .tabbrowser-tab {
@@ -3699,15 +3699,17 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 
   .tab-icon-stack {
-    margin: 0;
+    margin: 0 !important;
+    justify-content: center;
   }
 
   .tab-icon-image,
   .tab-throbber,
   .tab-icon-pending,
   .tab-sharing-icon-overlay {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+    margin: 0 !important;
   }
 
   .tab-label-container,
@@ -3716,6 +3718,43 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
-#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] + #vertical-pinned-tabs-splitter {
+#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] ~ #vertical-pinned-tabs-splitter {
   display: none;
+}
+
+/* A thin row under the tiles with a small button for the layout menu. */
+#pinned-tiles-bar {
+  display: none;
+  justify-content: flex-end;
+  padding-inline: calc(var(--tab-inner-inline-margin) + 2px);
+  margin-block: 2px 4px;
+
+  #tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] ~ &:not([hidden]) {
+    display: flex;
+  }
+}
+
+#pinned-tiles-menu-button {
+  appearance: none;
+  margin: 0;
+  padding: 0 4px;
+  border-radius: var(--border-radius-small);
+  list-style-image: url("chrome://global/skin/icons/arrow-down-12.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.55;
+
+  > .toolbarbutton-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  > .toolbarbutton-text {
+    display: none;
+  }
+
+  &:hover {
+    opacity: 1;
+    background-color: var(--button-background-color-ghost-hover);
+  }
 }

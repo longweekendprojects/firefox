@@ -375,6 +375,12 @@ tab-context-pinned-layout-columns =
     .label = { $columns } Across
 tab-context-pinned-layout-icons =
     .label = Small Icons
+# A small arrow button under the pinned tabs that opens a menu of layouts.
+pinned-tiles-menu-button =
+    .tooltiptext = Pinned tab layout
+    .aria-label = Pinned tab layout
+pinned-tiles-hide-sidebar =
+    .label = Hide Sidebar
 
 ## Peek: a link previewed in a card over the current page.
 
@@ -586,6 +592,9 @@ tab-context-badge-new = New
 ## Manage Split View (icon in the address bar & three-dot menu in the footer)
 
 # "Separate" is a verb, as in "separate the split view tabs and display them normally".
+# Takes one pane out of the split view and shows it as its own tab.
+split-view-menuitem-separate-pane =
+    .label = Separate Page from Split View
 split-view-menuitem-separate-tabs =
     .label = Separate Tabs
 # "Reverse" is a verb, as in "reverse the order of split view tabs".

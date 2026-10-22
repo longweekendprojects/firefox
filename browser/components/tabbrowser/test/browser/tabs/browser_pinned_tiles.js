@@ -116,3 +116,57 @@ add_task(async function test_context_menu_sets_layout() {
   Services.prefs.setIntPref(PREF, 0);
   BrowserTestUtils.removeTab(tab);
 });
+
+add_task(async function test_layout_button_and_hide_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.visibility", "always-show"]],
+  });
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  gBrowser.pinTab(tab);
+  await settle();
+  let button = document.getElementById("pinned-tiles-menu-button");
+  Assert.ok(
+    BrowserTestUtils.isVisible(button),
+    "A layout button shows under the tiles"
+  );
+
+  let shown = BrowserTestUtils.waitForEvent(
+    document,
+    "popupshown",
+    false,
+    e => e.target.id == "pinned-tiles-menu"
+  );
+  button.doCommand();
+  let menu = (await shown).target;
+  let hidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
+  menu.activateItem(menu.querySelector("menuitem[value='2']"));
+  await hidden;
+  Assert.equal(Services.prefs.getIntPref(PREF), 2, "The menu sets the layout");
+
+  shown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
+  button.doCommand();
+  await shown;
+  hidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
+  menu.activateItem(document.getElementById("pinned-tiles-hide-sidebar"));
+  await hidden;
+  await TestUtils.waitForCondition(
+    () => SidebarController.sidebarContainer.hidden,
+    "Hide Sidebar hides the whole sidebar"
+  );
+  await TestUtils.waitForCondition(
+    () =>
+      !SidebarController._state.launcherVisible &&
+      !SidebarController.sidebarContainer.hasAttribute(
+        "sidebar-ongoing-animations"
+      )
+  );
+  await SidebarController.handleToolbarButtonClick();
+  await TestUtils.waitForCondition(
+    () => !SidebarController.sidebarContainer.hidden,
+    "The sidebar button shows it again"
+  );
+
+  Services.prefs.setIntPref(PREF, 0);
+  BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
+});

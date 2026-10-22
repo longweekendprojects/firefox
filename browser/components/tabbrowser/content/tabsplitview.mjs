@@ -531,6 +531,25 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   }
 
   /**
+   * Takes one pane out of the split view and shows it as its own tab. A split
+   * view left with one pane becomes a plain tab.
+   *
+   * @param {MozTabbrowserTab} tab
+   * @param {object} [options]
+   * @param {Element} [options.before]
+   *   The tab strip element to put the tab before. Defaults to the element
+   *   after this split view.
+   */
+  separatePane(tab, { before = this.nextElementSibling } = {}) {
+    if (!this.#tabs.includes(tab)) {
+      return;
+    }
+    const container = before?.parentNode ?? this.parentNode;
+    gBrowser.handleTabMove(tab, () => container.insertBefore(tab, before));
+    gBrowser.selectedTab = tab;
+  }
+
+  /**
    * Replace a tab in the split view with another tab
    */
   replaceTab(tabToReplace, newTab) {

@@ -690,6 +690,8 @@ disabled = "Recursive split view replaces the footer with pane headers (browser_
 
 ["browser_tab_splitview_recursive_lifecycle.js"]
 
+["browser_tab_splitview_separate_pane.js"]
+
 ["browser_tab_splitview_resize.js"]
 disabled = "Recursive split view replaces the single splitter (browser_tab_splitview_recursive.js)"
 

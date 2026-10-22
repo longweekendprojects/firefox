@@ -106,15 +106,19 @@ const handler = {
       case "mousedown":
         onHeaderMouseDown(event);
         break;
-      case "contextmenu":
-        // The toolbar's own context menu does not apply to pane headers.
-        if (event.currentTarget === toolbarBox) {
+      case "contextmenu": {
+        // A pane bar has the split view menu, which can separate the pane.
+        const header = event.target.closest?.(".split-pane-header");
+        if (header) {
+          event.preventDefault();
           event.stopPropagation();
-          if (!event.target.classList?.contains("split-pane-url")) {
-            event.preventDefault();
-          }
+          gBrowser.openSplitViewMenu(null, { paneTab: header._tab, event });
+        } else if (event.currentTarget === toolbarBox) {
+          event.stopPropagation();
+          event.preventDefault();
         }
         break;
+      }
       case "keydown":
         if (event.target.classList?.contains("split-pane-splitter")) {
           onSplitterKeyDown(event);
@@ -581,7 +585,7 @@ function onCommand(event) {
     gBrowser.removeTab(tab);
   } else if (classes.contains("split-pane-menu")) {
     gBrowser.selectedTab = tab;
-    gBrowser.openSplitViewMenu(event.target);
+    gBrowser.openSplitViewMenu(event.target, { paneTab: tab });
   }
 }
 
@@ -683,6 +687,8 @@ function onHeaderPointerMove(event) {
   }
   grab.drop = dropTarget(event.clientX, event.clientY);
   showDropIndicator(grab.indicator, grab.drop);
+  grab.stripDrop = grab.drop ? null : stripTarget(event.clientX, event.clientY);
+  showStripIndicator(grab, grab.stripDrop);
 }
 
 function onHeaderPointerUp(event) {
@@ -696,6 +702,7 @@ function onHeaderPointerUp(event) {
   }
   g.header.removeAttribute("dragging");
   g.indicator?.remove();
+  g.stripIndicator?.remove();
   if (!g.moved) {
     // Capture sends the click to the bar, so press the button here.
     if (g.button && !g.button.disabled && event.type == "pointerup") {
@@ -721,7 +728,136 @@ function onHeaderPointerUp(event) {
   }
   if (event.type == "pointerup" && g.drop && current) {
     current.movePane(g.tab, g.drop.tab, g.drop.zone);
+  } else if (event.type == "pointerup" && g.stripDrop) {
+    dropOnStrip(g.tab, g.stripDrop);
   }
+}
+
+/**
+ * Where a pane dragged over the tab strip would go: "split" with the tab or
+ * split view under the pointer, or "insert" as its own tab before `before`.
+ */
+function stripTarget(x, y) {
+  const strip = gBrowser.tabContainer;
+  const box = strip.getBoundingClientRect();
+  if (x < box.left || x > box.right || y < box.top || y > box.bottom) {
+    return null;
+  }
+  const own = grab.tab.splitview;
+  let el = document
+    .elementFromPoint(x, y)
+    ?.closest?.("tab-split-view-wrapper, .tabbrowser-tab");
+  if (el?.splitview) {
+    el = el.splitview;
+  }
+  const vertical = strip.verticalMode;
+  if (!el || el.pinned) {
+    // Over empty space or pinned tabs: a tab of its own after the last tab.
+    const last = gBrowser.visibleTabs.findLast(t => !t.pinned);
+    const lastElement = last?.splitview ?? last;
+    if (!lastElement || lastElement === own) {
+      return own
+        ? { mode: "insert", before: own.nextElementSibling, own }
+        : null;
+    }
+    return {
+      mode: "insert",
+      before: lastElement.nextElementSibling,
+      rect: lastElement.getBoundingClientRect(),
+      edge: "end",
+      own,
+    };
+  }
+  const rect = el.getBoundingClientRect();
+  const f = vertical
+    ? (y - rect.top) / rect.height
+    : (x - rect.left) / rect.width;
+  if (el !== own && f > 0.2 && f < 0.8) {
+    const canSplit =
+      el.localName == "tab-split-view-wrapper"
+        ? el.canSplitPane(el.edgePane("right"), "right")
+        : !el.closing;
+    if (canSplit) {
+      return { mode: "split", target: el, rect, own };
+    }
+  }
+  const after = f >= 0.5;
+  return {
+    mode: "insert",
+    before: after ? el.nextElementSibling : el,
+    rect,
+    edge: after ? "end" : "start",
+    own,
+  };
+}
+
+function showStripIndicator(g, drop) {
+  if (!drop?.rect) {
+    if (g.stripIndicator) {
+      g.stripIndicator.hidden = true;
+    }
+    return;
+  }
+  if (!g.stripIndicator) {
+    g.stripIndicator = document.createElementNS(HTML_NS, "div");
+    g.stripIndicator.className = "split-pane-strip-drop";
+    document.documentElement.append(g.stripIndicator);
+  }
+  const el = g.stripIndicator;
+  el.hidden = false;
+  el.setAttribute("mode", drop.mode);
+  const { rect } = drop;
+  const vertical = gBrowser.tabContainer.verticalMode;
+  let style = {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+  if (drop.mode == "insert") {
+    const at = drop.edge == "end";
+    style = vertical
+      ? {
+          left: rect.left,
+          top: (at ? rect.bottom : rect.top) - 1,
+          width: rect.width,
+          height: 2,
+        }
+      : {
+          left: (at ? rect.right : rect.left) - 1,
+          top: rect.top,
+          width: 2,
+          height: rect.height,
+        };
+  }
+  for (const [key, value] of Object.entries(style)) {
+    el.style[key] = value + "px";
+  }
+}
+
+/** Separates `tab` from its split view, then places it as `drop` says. */
+function dropOnStrip(tab, drop) {
+  const splitview = tab.splitview;
+  if (!splitview) {
+    return;
+  }
+  if (drop.mode == "insert") {
+    splitview.separatePane(tab, { before: drop.before });
+    return;
+  }
+  splitview.separatePane(tab);
+  const target = drop.target;
+  if (target.localName == "tab-split-view-wrapper") {
+    if (target.isConnected) {
+      target.splitPane(target.edgePane("right"), "right", tab);
+    }
+  } else if (target.isConnected && !target.splitview) {
+    gBrowser.addTabSplitView([target, tab], {
+      insertBefore: target,
+      direction: "right",
+    });
+  }
+  gBrowser.selectedTab = tab;
 }
 
 /**
