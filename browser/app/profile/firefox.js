@@ -2844,6 +2844,12 @@ pref("browser.tabs.fadeOutUnloadedTabs", false);
 // Shift+click on a link previews it in a Peek card over the page.
 pref("browser.peek.enabled", true);
 
+// Links from other apps open in a little window instead of a tab.
+pref("browser.littlewindow.externalLinks", false);
+// A little window left in the background closes after this many seconds.
+// 0 keeps it open.
+pref("browser.littlewindow.closeAfterIdleSeconds", 43200);
+
 // Whether tabs can be "split" or displayed side by side at once.
 pref("browser.tabs.splitView.enabled", true);
 pref("browser.tabs.splitview.hasUsed", false);

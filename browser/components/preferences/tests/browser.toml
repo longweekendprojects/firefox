@@ -75,6 +75,8 @@ support-files = ["subdialog.xhtml", "subdialog2.xhtml"]
 
 ["browser_tabs_open_new_tabs_at_start.js"]
 
+["browser_tabs_peek_little_window.js"]
+
 ["browser_tls_key_logging_warning.js"]
 
 ["browser_windows_launch_on_login.js"]

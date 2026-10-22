@@ -8,7 +8,8 @@
  * A little window: a small popup window for a quick look at a page or a
  * quick search, with its own navigation controls. Links and new tabs from it
  * open in a full browser window, like from any popup window. Its page moves
- * to a full browser window with "Open in Window" or Accel+O.
+ * to a full browser window with "Open in Window" or Accel+O. A little window
+ * left in the background closes after browser.littlewindow.closeAfterIdleSeconds.
  *
  * Loaded into a window opened with the littleWindow load parameter.
  */
@@ -19,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
+const IDLE_PREF = "browser.littlewindow.closeAfterIdleSeconds";
 const MAX_WIDTH = 1100;
 const MAX_HEIGHT = 800;
 
@@ -34,6 +36,7 @@ export function pageSize(aScreen) {
 export const LAUNCHER_SIZE = { width: 600, height: 420 };
 
 let growListener = null;
+let idleTimer = 0;
 
 export function init() {
   window.gLittleWindow = { moveToWindow };
@@ -46,6 +49,9 @@ export function init() {
   document.l10n.setAttributes(button, "little-window-open");
   button.addEventListener("click", moveToWindow);
   document.getElementById("nav-bar").append(button);
+
+  window.addEventListener("deactivate", startIdleTimer);
+  window.addEventListener("activate", stopIdleTimer);
 
   if (isBlankPageURL(gBrowser.currentURI.spec)) {
     gURLBar.select();
@@ -61,6 +67,19 @@ export function init() {
     };
     gBrowser.addProgressListener(growListener);
   }
+}
+
+function startIdleTimer() {
+  stopIdleTimer();
+  const seconds = Services.prefs.getIntPref(IDLE_PREF, 0);
+  if (seconds > 0) {
+    idleTimer = window.setTimeout(() => window.close(), seconds * 1000);
+  }
+}
+
+function stopIdleTimer() {
+  window.clearTimeout(idleTimer);
+  idleTimer = 0;
 }
 
 /** Grows a window opened for a search to the size of a page window. */

@@ -553,6 +553,13 @@ export class nsContextMenu {
     let showSplitMenu =
       shouldShow && showSplitViews && !linkTab?.hidden && !linkTab?.pinned;
     this.showItem("context-openlinkinsplitview-menu", showSplitMenu);
+    this.showItem(
+      "context-openlinkinpeek",
+      shouldShow &&
+        !!linkTab &&
+        window.toolbar.visible &&
+        Services.prefs.getBoolPref("browser.peek.enabled", false)
+    );
     if (showSplitMenu) {
       for (let splitItem of this.document.getElementById(
         "context-openlinkinsplitview-popup"
@@ -1620,6 +1627,18 @@ export class nsContextMenu {
     };
 
     win.openLinkIn(this.linkURL, "tab", this._openLinkInParameters(params));
+  }
+
+  // Preview the link in a Peek card over the page.
+  openLinkInPeek() {
+    let tab = this.window.gBrowser.getTabForBrowser(this.browser);
+    this.window.openLinkInPeek(
+      this.linkURL,
+      this._openLinkInParameters({
+        userContextId: tab ? tab.userContextId : 0,
+        ...this._getGlobalHistoryOptions(),
+      })
+    );
   }
 
   // open URL in current tab

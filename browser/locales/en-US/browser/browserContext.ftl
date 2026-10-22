@@ -145,6 +145,10 @@ main-context-menu-open-link-split-view =
     .label = Open Link in Split View
     .accesskey = M
 
+main-context-menu-open-link-peek =
+    .label = Open Link in Peek
+    .accesskey = e
+
 main-context-menu-open-link-split-right =
     .label = Right
     .accesskey = R

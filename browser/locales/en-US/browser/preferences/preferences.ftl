@@ -301,6 +301,12 @@ open-new-tabs-at-start =
     .label = Open new tabs at the top of the tab list
     .accesskey = p
 
+open-external-link-in-little-window =
+    .label = Open links from other apps in a little window
+
+peek-links-on-shift-click =
+    .label = Shift+click a link to preview it in Peek
+
 show-tabs-in-taskbar =
     .label = Show tab previews in the Windows taskbar
     .accesskey = k

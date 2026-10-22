@@ -224,6 +224,26 @@ export class BrowserDOMWindow {
   }
 
   /**
+   * Opens a link from another app in a little window, if the user chose so.
+   *
+   * @param {nsIURI} aURI
+   * @param {object} aParams
+   *   Load parameters, as for openLinkIn.
+   * @returns {boolean} Whether the link opened in a little window.
+   */
+  #openInLittleWindow(aURI, aParams) {
+    if (
+      !aURI ||
+      !this.win.openLittleWindow ||
+      !Services.prefs.getBoolPref("browser.littlewindow.externalLinks", false)
+    ) {
+      return false;
+    }
+    this.win.openLittleWindow(aURI.spec, { ...aParams, fromExternal: true });
+    return true;
+  }
+
+  /**
    * @param {nsIURI} aURI
    * @param {nsIOpenWindowInfo} aOpenWindowInfo
    * @param {i16} aWhere
@@ -316,6 +336,20 @@ export class BrowserDOMWindow {
     let isPrivate = aOpenWindowInfo
       ? aOpenWindowInfo.originAttributes.privateBrowsingId != 0
       : PrivateBrowsingUtils.isWindowPrivate(this.win);
+
+    if (
+      isExternal &&
+      !isPrivate &&
+      !aSkipLoad &&
+      this.#openInLittleWindow(aURI, {
+        triggeringPrincipal: aTriggeringPrincipal,
+        policyContainer: aPolicyContainer,
+        userContextId: openingUserContextId,
+        forceAllowDataURI,
+      })
+    ) {
+      return null;
+    }
 
     switch (aWhere) {
       case Ci.nsIBrowserDOMWindow.OPEN_NEWWINDOW: {

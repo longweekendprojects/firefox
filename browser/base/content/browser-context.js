@@ -52,6 +52,9 @@ document.addEventListener(
         case "context-openlinkinsplitview-down":
           gContextMenu.openLinkInSplitView(event.target.dataset.direction);
           break;
+        case "context-openlinkinpeek":
+          gContextMenu.openLinkInPeek();
+          break;
         case "context-openlinkprivate":
           gContextMenu.openLinkInPrivateWindow();
           break;

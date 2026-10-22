@@ -213,3 +213,75 @@ add_task(async function test_little_window_for_search() {
   );
   await BrowserTestUtils.closeWindow(win);
 });
+
+add_task(async function test_context_menu_opens_peek() {
+  let tab = await openPage();
+  let menu = document.getElementById("contentAreaContextMenu");
+  let shown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    "#l",
+    { type: "contextmenu", button: 2 },
+    tab.linkedBrowser
+  );
+  await shown;
+  let item = document.getElementById("context-openlinkinpeek");
+  Assert.ok(!item.hidden, "Open Link in Peek shows for a link");
+
+  let opened = BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "TabOpen");
+  menu.activateItem(item);
+  let peekTab = (await opened).target;
+  await BrowserTestUtils.browserLoaded(peekTab.linkedBrowser, false, LINK);
+  Assert.ok(window.gPeek.isOpen(), "The menu item opens a Peek card");
+  Assert.equal(gBrowser.selectedTab, tab, "The page stays selected");
+  window.gPeek.closeCard();
+
+  await SpecialPowers.pushPrefEnv({ set: [["browser.peek.enabled", false]] });
+  shown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    "#l",
+    { type: "contextmenu", button: 2 },
+    tab.linkedBrowser
+  );
+  await shown;
+  Assert.ok(item.hidden, "The item hides when Peek is off");
+  let hidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
+  menu.hidePopup();
+  await hidden;
+  await SpecialPowers.popPrefEnv();
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_external_links_open_little_window() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.littlewindow.externalLinks", true]],
+  });
+  let count = gBrowser.tabs.length;
+  let opened = BrowserTestUtils.waitForNewWindow({ url: LINK });
+  window.browserDOMWindow.openURI(
+    Services.io.newURI(LINK),
+    null,
+    Ci.nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
+    Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL,
+    Services.scriptSecurityManager.getSystemPrincipal()
+  );
+  let win = await opened;
+  Assert.ok(
+    win.document.documentElement.hasAttribute("little-window"),
+    "A link from another app opens in a little window"
+  );
+  Assert.equal(gBrowser.tabs.length, count, "No tab opens in this window");
+  await SpecialPowers.popPrefEnv();
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.littlewindow.closeAfterIdleSeconds", 1]],
+  });
+  await TestUtils.waitForCondition(
+    () => win.gLittleWindow,
+    "Little window is set up"
+  );
+  let closed = BrowserTestUtils.domWindowClosed(win);
+  win.dispatchEvent(new win.Event("deactivate"));
+  await closed;
+  Assert.ok(win.closed, "A little window left in the background closes");
+  await SpecialPowers.popPrefEnv();
+});

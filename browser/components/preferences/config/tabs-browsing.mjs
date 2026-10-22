@@ -49,6 +49,8 @@ Preferences.addAll([
   { id: "browser.link.open_newwindow.override.external", type: "int" },
   { id: "browser.tabs.loadInBackground", type: "bool", inverted: true },
   { id: "browser.tabs.insertAtStart", type: "bool" },
+  { id: "browser.peek.enabled", type: "bool" },
+  { id: "browser.littlewindow.externalLinks", type: "bool" },
   { id: "browser.tabs.warnOnClose", type: "bool" },
   { id: "browser.warnOnQuitShortcut", type: "bool" },
   { id: "browser.tabs.warnOnOpen", type: "bool" },
@@ -174,6 +176,14 @@ Preferences.addSetting({
 Preferences.addSetting({
   id: "openNewTabsAtStart",
   pref: "browser.tabs.insertAtStart",
+});
+Preferences.addSetting({
+  id: "peekLinks",
+  pref: "browser.peek.enabled",
+});
+Preferences.addSetting({
+  id: "openAppLinksInLittleWindow",
+  pref: "browser.littlewindow.externalLinks",
 });
 Preferences.addSetting({
   id: "openAppLinksNextToActiveTab",
@@ -626,6 +636,14 @@ SettingGroupManager.registerGroups({
           {
             id: "openAppLinksNextToActiveTab",
             l10nId: "open-external-link-next-to-active-tab",
+          },
+          {
+            id: "openAppLinksInLittleWindow",
+            l10nId: "open-external-link-in-little-window",
+          },
+          {
+            id: "peekLinks",
+            l10nId: "peek-links-on-shift-click",
           },
           {
             id: "warnOpenMany",
