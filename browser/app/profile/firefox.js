@@ -2841,6 +2841,11 @@ pref("browser.tabs.fadeOutExplicitlyUnloadedTabs", true);
 // they are explicitly unloaded) are faded out in the tab bar.
 pref("browser.tabs.fadeOutUnloadedTabs", false);
 
+// Pinned tabs in the expanded vertical tab strip show as a grid of large
+// tiles. 0 picks the columns from the number of pinned tabs, 2 to 6 fix them,
+// and -1 keeps the stock row of small icons.
+pref("browser.tabs.pinnedTiles.columns", 0);
+
 // Shift+click on a link previews it in a Peek card over the page.
 pref("browser.peek.enabled", true);
 

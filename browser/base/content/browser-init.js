@@ -525,7 +525,17 @@ var gBrowserInit = {
         "chrome://browser/content/tabbrowser/little-window.mjs",
         { global: "current" }
       ).init();
-    } else if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
+    } else if (window.toolbar.visible) {
+      window.gPinnedTiles = ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/pinned-tiles.mjs",
+        { global: "current" }
+      );
+      window.gPinnedTiles.init();
+    }
+    if (
+      !document.documentElement.hasAttribute("little-window") &&
+      !PrivateBrowsingUtils.isWindowPrivate(window)
+    ) {
       window.gSpaces = ChromeUtils.importESModule(
         "chrome://browser/content/tabbrowser/spaces.mjs",
         { global: "current" }

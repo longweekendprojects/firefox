@@ -59,6 +59,7 @@ var TabContextMenu = {
               "#context_pinSelectedTabs",
               "#context_unpinSelectedTabs",
             ],
+            "#context_pinnedTabLayout",
             "#context_unloadTab",
             ["#context_duplicateTab", "#context_duplicateTabs"],
             "#context_tabStateSeparator",
@@ -190,6 +191,7 @@ var TabContextMenu = {
               "#context_pinSelectedTabs",
               "#context_unpinSelectedTabs",
             ],
+            "#context_pinnedTabLayout",
             ["#context_toggleMuteTab", "#context_toggleMuteSelectedTabs"],
             ["#context_playTab", "#context_playSelectedTabs"],
             ["#context_reloadTab", "#context_reloadSelectedTabs"],
@@ -931,6 +933,7 @@ var TabContextMenu = {
     document.getElementById("context_openTabInWindow").disabled =
       this.contextTab.hasAttribute("customizemode");
     window.gSpaces?.updateTabContextMenu(this.contextTab);
+    window.gPinnedTiles?.updateTabContextMenu(this.contextTab);
 
     // Only one of "Duplicate Tab"/"Duplicate Tabs" should be visible.
     document.getElementById("context_duplicateTab").hidden = this.multiselected;

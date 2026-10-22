@@ -87,6 +87,8 @@ user_pref("browser.region.network.url", "");
 user_pref("browser.tabs.unloadOnLowMemory", false);
 // Open new tabs at the end of the tab strip, as most tests expect
 user_pref("browser.tabs.insertAtStart", false);
+// Pinned tabs keep the stock layout, as most tests expect
+user_pref("browser.tabs.pinnedTiles.columns", -1);
 // Shift+click opens links in a new window, as most tests expect
 user_pref("browser.peek.enabled", false);
 // Don't pull Top Sites content from the network

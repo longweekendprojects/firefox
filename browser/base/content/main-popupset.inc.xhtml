@@ -57,6 +57,18 @@
     <menuitem id="context_unpinTab" data-lazy-l10n-id="unpin-tab" data-alt-l10n-id="tab-context-unpin-tab2" hidden="true"/>
     <menuitem id="context_pinSelectedTabs" data-lazy-l10n-id="pin-selected-tabs" hidden="true"/>
     <menuitem id="context_unpinSelectedTabs" data-lazy-l10n-id="unpin-selected-tabs" hidden="true"/>
+    <menu id="context_pinnedTabLayout" data-lazy-l10n-id="tab-context-pinned-layout" hidden="true">
+      <menupopup id="context_pinnedTabLayoutPopup">
+        <menuitem type="radio" name="pinnedTabLayout" value="0" data-lazy-l10n-id="tab-context-pinned-layout-auto"/>
+        <menuitem type="radio" name="pinnedTabLayout" value="2" data-lazy-l10n-id="tab-context-pinned-layout-columns" data-l10n-args='{"columns": 2}'/>
+        <menuitem type="radio" name="pinnedTabLayout" value="3" data-lazy-l10n-id="tab-context-pinned-layout-columns" data-l10n-args='{"columns": 3}'/>
+        <menuitem type="radio" name="pinnedTabLayout" value="4" data-lazy-l10n-id="tab-context-pinned-layout-columns" data-l10n-args='{"columns": 4}'/>
+        <menuitem type="radio" name="pinnedTabLayout" value="5" data-lazy-l10n-id="tab-context-pinned-layout-columns" data-l10n-args='{"columns": 5}'/>
+        <menuitem type="radio" name="pinnedTabLayout" value="6" data-lazy-l10n-id="tab-context-pinned-layout-columns" data-l10n-args='{"columns": 6}'/>
+        <menuseparator/>
+        <menuitem type="radio" name="pinnedTabLayout" value="-1" data-lazy-l10n-id="tab-context-pinned-layout-icons"/>
+      </menupopup>
+    </menu>
     <menuitem id="context_unloadTab"
               data-lazy-l10n-id="tab-context-unload-n-tabs"
               data-l10n-args='{"tabCount": 1}'

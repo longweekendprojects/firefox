@@ -3650,3 +3650,72 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   white-space: nowrap;
   width: 100%;
 }
+
+/* Pinned tiles: pinned tabs as a grid of large tiles in the expanded
+   vertical tab strip, with as many rows as the tiles need. */
+#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] {
+  --pinned-tile-height: 44px;
+  --pinned-tile-gap: var(--space-small);
+
+  height: auto !important;
+  max-height: 60vh;
+  flex-shrink: 0;
+
+  &::part(items-wrapper) {
+    display: grid !important;
+    grid-template-columns: repeat(var(--pinned-tile-columns, 4), minmax(0, 1fr)) !important;
+    grid-auto-rows: var(--pinned-tile-height) !important;
+    gap: var(--pinned-tile-gap);
+    padding: var(--space-small) var(--tab-inner-inline-margin) !important;
+  }
+
+  .tabbrowser-tab {
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    height: var(--pinned-tile-height);
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .tab-stack {
+    height: 100%;
+  }
+
+  .tab-background {
+    margin: 0 !important;
+    min-height: 0;
+    height: 100%;
+    border-radius: var(--border-radius-large);
+  }
+
+  .tabbrowser-tab:not(:hover) > .tab-stack > .tab-background:not([selected], [multiselected]) {
+    background-color: color-mix(in srgb, currentColor 9%, transparent);
+  }
+
+  .tab-content {
+    justify-content: center;
+    padding: 0 !important;
+  }
+
+  .tab-icon-stack {
+    margin: 0;
+  }
+
+  .tab-icon-image,
+  .tab-throbber,
+  .tab-icon-pending,
+  .tab-sharing-icon-overlay {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tab-label-container,
+  .tab-close-button {
+    display: none !important;
+  }
+}
+
+#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] + #vertical-pinned-tabs-splitter {
+  display: none;
+}

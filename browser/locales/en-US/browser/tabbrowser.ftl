@@ -361,6 +361,21 @@ tab-splitview-pane-close =
 # Shown over a pane while another pane is dragged onto its center.
 tab-splitview-pane-drop-swap = Swap panes
 
+## Pinned tab layout, in the tab context menu of a pinned tab in the vertical
+## tab strip. Pinned tabs show as large tiles in a grid.
+
+tab-context-pinned-layout =
+    .label = Pinned Tab Layout
+    .accesskey = t
+tab-context-pinned-layout-auto =
+    .label = Automatic
+# Variables:
+#   $columns (Number): how many tiles each row of pinned tabs holds.
+tab-context-pinned-layout-columns =
+    .label = { $columns } Across
+tab-context-pinned-layout-icons =
+    .label = Small Icons
+
 ## Peek: a link previewed in a card over the current page.
 
 peek-back =
