@@ -752,6 +752,8 @@ skip-if = [
 
 ["browser_testOpenNewRemoteTabsFromNonRemoteBrowsers.js"]
 
+["browser_undo_open_tab.js"]
+
 ["browser_undo_close_tabs.js"]
 skip-if = [
   "true", # bug 1642084

@@ -9199,13 +9199,19 @@ export class Tabbrowser {
       return;
     }
 
-    // Accel+Z outside a text field reopens what was closed last. The key
-    // press would otherwise do nothing there.
+    // Accel+Z outside a text field undoes the last tab action: it closes a
+    // tab opened after the last close, or else reopens what was closed last.
+    // The key press would otherwise do nothing there.
+    if (this.#isUndoCloseKey(aEvent) && this.#undoOpenTab()) {
+      aEvent.preventDefault();
+      return;
+    }
     if (
       this.#isUndoCloseKey(aEvent) &&
       lazy.SessionStore.lastClosedActions.length &&
       this.documentGlobal.SessionWindowUI
     ) {
+      this.#undoCloseTime = Date.now();
       this.documentGlobal.SessionWindowUI.restoreLastClosedTabOrWindowOrSession(
         this.documentGlobal
       );
@@ -9386,6 +9392,89 @@ export class Tabbrowser {
    *
    * @param {KeyboardEvent} aEvent
    */
+  /**
+   * Tabs opened in this window, oldest first, with the time each opened.
+   * Restored tabs are not included.
+   *
+   * @type {{tab: MozTabbrowserTab, time: number}[]}
+   */
+  #openedTabs = [];
+  // When Accel+Z last reopened something. Tabs restored soon after it are
+  // the reopened ones.
+  #undoCloseTime = 0;
+
+  #onTabOpenedForUndo(aTab, aEvent) {
+    if (!aTab.linkedPanel || aEvent.detail?.adoptedTab) {
+      return;
+    }
+    let time = Date.now();
+    this.#openedTabs.push({ tab: aTab, time });
+    if (this.#openedTabs.length > 50) {
+      this.#openedTabs.shift();
+    }
+    // Kept with the tab's session data, so a tab reopened by Accel+Z keeps
+    // its place in the undo order.
+    lazy.SessionStore.setCustomTabValue(aTab, "openedAt", String(time));
+  }
+
+  #onTabRestoringForUndo(aTab) {
+    this.#forgetOpenedTab(aTab);
+    let time = Number(lazy.SessionStore.getCustomTabValue(aTab, "openedAt"));
+    if (time && Date.now() - this.#undoCloseTime < 2000) {
+      this.#openedTabs.push({ tab: aTab, time });
+      this.#openedTabs.sort((a, b) => a.time - b.time);
+    }
+  }
+
+  #forgetOpenedTab(aTab) {
+    this.#openedTabs = this.#openedTabs.filter(entry => entry.tab != aTab);
+  }
+
+  /** When the most recent close action happened, or 0 if there is none. */
+  #lastClosedActionTime() {
+    let action = lazy.SessionStore.lastClosedActions.at(-1);
+    if (!action) {
+      return 0;
+    }
+    if (action.type == lazy.SessionStore.LAST_ACTION_CLOSED_WINDOW) {
+      return (
+        lazy.SessionStore.getClosedWindowData().find(
+          data => data.closedId == action.closedId
+        )?.closedAt ?? 0
+      );
+    }
+    let win =
+      lazy.SessionStore.getWindowForTabClosedId(action.closedId) ??
+      this.documentGlobal;
+    return (
+      lazy.SessionStore.getClosedTabDataForWindow(win).find(
+        data => data.closedId == action.closedId
+      )?.closedAt ?? 0
+    );
+  }
+
+  /**
+   * Closes the tab opened last, if it opened after the last close action.
+   *
+   * @returns {boolean} Whether a tab closed.
+   */
+  #undoOpenTab() {
+    let entry = this.#openedTabs.findLast(
+      ({ tab }) => tab.isConnected && !tab.closing && !tab.hidden
+    );
+    if (
+      !entry ||
+      this.visibleTabs.length < 2 ||
+      entry.time <= this.#lastClosedActionTime()
+    ) {
+      return false;
+    }
+    this.#forgetOpenedTab(entry.tab);
+    // An undone open is not a close that Accel+Z should undo again.
+    this.removeTab(entry.tab, { skipSessionStore: true });
+    return true;
+  }
+
   #isUndoCloseKey(aEvent) {
     const isMac = AppConstants.platform == "macosx";
     if (
@@ -10059,6 +10148,17 @@ export class Tabbrowser {
 
     this.tabContainer.addEventListener("TabClose", event => {
       event.target.unregisterAudibleChangeHandler();
+      this.#forgetOpenedTab(event.target);
+    });
+
+    this.tabContainer.addEventListener("TabOpen", event => {
+      this.#onTabOpenedForUndo(event.target, event);
+    });
+    this.tabContainer.addEventListener("SSTabRestoring", event => {
+      this.#onTabRestoringForUndo(event.target);
+    });
+    this.documentGlobal.addEventListener("SSWindowRestored", () => {
+      this.#openedTabs = [];
     });
 
     this.tabContainer.addEventListener("TabBrowserDiscarded", event => {

@@ -1915,22 +1915,26 @@ tab-group > tab-split-view-wrapper {
 }
 
 #tabbrowser-tabs[movingtab-split] {
+  --split-preview-overlap: 7px;
+
   .tabbrowser-tab:is([dragover-splitTarget], [dragover-splitSource]) > .tab-stack > .tab-background,
   tab-split-view-wrapper[dragover-splitTarget] {
     outline: 2px solid var(--focus-outline-color);
     outline-offset: -2px;
   }
 
+  /* Each half reaches a little past the middle, so the two tabs sit as
+     close as the panes of a split. */
   .tabbrowser-tab[dragover-splitTarget="left"] > .tab-stack,
   tab-split-view-wrapper[dragover-splitTarget="left"],
   .tabbrowser-tab[dragover-splitSource="right"] > .tab-stack {
-    margin-left: 50%;
+    margin-left: calc(50% - var(--split-preview-overlap));
   }
 
   .tabbrowser-tab[dragover-splitTarget="right"] > .tab-stack,
   tab-split-view-wrapper[dragover-splitTarget="right"],
   .tabbrowser-tab[dragover-splitSource="left"] > .tab-stack {
-    margin-right: 50%;
+    margin-right: calc(50% - var(--split-preview-overlap));
   }
 }
 

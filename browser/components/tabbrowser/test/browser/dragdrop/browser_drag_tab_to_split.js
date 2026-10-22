@@ -18,11 +18,12 @@ add_setup(async function () {
  * @param {MozTabbrowserTab} tab
  * @param {Element} target A tab or split view next to `tab`.
  * @param {"left"|"right"} side
+ * @param {number} [overlap] How much of `tab`'s height the drag covers.
  */
-async function dragOntoForSplit(tab, target, side) {
+async function dragOntoForSplit(tab, target, side, overlap = 0.5) {
   let from = tab.getBoundingClientRect();
   let to = target.getBoundingClientRect();
-  let step = (to.top > from.top ? 1 : -1) * from.height * 0.5;
+  let step = (to.top > from.top ? 1 : -1) * from.height * overlap;
   let event = {
     clientX: to.left + to.width * (side == "left" ? 0.25 : 0.75),
     clientY: from.top + from.height / 2 + step,
@@ -116,5 +117,22 @@ add_task(async function test_quick_drop_reorders() {
   } finally {
     BrowserTestUtils.removeTab(tab1);
     BrowserTestUtils.removeTab(tab2);
+  }
+});
+
+add_task(async function test_split_favored_over_reordering() {
+  let tab1 = await addTab("data:text/html,one");
+  let tab2 = await addTab("data:text/html,two");
+  try {
+    // The stock threshold moves a tab past its neighbor at 80% overlap.
+    await dragOntoForSplit(tab1, tab2, "right", 0.86);
+    Assert.ok(tab1.splitview, "A deep drag over a tab still splits");
+    Assert.equal(tab1.splitview, tab2.splitview, "Both tabs are in the split");
+  } finally {
+    if (tab1.splitview) {
+      gBrowser.removeTabs(tab1.splitview.tabs);
+    } else {
+      gBrowser.removeTabs([tab1, tab2]);
+    }
   }
 });

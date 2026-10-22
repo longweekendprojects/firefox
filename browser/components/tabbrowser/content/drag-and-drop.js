@@ -18,6 +18,10 @@
   const isTabGroupLabel = element => gBrowser.isTabGroupLabel(element);
   const isSplitViewWrapper = element => gBrowser.isSplitViewWrapper(element);
   const SPLIT_PREVIEW_DELAY_MS = 120;
+  // Overlap with the next tab past which a single dragged tab moves over it
+  // instead of previewing a split. Higher than the stock threshold, so most
+  // of a tab's height offers to split, and only the edges reorder.
+  const SPLIT_MOVE_OVER_THRESHOLD = 0.92;
 
   /**
    * The elements in the tab strip from `this.dragAndDropElements` that contain
@@ -2631,6 +2635,16 @@
               "browser.tabs.dragDrop.moveOverThresholdPercent"
             ) / 100
           : 0.5;
+        if (
+          lazy.Tabbrowser.prefs.tabGroupsEnabled &&
+          isTab(draggedTab) &&
+          movingTabs.length == 1 &&
+          !isPinned &&
+          !dropElement.pinned &&
+          this.#splitPlan(dropElement, "left")
+        ) {
+          moveOverThreshold = SPLIT_MOVE_OVER_THRESHOLD;
+        }
         moveOverThreshold = Math.min(1, Math.max(0, moveOverThreshold));
         let shouldMoveOver = overlapPercent > moveOverThreshold;
         if (logicalForward && shouldMoveOver) {
