@@ -1125,6 +1125,9 @@ pref("browser.tabs.insertAfterCurrent", false);
 // back to the beginning. Setting |insertAfterCurrentExceptPinned| to true
 // will add such tabs at the end of the tabbar instead.
 pref("browser.tabs.insertAfterCurrentExceptPinned", false);
+// Open new tabs at the start of the tab strip, after pinned tabs. Related
+// tabs still follow |insertRelatedAfterCurrent|.
+pref("browser.tabs.insertAtStart", false);
 pref("browser.tabs.warnOnClose", false);
 pref("browser.tabs.warnOnCloseOtherTabs", true);
 pref("browser.tabs.warnOnOpen", true);

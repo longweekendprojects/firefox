@@ -361,6 +361,8 @@ skip-if = [
 ["browser_new_tab_in_privilegedabout_process_pref.js"]
 https_first_disabled = true
 
+["browser_new_tab_insert_at_start.js"]
+
 ["browser_new_tab_insert_position.js"]
 https_first_disabled = true
 support-files = ["file_new_tab_page.html"]

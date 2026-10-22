@@ -2685,12 +2685,14 @@ export class Tabbrowser {
     // When bulk opening tabs, such as from a bookmark folder, we want to insertAfterCurrent
     // if necessary, but we also will set the bulkOrderedOpen flag so that the bookmarks
     // open in the same order they are in the folder.
-    if (
-      multiple &&
-      newIndex < 0 &&
-      Services.prefs.getBoolPref("browser.tabs.insertAfterCurrent")
-    ) {
-      newIndex = this.selectedTab.index + 1;
+    if (multiple && newIndex < 0) {
+      if (Services.prefs.getBoolPref("browser.tabs.insertAtStart")) {
+        newIndex = this.pinnedTabCount;
+      } else if (
+        Services.prefs.getBoolPref("browser.tabs.insertAfterCurrent")
+      ) {
+        newIndex = this.selectedTab.index + 1;
+      }
     }
 
     if (replace) {
@@ -5413,6 +5415,12 @@ export class Tabbrowser {
         "browser.tabs.insertRelatedAfterCurrent"
       );
       if (
+        !bulkOrderedOpen &&
+        !(openerTab && insertRelatedAfterCurrent) &&
+        Services.prefs.getBoolPref("browser.tabs.insertAtStart")
+      ) {
+        elementIndex = 0;
+      } else if (
         !bulkOrderedOpen &&
         ((openerTab && insertRelatedAfterCurrent) ||
           Services.prefs.getBoolPref("browser.tabs.insertAfterCurrent"))
