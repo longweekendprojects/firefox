@@ -10,12 +10,17 @@
  * has as many rows as its tiles need.
  *
  * The browser.tabs.pinnedTiles.columns pref sets the layout: 0 picks the
- * number of columns from the number of pinned tabs, 2 to 6 fix it, and -1
- * keeps the stock row of small icons. A small button under the grid opens a
- * menu with these layouts and an item that hides the sidebar.
+ * number of columns from the number of pinned tabs, 2 to 6 fix it, -1 shows
+ * rows of small icon tiles, and -2 keeps the stock pinned tabs. A small
+ * button under the grid opens a menu with these layouts and an item that
+ * hides the sidebar.
+ *
+ * With browser.tabs.vertical.newTabButtonAtTop, the vertical tab strip's New
+ * Tab button sits above the other tabs, as in Arc.
  */
 
 const COLUMNS_PREF = "browser.tabs.pinnedTiles.columns";
+const NEW_TAB_AT_TOP_PREF = "browser.tabs.vertical.newTabButtonAtTop";
 const MAX_AUTO_COLUMNS = 4;
 const TAB_EVENTS = [
   "TabPinned",
@@ -57,6 +62,7 @@ export function init() {
     gBrowser.tabContainer.addEventListener(type, scheduleUpdate);
   }
   Services.prefs.addObserver(COLUMNS_PREF, scheduleUpdate);
+  Services.prefs.addObserver(NEW_TAB_AT_TOP_PREF, scheduleUpdate);
   window.addEventListener("unload", uninit, { once: true });
   buildBar();
   update();
@@ -143,6 +149,7 @@ export async function hideSidebar() {
 
 function uninit() {
   Services.prefs.removeObserver(COLUMNS_PREF, scheduleUpdate);
+  Services.prefs.removeObserver(NEW_TAB_AT_TOP_PREF, scheduleUpdate);
   if (pendingFrame) {
     window.cancelAnimationFrame(pendingFrame);
   }
@@ -159,13 +166,22 @@ function scheduleUpdate() {
 
 /** Applies the layout pref to the pinned tabs container. */
 export function update() {
+  gBrowser.tabContainer.toggleAttribute(
+    "newtab-at-top",
+    Services.prefs.getBoolPref(NEW_TAB_AT_TOP_PREF, false)
+  );
   let setting = Services.prefs.getIntPref(COLUMNS_PREF, 0);
   let count = gBrowser.visibleTabs.filter(tab => tab.pinned).length;
   if (bar) {
     bar.hidden = !count;
   }
-  if (setting < 0) {
+  if (setting < -1) {
     container.removeAttribute("tile-layout");
+    container.style.removeProperty("--pinned-tile-columns");
+    return;
+  }
+  if (setting == -1) {
+    container.setAttribute("tile-layout", "icons");
     container.style.removeProperty("--pinned-tile-columns");
     return;
   }

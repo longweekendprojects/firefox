@@ -3716,6 +3716,28 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   .tab-close-button {
     display: none !important;
   }
+
+  /* Small icons: as many small square tiles as fit in each row. */
+  &[tile-layout="icons"] {
+    --pinned-tile-height: 34px;
+    --pinned-tile-gap: 6px;
+
+    &::part(items-wrapper) {
+      grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)) !important;
+    }
+
+    .tab-background {
+      border-radius: var(--border-radius-medium);
+    }
+
+    .tab-icon-image,
+    .tab-throbber,
+    .tab-icon-pending,
+    .tab-sharing-icon-overlay {
+      width: 16px;
+      height: 16px;
+    }
+  }
 }
 
 #tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] ~ #vertical-pinned-tabs-splitter {
@@ -3756,5 +3778,28 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   &:hover {
     opacity: 1;
     background-color: var(--button-background-color-ghost-hover);
+  }
+}
+
+/* The New Tab button above the other tabs, under the pinned tabs, as in Arc.
+   The button after the tabs is not shown, so the two never swap places when
+   the tab list overflows. */
+#tabbrowser-tabs[orient="vertical"][newtab-at-top] {
+  > #vertical-tabs-newtab-button {
+    display: flex !important;
+    order: 1;
+  }
+
+  > #tabbrowser-arrowscrollbox,
+  > .tab-drop-indicator {
+    order: 2;
+  }
+
+  > #spaces-bar {
+    order: 3;
+  }
+
+  > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button {
+    display: none;
   }
 }

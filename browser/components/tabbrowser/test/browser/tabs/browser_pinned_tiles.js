@@ -82,7 +82,24 @@ add_task(async function test_tiles_grid() {
 
   Services.prefs.setIntPref(PREF, -1);
   await settle();
-  Assert.ok(!container.hasAttribute("tile-layout"), "Small icons are stock");
+  Assert.equal(
+    container.getAttribute("tile-layout"),
+    "icons",
+    "Small icons are small tiles"
+  );
+  let small = pinned[0].getBoundingClientRect();
+  Assert.less(small.height, tile.height, "Small icon tiles are smaller");
+  Assert.greater(columnsShown().columns, 4, "More small icons fit per row");
+  Assert.ok(
+    BrowserTestUtils.isVisible(
+      document.getElementById("pinned-tiles-menu-button")
+    ),
+    "The layout button stays for small icons"
+  );
+
+  Services.prefs.setIntPref(PREF, -2);
+  await settle();
+  Assert.ok(!container.hasAttribute("tile-layout"), "-2 keeps the stock look");
 
   Services.prefs.setIntPref(PREF, 0);
   for (let tab of pinned) {
@@ -168,5 +185,33 @@ add_task(async function test_layout_button_and_hide_sidebar() {
 
   Services.prefs.setIntPref(PREF, 0);
   BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_new_tab_button_at_top() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.vertical.newTabButtonAtTop", true]],
+  });
+  let pinnedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  gBrowser.pinTab(pinnedTab);
+  await settle();
+  let button = document.getElementById("vertical-tabs-newtab-button");
+  Assert.ok(BrowserTestUtils.isVisible(button), "New Tab shows above the tabs");
+  let firstTab = gBrowser.visibleTabs.find(t => !t.pinned);
+  Assert.lessOrEqual(
+    button.getBoundingClientRect().bottom,
+    firstTab.getBoundingClientRect().top + 1,
+    "It sits above the first tab"
+  );
+  Assert.greater(
+    button.getBoundingClientRect().top,
+    pinnedTab.getBoundingClientRect().bottom,
+    "and below the pinned tabs"
+  );
+  Assert.ok(
+    !BrowserTestUtils.isVisible(document.getElementById("tabs-newtab-button")),
+    "The New Tab button after the tabs is not shown"
+  );
+  BrowserTestUtils.removeTab(pinnedTab);
   await SpecialPowers.popPrefEnv();
 });

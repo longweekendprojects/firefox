@@ -2843,8 +2843,10 @@ pref("browser.tabs.fadeOutUnloadedTabs", false);
 
 // Pinned tabs in the expanded vertical tab strip show as a grid of large
 // tiles. 0 picks the columns from the number of pinned tabs, 2 to 6 fix them,
-// and -1 keeps the stock row of small icons.
+// -1 shows rows of small icon tiles, and -2 keeps the stock pinned tabs.
 pref("browser.tabs.pinnedTiles.columns", 0);
+// The vertical tab strip's New Tab button sits above the other tabs.
+pref("browser.tabs.vertical.newTabButtonAtTop", true);
 
 // Shift+click on a link previews it in a Peek card over the page.
 pref("browser.peek.enabled", true);
