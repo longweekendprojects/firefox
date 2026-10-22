@@ -1127,7 +1127,7 @@ pref("browser.tabs.insertAfterCurrent", false);
 pref("browser.tabs.insertAfterCurrentExceptPinned", false);
 // Open new tabs at the start of the tab strip, after pinned tabs. Related
 // tabs still follow |insertRelatedAfterCurrent|.
-pref("browser.tabs.insertAtStart", false);
+pref("browser.tabs.insertAtStart", true);
 pref("browser.tabs.warnOnClose", false);
 pref("browser.tabs.warnOnCloseOtherTabs", true);
 pref("browser.tabs.warnOnOpen", true);

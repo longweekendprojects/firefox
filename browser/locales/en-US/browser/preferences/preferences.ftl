@@ -297,6 +297,10 @@ switch-to-new-tabs-2 =
     .label = When opening links or media in a new tab, switch to it immediately
     .accesskey = h
 
+open-new-tabs-at-start =
+    .label = Open new tabs at the top of the tab list
+    .accesskey = p
+
 show-tabs-in-taskbar =
     .label = Show tab previews in the Windows taskbar
     .accesskey = k

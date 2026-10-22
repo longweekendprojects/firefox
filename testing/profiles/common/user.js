@@ -85,6 +85,8 @@ user_pref("media.getdisplaymedia.screencapturekit.picker.enabled", false);
 user_pref("browser.region.network.url", "");
 // Do not unload tabs on low memory when testing
 user_pref("browser.tabs.unloadOnLowMemory", false);
+// Open new tabs at the end of the tab strip, as most tests expect
+user_pref("browser.tabs.insertAtStart", false);
 // Don't pull Top Sites content from the network
 user_pref("browser.topsites.contile.enabled", false);
 // Don't pull weather data from the network

@@ -48,6 +48,7 @@ Preferences.addAll([
   { id: "browser.link.open_newwindow", type: "int" },
   { id: "browser.link.open_newwindow.override.external", type: "int" },
   { id: "browser.tabs.loadInBackground", type: "bool", inverted: true },
+  { id: "browser.tabs.insertAtStart", type: "bool" },
   { id: "browser.tabs.warnOnClose", type: "bool" },
   { id: "browser.warnOnQuitShortcut", type: "bool" },
   { id: "browser.tabs.warnOnOpen", type: "bool" },
@@ -169,6 +170,10 @@ Preferences.addSetting({
 Preferences.addSetting({
   id: "switchToNewTabs",
   pref: "browser.tabs.loadInBackground",
+});
+Preferences.addSetting({
+  id: "openNewTabsAtStart",
+  pref: "browser.tabs.insertAtStart",
 });
 Preferences.addSetting({
   id: "openAppLinksNextToActiveTab",
@@ -613,6 +618,10 @@ SettingGroupManager.registerGroups({
           {
             id: "switchToNewTabs",
             l10nId: "switch-to-new-tabs-2",
+          },
+          {
+            id: "openNewTabsAtStart",
+            l10nId: "open-new-tabs-at-start",
           },
           {
             id: "openAppLinksNextToActiveTab",

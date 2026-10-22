@@ -189,6 +189,9 @@ const COMMON_PREFERENCES = new Map([
   // Don't unload tabs when available memory is running low
   ["browser.tabs.unloadOnLowMemory", false],
 
+  // Open new tabs at the end of the tab strip
+  ["browser.tabs.insertAtStart", false],
+
   // Do not warn when closing all open tabs
   ["browser.tabs.warnOnClose", false],
 
