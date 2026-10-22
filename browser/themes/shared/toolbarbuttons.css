@@ -789,3 +789,15 @@ toolbar[keyNav]:not([collapsed], [customizing]) toolbartabstop,
     display: none;
   }
 }
+
+/* With vertical tabs the sidebar button's icon already shows whether the
+ * sidebar is open, so it is not highlighted as a checked button. */
+@media -moz-pref("sidebar.verticalTabs") {
+  #sidebar-button[checked]:not(:hover:active) > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+    background-color: transparent;
+  }
+
+  #sidebar-button[checked]:hover:not(:active) > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+    background-color: var(--toolbarbutton-background-color-hover);
+  }
+}

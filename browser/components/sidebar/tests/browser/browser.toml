@@ -149,3 +149,5 @@ skip-if = [
 ["browser_vertical_tabs_stacking_context.js"]
 
 ["browser_view_sidebar_menu.js"]
+
+["browser_sidebar_button_not_highlighted.js"]
