@@ -42,7 +42,17 @@ document.addEventListener(
             BrowserCommands.openTab({ event });
             break;
           case "cmd_newNavigatorTabNoEvent":
-            BrowserCommands.openTab();
+            if (
+              !window.toolbar.visible ||
+              document.documentElement.hasAttribute("customizing") ||
+              UrlbarUtils.getURLBarForFocus(window) != gURLBar ||
+              !ChromeUtils.importESModule(
+                "chrome://browser/content/tabbrowser/command-bar.mjs",
+                { global: "current" }
+              ).showNewTab(event)
+            ) {
+              BrowserCommands.openTab();
+            }
             break;
           case "Browser:OpenFile":
             BrowserCommands.openFileWindow();

@@ -1367,6 +1367,12 @@ function loadOneOrMoreURIs(
 function openLocation(event) {
   if (window.location.href == AppConstants.BROWSER_CHROME_URL) {
     let focusTarget = UrlbarUtils.getURLBarForFocus(window);
+    if (gURLBar.commandBarNewTab) {
+      ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/command-bar.mjs",
+        { global: "current" }
+      ).leaveNewTab();
+    }
     focusTarget.select();
     focusTarget.view.autoOpen({ event });
     if (

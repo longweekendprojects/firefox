@@ -403,6 +403,65 @@ add_task(async function test_command_bar_results_stay_under_it() {
   await SpecialPowers.popPrefEnv();
 });
 
+add_task(async function test_new_tab_opens_command_bar() {
+  const tab = await addLoadedTab();
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  const tabCount = gBrowser.tabs.length;
+  const pageURL = tab.linkedBrowser.currentURI.spec;
+
+  EventUtils.synthesizeKey("t", { accelKey: true });
+  await TestUtils.waitForCondition(
+    () => commandBarOver(tab),
+    "Cmd+T opens the command bar over the page"
+  );
+  Assert.equal(gURLBar.value, "", "the command bar starts empty");
+  Assert.equal(gBrowser.tabs.length, tabCount, "no tab opens yet");
+
+  EventUtils.sendString("typed");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen(), "Escape closes it");
+  Assert.equal(gBrowser.tabs.length, tabCount, "Escape opens no tab");
+  Assert.ok(
+    !gURLBar.value.includes("typed"),
+    "Escape threw away the typed text"
+  );
+
+  EventUtils.synthesizeKey("t", { accelKey: true });
+  await TestUtils.waitForCondition(() => commandBarOver(tab));
+  const opened = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    "https://example.org/",
+    true
+  );
+  EventUtils.sendString("https://example.org/");
+  EventUtils.synthesizeKey("KEY_Enter");
+  const newTab = await opened;
+  Assert.equal(gBrowser.selectedTab, newTab, "Enter opens a new tab");
+  Assert.equal(
+    tab.linkedBrowser.currentURI.spec,
+    pageURL,
+    "the page under the command bar stays put"
+  );
+  await TestUtils.waitForCondition(() => !commandBarOpen());
+  Assert.ok(!gURLBar.commandBarNewTab, "the new tab mode ends");
+
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  Assert.ok(
+    gURLBar.value.includes(new URL(pageURL).host),
+    "the old tab still shows its own address"
+  );
+  document.getElementById("Browser:OpenLocation").doCommand();
+  await TestUtils.waitForCondition(() => commandBarOver(tab));
+  Assert.ok(
+    gURLBar.value.includes(new URL(pageURL).host),
+    "Cmd+L still edits the page address"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen());
+  BrowserTestUtils.removeTab(newTab);
+  BrowserTestUtils.removeTab(tab);
+});
+
 add_task(async function test_extension_style_move_keeps_large_split() {
   const tabs = [
     await addLoadedTab(),

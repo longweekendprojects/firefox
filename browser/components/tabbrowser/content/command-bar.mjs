@@ -24,6 +24,8 @@ const WIDTH_FRACTION = 0.8;
 const PROPERTIES = ["left", "top", "width"];
 
 let sheetLoaded = false;
+// The tab a new-tab command bar was opened over, while it is open.
+let newTabOwner = null;
 
 export function isOpen() {
   return gURLBar.hasAttribute("commandbar");
@@ -37,6 +39,9 @@ export function show() {
       window.windowUtils.AUTHOR_SHEET
     );
     sheetLoaded = true;
+  }
+  if (gBrowser.selectedTab != newTabOwner) {
+    leaveNewTab();
   }
   position();
   if (isOpen()) {
@@ -53,6 +58,41 @@ export function show() {
   gURLBar.inputField.addEventListener("blur", handler);
   gURLBar.inputField.addEventListener("keydown", handler);
   window.addEventListener("resize", handler);
+}
+
+/**
+ * Opens an empty command bar over the selected page. What it loads opens in a
+ * new tab, so closing it leaves the page untouched.
+ *
+ * @param {Event} event The command that asked for a new tab.
+ * @returns {boolean} Whether the command bar opened.
+ */
+export function showNewTab(event) {
+  newTabOwner = gBrowser.selectedTab;
+  gURLBar.commandBarNewTab = true;
+  gURLBar.focus();
+  if (!gURLBar.focused) {
+    leaveNewTab();
+    return false;
+  }
+  gURLBar.value = "";
+  show();
+  gURLBar.view.autoOpen({ event });
+  return true;
+}
+
+/** Returns the command bar to editing the selected page's address. */
+export function leaveNewTab() {
+  if (!gURLBar.commandBarNewTab) {
+    return;
+  }
+  gURLBar.commandBarNewTab = false;
+  if (gBrowser.selectedTab == newTabOwner) {
+    gURLBar.handleRevert();
+  } else if (newTabOwner?.linkedBrowser) {
+    newTabOwner.linkedBrowser.userTypedValue = null;
+  }
+  newTabOwner = null;
 }
 
 /** Centers the open command bar over the selected page. */
@@ -90,6 +130,7 @@ export function hide() {
   gURLBar.inputField.removeEventListener("blur", handler);
   gURLBar.inputField.removeEventListener("keydown", handler);
   window.removeEventListener("resize", handler);
+  leaveNewTab();
   gURLBar.hidePopover();
   gURLBar.removeAttribute("popover");
   gURLBar.removeAttribute("commandbar");

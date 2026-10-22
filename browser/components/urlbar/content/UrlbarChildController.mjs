@@ -817,7 +817,7 @@ export class UrlbarChildController {
       this.#input.sapName == "searchbar"
         ? UrlbarPrefs.get("browser.search.openintab")
         : UrlbarPrefs.get("openintab");
-    if (openInTabPref) {
+    if (openInTabPref || this.#input.commandBarNewTab) {
       if (where == "current") {
         where = "tab";
       } else if (where == "tab") {
