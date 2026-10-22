@@ -11,6 +11,8 @@ support-files = [
 
 ["browser_drag_tab_group_expand_on_drop.js"]
 
+["browser_drag_tab_to_split.js"]
+
 ["browser_drag_tab_group_overflow.js"]
 
 ["browser_drag_to_pin.js"]

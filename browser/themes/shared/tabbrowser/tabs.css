@@ -1902,6 +1902,28 @@ tab-group > tab-split-view-wrapper {
   }
 }
 
+/* A tab dragged over another tab or a split view splits with it on drop.
+   The target shows an outline and a split icon. */
+#tabbrowser-tabs[movingtab-split] {
+  .tabbrowser-tab[dragover-splitTarget] > .tab-stack > .tab-background,
+  tab-split-view-wrapper[dragover-splitTarget] {
+    outline: 2px solid var(--focus-outline-color);
+    outline-offset: -2px;
+  }
+
+  .tabbrowser-tab[dragover-splitTarget] > .tab-stack > .tab-content::after,
+  tab-split-view-wrapper[dragover-splitTarget] > .tabbrowser-tab:last-child > .tab-stack > .tab-content::after {
+    content: "";
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-inline-start: var(--space-xsmall);
+    background: url("chrome://browser/skin/split-view-right-16.svg") center / 16px no-repeat;
+    -moz-context-properties: fill;
+    fill: var(--focus-outline-color);
+  }
+}
+
 /* Drag/drop of split-view-wrapped tabs */
 #tabbrowser-tabs[orient="vertical"] tab-split-view-wrapper {
   &[small-stack] {

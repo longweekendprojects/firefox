@@ -430,6 +430,7 @@
         let shouldTranslate =
           !gReduceMotion &&
           !shouldCreateGroupOnDrop &&
+          !draggedTab._dragData.splitTarget &&
           !shouldDropIntoCollapsedTabGroup &&
           !isTabGroupLabel(draggedTab) &&
           !isSplitViewWrapper(draggedTab) &&
@@ -529,8 +530,11 @@
             moveTabs();
           });
         } else {
+          let { splitTarget } = draggedTab._dragData;
           this.finishAnimateTabMove();
-          if (shouldCreateGroupOnDrop) {
+          if (splitTarget) {
+            this.#splitOnDrop(draggedTab, splitTarget, dropBefore);
+          } else if (shouldCreateGroupOnDrop) {
             // This makes the tab group contents reflect the visual order of
             // the tabs right before dropping.
             let tabsInGroup = dropBefore
@@ -1211,6 +1215,61 @@
       this._tabbrowserTabs.toggleAttribute("movingtab-group", true);
       this._tabbrowserTabs.removeAttribute("movingtab-ungroup");
       dropElement.toggleAttribute("dragover-groupTarget", true);
+    }
+
+    /**
+     * Where dropping a tab on `target` puts it in a split view, or null when
+     * it cannot. A tab joins a split view beside its first or last pane.
+     *
+     * @param {MozTabbrowserTab|MozTabSplitViewWrapper} target
+     * @param {boolean} dropBefore Whether the dragged tab sits before `target`.
+     * @returns {{anchor: MozTabbrowserTab, direction: string}|null}
+     */
+    #splitPlan(target, dropBefore) {
+      if (isTab(target)) {
+        return target.pinned || target.closing
+          ? null
+          : { anchor: target, direction: dropBefore ? "left" : "right" };
+      }
+      if (!isSplitViewWrapper(target)) {
+        return null;
+      }
+      let anchor = dropBefore ? target.tabs[0] : target.tabs.at(-1);
+      let directions = dropBefore ? ["left", "up"] : ["right", "down"];
+      let direction = directions.find(d => target.canSplitPane(anchor, d));
+      return direction ? { anchor, direction } : null;
+    }
+
+    /**
+     * Marks `element` as the item a dropped tab would split with, or clears
+     * the mark when `element` is null.
+     */
+    #setSplitTarget(dragData, element) {
+      dragData.splitTarget?.removeAttribute("dragover-splitTarget");
+      element?.setAttribute("dragover-splitTarget", "");
+      this._tabbrowserTabs.toggleAttribute("movingtab-split", !!element);
+      if (element) {
+        dragData.splitTarget = element;
+      } else {
+        delete dragData.splitTarget;
+      }
+    }
+
+    #splitOnDrop(tab, target, dropBefore) {
+      let plan = this.#splitPlan(target, dropBefore);
+      if (!plan) {
+        return;
+      }
+      if (isSplitViewWrapper(target)) {
+        target.splitPane(plan.anchor, plan.direction, tab);
+      } else {
+        gBrowser.addTabSplitView([target, tab], {
+          insertBefore: target,
+          trigger: "drag_drop",
+          direction: plan.direction,
+        });
+      }
+      gBrowser.selectedTab = tab;
     }
 
     _clearDragOverGroupingTimer() {
@@ -2598,9 +2657,22 @@
           "browser.tabs.dragDrop.createGroup.delayMS"
         );
 
+        // Dragging one tab over another tab or a split view offers to split
+        // them, in place of creating a tab group.
+        let shouldSplitOnDrop =
+          isTab(draggedTab) &&
+          movingTabs.length == 1 &&
+          !movingTabsSet.has(dropElement) &&
+          overlapPercent > dragOverGroupingThreshold &&
+          !!this.#splitPlan(dropElement, dropBefore);
+        if (!shouldSplitOnDrop || dragData.splitTarget != dropElement) {
+          this.#setSplitTarget(dragData, null);
+        }
+
         // When dragging tab(s) over an ungrouped tab, signal to the user
         // that dropping the tab(s) will create a new tab group.
         let shouldCreateGroupOnDrop =
+          !shouldSplitOnDrop &&
           Services.prefs.getBoolPref(
             "browser.tabs.dragDrop.createGroup.enabled"
           ) &&
@@ -2616,7 +2688,22 @@
           dropElement.group.collapsed &&
           overlapPercent > dragOverGroupingThreshold;
 
-        if (shouldCreateGroupOnDrop) {
+        if (shouldSplitOnDrop) {
+          this._tabbrowserTabs.removeAttribute("movingtab-group");
+          this._tabbrowserTabs.removeAttribute("movingtab-addToGroup");
+          this._resetGroupTarget(
+            document.querySelector("[dragover-groupTarget]")
+          );
+          this._setDragOverGroupColor(null);
+          delete dragData.shouldCreateGroupOnDrop;
+          delete dragData.shouldDropIntoCollapsedTabGroup;
+          if (dragData.splitTarget != dropElement) {
+            this._dragOverGroupingTimer = setTimeout(() => {
+              this._clearDragOverGroupingTimer();
+              this.#setSplitTarget(dragData, dropElement);
+            }, groupingDelay);
+          }
+        } else if (shouldCreateGroupOnDrop) {
           this._dragOverGroupingTimer = setTimeout(() => {
             this._triggerDragOverGrouping(dropElement);
             dragData.shouldCreateGroupOnDrop = true;
@@ -2791,12 +2878,14 @@
 
       for (let item of this._tabbrowserTabs.dragAndDropElements) {
         this._resetGroupTarget(item);
+        item.removeAttribute("dragover-splitTarget");
         item = elementToMove(item);
         item.style.transform = "";
       }
       this._tabbrowserTabs.removeAttribute("movingtab-group");
       this._tabbrowserTabs.removeAttribute("movingtab-ungroup");
       this._tabbrowserTabs.removeAttribute("movingtab-addToGroup");
+      this._tabbrowserTabs.removeAttribute("movingtab-split");
       this._setDragOverGroupColor(null);
       this._clearDragOverGroupingTimer();
       this.#resetPinnedDropIndicator();
