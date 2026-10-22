@@ -477,6 +477,24 @@ add_task(async function test_extension_style_move_keeps_large_split() {
   await TestUtils.waitForCondition(() => !sv.isConnected);
 });
 
+add_task(async function test_accel_shift_c_copies_pane_address() {
+  const url = "https://example.com/browser/";
+  const tab1 = await addLoadedTab();
+  const tab2 = BrowserTestUtils.addTab(gBrowser, url);
+  await BrowserTestUtils.browserLoaded(tab2.linkedBrowser);
+  const splitview = gBrowser.addTabSplitView([tab1, tab2]);
+  gBrowser.selectedTab = tab2;
+  await TestUtils.waitForCondition(() => splitview.hasActiveTab);
+  const copy = () =>
+    AppConstants.platform == "macosx"
+      ? EventUtils.synthesizeKey("C", { accelKey: true, shiftKey: true })
+      : document.getElementById("Browser:CopyPageLink").doCommand();
+  await SimpleTest.promiseClipboardChange(url, copy);
+  Assert.ok(true, "The selected pane's address is copied");
+  gBrowser.removeTab(tab1);
+  gBrowser.removeTab(tab2);
+});
+
 function commandBarOpen() {
   return gURLBar.matches(":popover-open");
 }

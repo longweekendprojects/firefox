@@ -79,6 +79,7 @@
       <observes element="Browser:Reload" attribute="disabled"/>
     </command>
     <command id="Browser:DuplicateTab" />
+    <command id="Browser:CopyPageLink" />
     <command id="Profiles:CreateProfile" />
     <command id="Profiles:ManageProfiles" />
     <command id="Profiles:LaunchProfile" />
@@ -390,6 +391,9 @@
     <key id="key_focusPaneLeft" keycode="VK_LEFT" modifiers="accel,alt,shift" command="Browser:FocusPaneLeft"/>
     <key id="key_focusPaneUp" keycode="VK_UP" modifiers="accel,alt,shift" command="Browser:FocusPaneUp"/>
     <key id="key_duplicateTab" command="Browser:DuplicateTab"/>
+#ifdef XP_MACOSX
+    <key id="key_copyPageLink" key="C" modifiers="accel,shift" command="Browser:CopyPageLink"/>
+#endif
 
 #ifdef XP_GNOME
 #define NUM_SELECT_TAB_MODIFIER alt

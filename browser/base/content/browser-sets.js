@@ -201,6 +201,9 @@ document.addEventListener(
           case "Browser:DuplicateTab":
             BrowserCommands.duplicateTab();
             break;
+          case "Browser:CopyPageLink":
+            BrowserCommands.copyPageLink();
+            break;
           case "Browser:NextTab":
             gBrowser.tabContainer.advanceSelectedTab(
               1,

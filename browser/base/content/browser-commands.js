@@ -139,6 +139,34 @@ var BrowserCommands = {
     );
   },
 
+  /**
+   * Copies the address of the selected tab or pane, and confirms it next to
+   * that address.
+   */
+  copyPageLink() {
+    const browser = gBrowser.selectedBrowser;
+    const uri = BrowserUtils.getShareableURL(browser.currentURI);
+    if (!uri) {
+      return;
+    }
+    BrowserUtils.copyLinks([
+      {
+        url: gURLBar.makeURIReadable(uri).displaySpec,
+        title: browser.contentTitle,
+      },
+    ]);
+    const anchor = [
+      document.querySelector(
+        `.split-pane-header[panel="${gBrowser.selectedTab.linkedPanel}"] .split-pane-url`
+      ),
+      gURLBar.inputField,
+      gBrowser.selectedTab,
+    ].find(el => el?.checkVisibility({ visibilityProperty: true }));
+    if (anchor) {
+      ConfirmationHint.show(anchor, "confirmation-hint-link-copied");
+    }
+  },
+
   duplicateTab() {
     duplicateTabIn(gBrowser.selectedTab, "tab");
   },
