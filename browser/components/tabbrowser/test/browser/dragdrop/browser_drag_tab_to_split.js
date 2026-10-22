@@ -7,34 +7,43 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref("browser.tabs.splitview.hasUsed");
 });
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
+});
+
 /**
- * Drags `tab` half its own size toward `target`, waits until `target` shows
- * that a drop would split with it, then drops.
+ * Drags `tab` half its own height toward `target`, with the pointer over the
+ * `side` half of `target`. Waits until the split preview shows, then drops.
  *
  * @param {MozTabbrowserTab} tab
  * @param {Element} target A tab or split view next to `tab`.
+ * @param {"left"|"right"} side
  */
-async function dragOntoForSplit(tab, target) {
-  let vertical = gBrowser.tabContainer.verticalMode;
+async function dragOntoForSplit(tab, target, side) {
   let from = tab.getBoundingClientRect();
   let to = target.getBoundingClientRect();
-  let forward = vertical ? to.top > from.top : to.left > from.left;
-  let step = (forward ? 1 : -1) * (vertical ? from.height : from.width) * 0.5;
+  let step = (to.top > from.top ? 1 : -1) * from.height * 0.5;
   let event = {
-    clientX: from.left + from.width / 2 + (vertical ? 0 : step),
-    clientY: from.top + from.height / 2 + (vertical ? step : 0),
+    clientX: to.left + to.width * (side == "left" ? 0.25 : 0.75),
+    clientY: from.top + from.height / 2 + step,
     dropEffect: "move",
   };
   await customDragAndDrop(
     tab,
     target,
     TestUtils.waitForCondition(
-      () => target.hasAttribute("dragover-splitTarget"),
-      "Target offers to split"
+      () =>
+        target.getAttribute("dragover-splitTarget") == side &&
+        tab.getAttribute("dragover-splitSource") == side,
+      `Target previews a split with the tab on the ${side}`
     ),
     null,
     event
   );
+}
+
+function panelRect(tab) {
+  return document.getElementById(tab.linkedPanel).getBoundingClientRect();
 }
 
 add_task(async function test_drop_tab_on_tab_splits() {
@@ -42,7 +51,7 @@ add_task(async function test_drop_tab_on_tab_splits() {
   let tab2 = await addTab("data:text/html,two");
   let tab3 = await addTab("data:text/html,three");
   try {
-    await dragOntoForSplit(tab1, tab2);
+    await dragOntoForSplit(tab1, tab2, "left");
     let splitview = tab1.splitview;
     Assert.ok(splitview, "Dropping a tab on a tab makes a split view");
     Assert.equal(splitview, tab2.splitview, "Both tabs are in the split");
@@ -50,19 +59,17 @@ add_task(async function test_drop_tab_on_tab_splits() {
     Assert.equal(gBrowser.selectedTab, tab1, "The dropped tab is selected");
     Assert.ok(
       !gBrowser.tabContainer.hasAttribute("movingtab-split") &&
-        !document.querySelector("[dragover-splitTarget]"),
+        !document.querySelector(
+          "[dragover-splitTarget], [dragover-splitSource]"
+        ),
       "The split target mark is cleared"
     );
-    let panel1 = document.getElementById(tab1.linkedPanel);
-    let panel2 = document.getElementById(tab2.linkedPanel);
     await TestUtils.waitForCondition(
-      () =>
-        panel1.getBoundingClientRect().right <=
-        panel2.getBoundingClientRect().left,
-      "The dragged tab sits on the side it came from"
+      () => panelRect(tab1).right <= panelRect(tab2).left,
+      "The dragged tab lands on the left half it was held over"
     );
 
-    await dragOntoForSplit(tab3, splitview);
+    await dragOntoForSplit(tab3, splitview, "right");
     Assert.equal(
       tab3.splitview,
       splitview,
@@ -70,10 +77,30 @@ add_task(async function test_drop_tab_on_tab_splits() {
     );
     Assert.equal(splitview.tabs.length, 3, "The split has three panes");
     Assert.equal(gBrowser.selectedTab, tab3, "The joined tab is selected");
+    await TestUtils.waitForCondition(
+      () => panelRect(tab2).right <= panelRect(tab3).left,
+      "The joined tab lands at the right edge of the split"
+    );
   } finally {
     for (let tab of [tab1, tab2, tab3]) {
       BrowserTestUtils.removeTab(tab);
     }
+  }
+});
+
+add_task(async function test_drop_on_right_half_splits_right() {
+  let tab1 = await addTab("data:text/html,one");
+  let tab2 = await addTab("data:text/html,two");
+  try {
+    await dragOntoForSplit(tab1, tab2, "right");
+    Assert.equal(tab1.splitview, tab2.splitview, "The tabs are split");
+    await TestUtils.waitForCondition(
+      () => panelRect(tab2).right <= panelRect(tab1).left,
+      "The dragged tab lands on the right half it was held over"
+    );
+  } finally {
+    BrowserTestUtils.removeTab(tab1);
+    BrowserTestUtils.removeTab(tab2);
   }
 });
 

@@ -17,6 +17,7 @@
   const isTab = element => gBrowser.isTab(element);
   const isTabGroupLabel = element => gBrowser.isTabGroupLabel(element);
   const isSplitViewWrapper = element => gBrowser.isSplitViewWrapper(element);
+  const SPLIT_PREVIEW_DELAY_MS = 120;
 
   /**
    * The elements in the tab strip from `this.dragAndDropElements` that contain
@@ -65,6 +66,7 @@
     #pinnedDropIndicatorTimeout = null;
     #dropAnimationEndTime = 0;
     #staleDragCheckTimer = null;
+    #splitTimer = 0;
 
     constructor(tabbrowserTabs) {
       this._tabbrowserTabs = tabbrowserTabs;
@@ -530,10 +532,10 @@
             moveTabs();
           });
         } else {
-          let { splitTarget } = draggedTab._dragData;
+          let { splitTarget, splitSide } = draggedTab._dragData;
           this.finishAnimateTabMove();
           if (splitTarget) {
-            this.#splitOnDrop(draggedTab, splitTarget, dropBefore);
+            this.#splitOnDrop(draggedTab, splitTarget, splitSide);
           } else if (shouldCreateGroupOnDrop) {
             // This makes the tab group contents reflect the visual order of
             // the tabs right before dropping.
@@ -1219,44 +1221,84 @@
 
     /**
      * Where dropping a tab on `target` puts it in a split view, or null when
-     * it cannot. A tab joins a split view beside its first or last pane.
+     * it cannot. A tab joins a split view at its left or right edge.
      *
      * @param {MozTabbrowserTab|MozTabSplitViewWrapper} target
-     * @param {boolean} dropBefore Whether the dragged tab sits before `target`.
+     * @param {"left"|"right"} side Where the dropped tab goes.
      * @returns {{anchor: MozTabbrowserTab, direction: string}|null}
      */
-    #splitPlan(target, dropBefore) {
+    #splitPlan(target, side) {
       if (isTab(target)) {
         return target.pinned || target.closing
           ? null
-          : { anchor: target, direction: dropBefore ? "left" : "right" };
+          : { anchor: target, direction: side };
       }
       if (!isSplitViewWrapper(target)) {
         return null;
       }
-      let anchor = dropBefore ? target.tabs[0] : target.tabs.at(-1);
-      let directions = dropBefore ? ["left", "up"] : ["right", "down"];
-      let direction = directions.find(d => target.canSplitPane(anchor, d));
-      return direction ? { anchor, direction } : null;
+      let anchor = target.edgePane(side);
+      return anchor && target.canSplitPane(anchor, side)
+        ? { anchor, direction: side }
+        : null;
+    }
+
+    /** The half of `target` under the pointer of `event`. */
+    #splitSide(target, event) {
+      let { left, width } = window.windowUtils.getBoundsWithoutFlushing(target);
+      return event.clientX < left + width / 2 ? "left" : "right";
     }
 
     /**
-     * Marks `element` as the item a dropped tab would split with, or clears
-     * the mark when `element` is null.
+     * Previews a split with `element` on `side`: the target moves to one half
+     * and the dragged tab takes the other. Clears the preview when `element`
+     * is null.
      */
-    #setSplitTarget(dragData, element) {
-      dragData.splitTarget?.removeAttribute("dragover-splitTarget");
-      element?.setAttribute("dragover-splitTarget", "");
+    #setSplitTarget(dragData, element, side) {
+      let draggedTab = dragData.movingTabs[0];
+      this.#clearSplitTimer(dragData);
+      if (dragData.splitTarget && dragData.splitTarget != element) {
+        dragData.splitTarget.removeAttribute("dragover-splitTarget");
+      }
       this._tabbrowserTabs.toggleAttribute("movingtab-split", !!element);
-      if (element) {
-        dragData.splitTarget = element;
-      } else {
+      if (!element) {
+        draggedTab.removeAttribute("dragover-splitSource");
         delete dragData.splitTarget;
+        delete dragData.splitSide;
+        return;
+      }
+      element.setAttribute("dragover-splitTarget", side);
+      draggedTab.setAttribute("dragover-splitSource", side);
+      dragData.splitTarget = element;
+      dragData.splitSide = side;
+      this.#snapToSplitTarget(dragData);
+    }
+
+    /** Lines the dragged tab up with the split target it previews. */
+    #snapToSplitTarget(dragData) {
+      let moving = elementToMove(dragData.movingTabs[0]);
+      let bounds = ele => window.windowUtils.getBoundsWithoutFlushing(ele);
+      let target = bounds(dragData.splitTarget);
+      let current = bounds(moving);
+      let vertical = this._tabbrowserTabs.verticalMode;
+      let delta = vertical
+        ? target.top - current.top
+        : target.left - current.left;
+      let translate = (dragData.translatePos ?? 0) + delta;
+      moving.style.transform = vertical
+        ? `translateY(${translate}px)`
+        : `translateX(${translate}px)`;
+    }
+
+    #clearSplitTimer(dragData) {
+      clearTimeout(this.#splitTimer);
+      this.#splitTimer = 0;
+      if (dragData) {
+        delete dragData.splitPending;
       }
     }
 
-    #splitOnDrop(tab, target, dropBefore) {
-      let plan = this.#splitPlan(target, dropBefore);
+    #splitOnDrop(tab, target, side) {
+      let plan = this.#splitPlan(target, side);
       if (!plan) {
         return;
       }
@@ -2242,7 +2284,17 @@
       let screen = this._tabbrowserTabs.verticalMode
         ? event.screenY
         : event.screenX;
+      dragData.lastPointer = { clientX: event.clientX };
       if (screen == dragData.animLastScreenPos) {
+        let target = dragData.splitTarget;
+        let side = target && this.#splitSide(target, event);
+        if (
+          side &&
+          side != dragData.splitSide &&
+          this.#splitPlan(target, side)
+        ) {
+          this.#setSplitTarget(dragData, target, side);
+        }
         return;
       }
       let screenForward = screen > dragData.animLastScreenPos;
@@ -2658,14 +2710,24 @@
         );
 
         // Dragging one tab over another tab or a split view offers to split
-        // them, in place of creating a tab group.
-        let shouldSplitOnDrop =
+        // them, in place of creating a tab group. The pointer's half of the
+        // target picks the side.
+        let splitSide =
           isTab(draggedTab) &&
           movingTabs.length == 1 &&
+          dropElement &&
           !movingTabsSet.has(dropElement) &&
-          overlapPercent > dragOverGroupingThreshold &&
-          !!this.#splitPlan(dropElement, dropBefore);
-        if (!shouldSplitOnDrop || dragData.splitTarget != dropElement) {
+          overlapPercent > dragOverGroupingThreshold
+            ? this.#splitSide(dropElement, event)
+            : null;
+        let shouldSplitOnDrop =
+          !!splitSide && !!this.#splitPlan(dropElement, splitSide);
+        if (!shouldSplitOnDrop) {
+          this.#setSplitTarget(dragData, null);
+          this.#clearSplitTimer(dragData);
+        } else if (dragData.splitTarget == dropElement) {
+          this.#setSplitTarget(dragData, dropElement, splitSide);
+        } else if (dragData.splitTarget) {
           this.#setSplitTarget(dragData, null);
         }
 
@@ -2697,11 +2759,18 @@
           this._setDragOverGroupColor(null);
           delete dragData.shouldCreateGroupOnDrop;
           delete dragData.shouldDropIntoCollapsedTabGroup;
-          if (dragData.splitTarget != dropElement) {
-            this._dragOverGroupingTimer = setTimeout(() => {
-              this._clearDragOverGroupingTimer();
-              this.#setSplitTarget(dragData, dropElement);
-            }, groupingDelay);
+          if (
+            dragData.splitTarget != dropElement &&
+            dragData.splitPending != dropElement
+          ) {
+            this.#clearSplitTimer(dragData);
+            dragData.splitPending = dropElement;
+            this.#splitTimer = setTimeout(() => {
+              let side = this.#splitSide(dropElement, dragData.lastPointer);
+              if (this.#splitPlan(dropElement, side)) {
+                this.#setSplitTarget(dragData, dropElement, side);
+              }
+            }, SPLIT_PREVIEW_DELAY_MS);
           }
         } else if (shouldCreateGroupOnDrop) {
           this._dragOverGroupingTimer = setTimeout(() => {
@@ -2879,6 +2948,7 @@
       for (let item of this._tabbrowserTabs.dragAndDropElements) {
         this._resetGroupTarget(item);
         item.removeAttribute("dragover-splitTarget");
+        item.removeAttribute("dragover-splitSource");
         item = elementToMove(item);
         item.style.transform = "";
       }
@@ -2888,6 +2958,7 @@
       this._tabbrowserTabs.removeAttribute("movingtab-split");
       this._setDragOverGroupColor(null);
       this._clearDragOverGroupingTimer();
+      this.#clearSplitTimer();
       this.#resetPinnedDropIndicator();
     }
 

@@ -1903,24 +1903,34 @@ tab-group > tab-split-view-wrapper {
 }
 
 /* A tab dragged over another tab or a split view splits with it on drop.
-   The target shows an outline and a split icon. */
+   The target slides to one half and the dragged tab fills the other, on the
+   side the tab will land. */
+#tabbrowser-tabs[movingtab] {
+  .tabbrowser-tab > .tab-stack,
+  tab-split-view-wrapper {
+    @media (prefers-reduced-motion: no-preference) {
+      transition: margin 150ms ease-out;
+    }
+  }
+}
+
 #tabbrowser-tabs[movingtab-split] {
-  .tabbrowser-tab[dragover-splitTarget] > .tab-stack > .tab-background,
+  .tabbrowser-tab:is([dragover-splitTarget], [dragover-splitSource]) > .tab-stack > .tab-background,
   tab-split-view-wrapper[dragover-splitTarget] {
     outline: 2px solid var(--focus-outline-color);
     outline-offset: -2px;
   }
 
-  .tabbrowser-tab[dragover-splitTarget] > .tab-stack > .tab-content::after,
-  tab-split-view-wrapper[dragover-splitTarget] > .tabbrowser-tab:last-child > .tab-stack > .tab-content::after {
-    content: "";
-    flex: none;
-    width: 16px;
-    height: 16px;
-    margin-inline-start: var(--space-xsmall);
-    background: url("chrome://browser/skin/split-view-right-16.svg") center / 16px no-repeat;
-    -moz-context-properties: fill;
-    fill: var(--focus-outline-color);
+  .tabbrowser-tab[dragover-splitTarget="left"] > .tab-stack,
+  tab-split-view-wrapper[dragover-splitTarget="left"],
+  .tabbrowser-tab[dragover-splitSource="right"] > .tab-stack {
+    margin-left: 50%;
+  }
+
+  .tabbrowser-tab[dragover-splitTarget="right"] > .tab-stack,
+  tab-split-view-wrapper[dragover-splitTarget="right"],
+  .tabbrowser-tab[dragover-splitSource="left"] > .tab-stack {
+    margin-right: 50%;
   }
 }
 

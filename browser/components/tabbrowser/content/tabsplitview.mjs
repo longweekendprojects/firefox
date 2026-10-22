@@ -703,6 +703,16 @@ export class MozTabSplitViewWrapper extends MozXULElement {
   }
 
   /**
+   * The pane at the left or right edge of the layout.
+   *
+   * @param {"left"|"right"} side
+   */
+  edgePane(side) {
+    const ids = layoutModel().leafIds(this.layout);
+    return side == "left" ? ids[0] : ids.at(-1);
+  }
+
+  /**
    * Selects the pane next to the selected one in `direction`.
    */
   focusPane(direction) {
