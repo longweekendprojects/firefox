@@ -60,6 +60,17 @@ for bin in MacOS/XUL MacOS/firefox; do
   fi
 done
 
+# Keep only the Apple Silicon half of each universal binary. Each half
+# carries its own signature, so the running code keeps Mozilla's signature.
+while IFS= read -r -d '' f; do
+  archs=$(lipo -archs "$f" 2> /dev/null) || continue
+  if [ "$archs" != arm64 ] && [[ " $archs " == *" arm64 "* ]]; then
+    lipo -thin arm64 "$f" -output "$f.thin"
+    mv "$f.thin" "$f"
+  fi
+done < <(find $app -type f -print0)
+codesign --verify --strict -R="$mozreq" $app/Contents/MacOS/XUL
+
 cp $ours/Resources/omni.ja $app/Contents/Resources/omni.ja
 cp $ours/Resources/browser/omni.ja $app/Contents/Resources/browser/omni.ja
 touch $app/Contents/Resources/browser/.purgecaches
@@ -72,7 +83,7 @@ echo "$ver split $stamp" > $app/Contents/Resources/split-build.txt
 ditto $app $work/dmgsrc/Nightly.app
 ln -s /Applications $work/dmgsrc/Applications
 rm -f "$out"
-hdiutil create -quiet -volname "Nightly Split $stamp" -srcfolder $work/dmgsrc -ov -format UDZO -fs HFS+ "$out"
+hdiutil create -quiet -volname "Nightly Split $stamp" -srcfolder $work/dmgsrc -ov -format ULMO -fs HFS+ "$out"
 echo "$out"
 
 # Install right away so the change can be tried at once.
