@@ -1638,7 +1638,7 @@ pref("places.search.matchDiacritics", false);
 
 
 // Enables alternative frecency calculation for origins.
-pref("places.frecency.origins.alternative.featureGate", false);
+pref("places.frecency.origins.alternative.featureGate", true);
 
 // Whether to warm up network connections for places: menus and places: toolbar.
 pref("browser.places.speculativeConnect.enabled", true);

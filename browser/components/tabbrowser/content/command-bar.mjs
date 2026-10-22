@@ -95,9 +95,14 @@ export function leaveNewTab() {
   newTabOwner = null;
 }
 
-/** Centers the open command bar over the selected page. */
+/**
+ * Centers the open command bar over the selected page. A new-tab command bar
+ * centers over the whole content area, since it does not belong to a pane.
+ */
 export function position() {
-  const area = gBrowser.selectedBrowser.getBoundingClientRect();
+  const area = (
+    gURLBar.commandBarNewTab ? gBrowser.tabpanels : gBrowser.selectedBrowser
+  ).getBoundingClientRect();
   const width = Math.max(
     Math.min(
       area.width - 2 * MARGIN,

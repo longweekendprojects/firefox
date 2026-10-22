@@ -24,6 +24,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AboutPagesUtils: "resource://gre/modules/AboutPagesUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   UrlbarPrefs: "moz-src:///browser/components/urlbar/UrlbarPrefs.sys.mjs",
+  UrlbarProviderOpenTabs:
+    "moz-src:///browser/components/urlbar/UrlbarProviderOpenTabs.sys.mjs",
   UrlbarResult: "chrome://browser/content/urlbar/UrlbarResult.mjs",
   UrlbarShared: "chrome://browser/content/urlbar/UrlbarShared.mjs",
   UrlUtils: "resource://gre/modules/UrlUtils.sys.mjs",
@@ -1157,12 +1159,11 @@ export class UrlbarProviderAutofill extends UrlbarProvider {
     // Otherwise treat it as a possible URL.  When the string has only one slash
     // at the end, we still treat it as an URL.
     let query, params;
-    if (
-      lazy.UrlUtils.looksLikeOrigin(this._searchString, {
-        ignoreKnownDomains: true,
-        allowPartialNumericalTLDs: true,
-      })
-    ) {
+    let looksLikeOrigin = lazy.UrlUtils.looksLikeOrigin(this._searchString, {
+      ignoreKnownDomains: true,
+      allowPartialNumericalTLDs: true,
+    });
+    if (looksLikeOrigin) {
       [query, params] = this._getOriginQuery(queryContext);
     } else {
       [query, params] = this._getUrlQuery(queryContext);
@@ -1178,7 +1179,78 @@ export class UrlbarProviderAutofill extends UrlbarProvider {
         }
       }
     }
-    return null;
+    let result =
+      looksLikeOrigin &&
+      effectiveSources(queryContext).historyAllowed &&
+      (await this._matchOpenTabOrigin(conn, queryContext));
+    return result ? { result, fallbackResult: null } : null;
+  }
+
+  /**
+   * Autofills the origin of an open tab whose host starts with the search
+   * string. This covers sites open in a tab that history does not yet rank
+   * high enough to autofill. The shortest matching host wins. Origins the
+   * user blocked from autofill are skipped.
+   *
+   * @param {OpenedConnection} conn
+   * @param {UrlbarQueryContext} queryContext
+   * @returns {Promise<UrlbarResult?>}
+   */
+  async _matchOpenTabOrigin(conn, queryContext) {
+    let searchString = this._searchString.replace(/\/$/, "").toLowerCase();
+    let match = null;
+    let urls = lazy.UrlbarProviderOpenTabs.getOpenTabUrls(
+      queryContext.isPrivate
+    );
+    for (let url of urls.keys()) {
+      let parsed = URL.parse(url);
+      if (
+        !parsed ||
+        !["http:", "https:"].includes(parsed.protocol) ||
+        (this._strippedPrefix &&
+          !this._strippedPrefix.startsWith(parsed.protocol))
+      ) {
+        continue;
+      }
+      let host = parsed.host;
+      let fixed =
+        host.startsWith("www.") && !searchString.startsWith("www.")
+          ? host.slice(4)
+          : host;
+      if (
+        fixed.startsWith(searchString) &&
+        (!match ||
+          fixed.length < match.fixed.length ||
+          (fixed == match.fixed && parsed.protocol == "https:"))
+      ) {
+        match = { fixed, url: parsed.origin + "/" };
+      }
+    }
+    if (!match) {
+      return null;
+    }
+    if (lazy.UrlbarPrefs.get("autoFill.adaptiveHistory.enabled")) {
+      let blocked = await conn.executeCached(
+        `SELECT 1 FROM moz_origins
+         WHERE fixup_url(host) = fixup_url(:host)
+           AND block_until_ms > :nowMs`,
+        { host: new URL(match.url).host, nowMs: Date.now() }
+      );
+      if (blocked.length) {
+        return null;
+      }
+    }
+    let row = {
+      query_type: QUERYTYPE.AUTOFILL_ORIGIN,
+      search_string: searchString,
+      host_fixed: match.fixed + "/",
+      url: match.url,
+      title: null,
+    };
+    return this._processRow(
+      { getResultByName: name => row[name] },
+      queryContext
+    );
   }
 
   /**

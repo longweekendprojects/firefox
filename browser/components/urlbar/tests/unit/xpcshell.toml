@@ -97,6 +97,7 @@ requesttimeoutfactor = 3  # Slow on Mac debug
 requesttimeoutfactor = 3  # Slow on Mac debug
 
 ["test_autofill_originsAndQueries.js"]
+prefs = ["places.frecency.origins.alternative.featureGate=false"]
 requesttimeoutfactor = 3  # Slow on Linux debug and Mac debug
 
 ["test_autofill_origins_alt_frecency.js"]
@@ -106,6 +107,7 @@ prefs = [
 ]
 
 ["test_autofill_origins_typed_frecency.js"]
+prefs = ["places.frecency.origins.alternative.featureGate=false"]
 
 ["test_autofill_prefix_fallback.js"]
 

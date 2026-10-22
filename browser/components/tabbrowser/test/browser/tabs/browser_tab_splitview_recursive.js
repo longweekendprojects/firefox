@@ -462,6 +462,63 @@ add_task(async function test_new_tab_opens_command_bar() {
   BrowserTestUtils.removeTab(tab);
 });
 
+add_task(async function test_new_tab_command_bar_centers_over_split() {
+  const tabs = [await addLoadedTab(), await addLoadedTab()];
+  await BrowserTestUtils.switchTab(gBrowser, tabs[0]);
+  const sv = gBrowser.addTabSplitView(tabs, { insertBefore: tabs[0] });
+  await TestUtils.waitForCondition(() => sv.hasActiveTab);
+  gBrowser.selectedBrowser.focus();
+
+  EventUtils.synthesizeKey("t", { accelKey: true });
+  await TestUtils.waitForCondition(
+    () => commandBarOpen() && gURLBar.focused,
+    "Cmd+T opens the command bar"
+  );
+  const bar = gURLBar.getBoundingClientRect();
+  const area = gBrowser.tabpanels.getBoundingClientRect();
+  Assert.lessOrEqual(
+    Math.abs(bar.left + bar.width / 2 - (area.left + area.width / 2)),
+    2,
+    "the new-tab command bar centers over the whole window, not a pane"
+  );
+  Assert.ok(
+    !commandBarOver(tabs[0]) && !commandBarOver(tabs[1]),
+    "it does not sit inside one pane"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen());
+  sv.close();
+  await TestUtils.waitForCondition(() => !sv.isConnected);
+});
+
+add_task(async function test_command_bar_autofills_open_tab_site() {
+  await PlacesUtils.history.clear();
+  const tab = await addLoadedTab();
+  const other = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  await BrowserTestUtils.switchTab(gBrowser, other);
+
+  EventUtils.synthesizeKey("t", { accelKey: true });
+  await TestUtils.waitForCondition(
+    () => commandBarOpen() && gURLBar.focused,
+    "Cmd+T opens the command bar"
+  );
+  EventUtils.sendString("examp");
+  await TestUtils.waitForCondition(
+    () => gURLBar.value == "example.com/",
+    "the open tab's site is filled in"
+  );
+  Assert.equal(gURLBar.selectionStart, 5, "the typed part stays put");
+  Assert.equal(
+    gURLBar.selectionEnd,
+    gURLBar.value.length,
+    "the filled-in part is selected"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen());
+  BrowserTestUtils.removeTab(other);
+  BrowserTestUtils.removeTab(tab);
+});
+
 add_task(async function test_extension_style_move_keeps_large_split() {
   const tabs = [
     await addLoadedTab(),
