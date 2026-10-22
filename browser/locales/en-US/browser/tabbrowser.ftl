@@ -554,3 +554,29 @@ split-view-menuitem-close-both-tabs =
     .label = Close Both Tabs
 
 ##
+
+## Spaces: named sets of tabs, switched from the bottom of the vertical tab strip
+
+spaces-bar =
+    .aria-label = Spaces
+spaces-add-button =
+    .label = New Space
+    .tooltiptext = New Space
+# Name of the first space, before the user renames it.
+spaces-default-name = Personal
+spaces-default-button =
+    .label = Personal
+    .tooltiptext = Personal
+spaces-panel-title = New Space
+spaces-panel-edit-title = Edit Space
+spaces-separate-logins =
+    .label = Use separate logins
+    .description = Sites in this space keep their own cookies and sign-ins.
+spaces-context-edit =
+    .label = Edit Space…
+spaces-context-delete =
+    .label = Delete Space
+# Variables:
+#   $name (String): the name of the space the tab moves to
+spaces-move-tab-to =
+    .label = Move to { $name } Space

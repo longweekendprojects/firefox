@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Tab attributes which are persisted & restored by SessionStore.
-const PERSISTED_ATTRIBUTES = ["customizemode"];
+const PERSISTED_ATTRIBUTES = ["customizemode", "pinned-url", "space"];
 
 // A set of tab attributes to persist. We will read a given list of tab
 // attributes when collecting tab data and will re-set those attributes when

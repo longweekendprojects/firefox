@@ -1,0 +1,91 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* Space icons use container colors, which have no design tokens. */
+/* stylelint-disable stylelint-plugin-mozilla/use-design-tokens */
+
+#spaces-bar {
+  display: none;
+}
+
+#tabbrowser-tabs[orient="vertical"] > #spaces-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-xsmall);
+  padding-block: var(--space-xsmall);
+  margin-inline: var(--tab-inner-inline-margin);
+  border-top: 1px solid var(--tab-border-color, color-mix(in srgb, currentColor 12%, transparent));
+}
+
+#spaces-list {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xxsmall);
+}
+
+#spaces-add-button {
+  grid-column: 3;
+  justify-self: end;
+  list-style-image: url(chrome://global/skin/icons/plus.svg);
+}
+
+#spaces-bar .toolbarbutton-1 {
+  margin: 0;
+  padding: 0;
+
+  > .toolbarbutton-text {
+    display: none;
+  }
+
+  > .toolbarbutton-icon {
+    width: calc(var(--size-item-small) + 2 * var(--space-small));
+    height: calc(var(--size-item-small) + 2 * var(--space-small));
+    padding: var(--space-small);
+    border-radius: var(--border-radius-medium);
+  }
+}
+
+.space-button {
+  list-style-image: var(--identity-icon);
+  opacity: 0.45;
+  transition: opacity 120ms ease-out;
+
+  > .toolbarbutton-icon {
+    fill: var(--identity-icon-color);
+  }
+
+  &:hover {
+    opacity: 0.85;
+  }
+
+  &[checked] {
+    opacity: 1;
+
+    > .toolbarbutton-icon {
+      background-color: color-mix(in srgb, var(--identity-icon-color) 18%, transparent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+#tabbrowser-tabs[orient="vertical"]:not([expanded]) > #spaces-bar {
+  grid-template-columns: 1fr;
+  justify-items: center;
+
+  > #spaces-list {
+    grid-column: 1;
+    flex-direction: column;
+  }
+
+  > #spaces-add-button {
+    grid-column: 1;
+    justify-self: center;
+  }
+}

@@ -438,15 +438,19 @@ var BrowserCommands = {
     }
 
     // Keyboard shortcuts that would close a tab that is pinned select the first
-    // unpinned tab instead.
+    // unpinned tab instead, then unload the pinned tab and reset it to the
+    // address it was pinned with.
     if (
       event &&
       (event.ctrlKey || event.metaKey || event.altKey) &&
       gBrowser.selectedTab.pinned
     ) {
-      if (gBrowser.visibleTabs.length > gBrowser.pinnedTabCount) {
-        gBrowser.tabContainer.selectedIndex = gBrowser.pinnedTabCount;
+      let pinnedTab = gBrowser.selectedTab;
+      let unpinned = gBrowser.visibleTabs.find(tab => !tab.pinned);
+      if (unpinned) {
+        gBrowser.selectedTab = unpinned;
       }
+      gBrowser.resetPinnedTab(pinnedTab);
       return;
     }
 

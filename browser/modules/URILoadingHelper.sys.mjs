@@ -324,6 +324,28 @@ function openInCurrentTab(targetBrowser, url, uriObj, params) {
   params.resolveOnContentBrowserCreated?.(targetBrowser);
 }
 
+/**
+ * Returns the container a load uses: the one asked for, or for a new tab
+ * opened in a space with its own container, that container.
+ *
+ * @param {Window} window
+ *   The window the load happens in.
+ * @param {string} where
+ * @param {object} params
+ * @returns {number | undefined}
+ */
+function spaceContainer(window, where, params) {
+  if (
+    params.userContextId == null &&
+    (where == "tab" || where == "tabshifted") &&
+    !params.relatedToCurrent &&
+    !params.openerBrowser
+  ) {
+    return window?.spacesUserContextId;
+  }
+  return params.userContextId;
+}
+
 function updatePrincipals(window, params) {
   let { userContextId } = params;
   // Teach the principal about the right OA to use, e.g. in case when
@@ -537,6 +559,8 @@ export const URILoadingHelper = {
       window,
       forceNonPrivate
     );
+
+    userContextId = params.userContextId = spaceContainer(w, where, params);
 
     updatePrincipals(w, params);
 

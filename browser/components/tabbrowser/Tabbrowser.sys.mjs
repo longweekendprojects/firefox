@@ -1258,8 +1258,60 @@ export class Tabbrowser {
     });
 
     aTab.setAttribute("pinned", "true");
+    let pinnedURL = aTab.linkedBrowser.currentURI?.spec;
+    if (!aTab.hasAttribute("pinned-url") && pinnedURL != "about:blank") {
+      aTab.setAttribute("pinned-url", pinnedURL);
+    }
     this.#updateTabBarForPinnedTabs();
     this.#notifyPinnedStatus(aTab, { metricsContext });
+  }
+
+  /**
+   * Unloads a pinned tab and points it back at the address it was pinned
+   * with, so selecting it again loads that address. The current page's
+   * history is dropped.
+   *
+   * @param {MozTabbrowserTab} aTab
+   */
+  async resetPinnedTab(aTab) {
+    if (!aTab.pinned) {
+      return;
+    }
+    if (!aTab.hasAttribute("pinned-url")) {
+      aTab.setAttribute("pinned-url", aTab.linkedBrowser.currentURI.spec);
+    }
+    if (aTab.linkedPanel) {
+      await this.explicitUnloadTabs([aTab]);
+      if (aTab.linkedPanel || aTab.closing) {
+        return;
+      }
+    }
+    let url = aTab.getAttribute("pinned-url");
+    if (aTab.linkedBrowser.currentURI.spec == url) {
+      return;
+    }
+    let uri;
+    try {
+      uri = Services.io.newURI(url);
+    } catch {
+      return;
+    }
+    let state = JSON.parse(lazy.SessionStore.getTabState(aTab));
+    let principal = Services.scriptSecurityManager.createContentPrincipal(uri, {
+      userContextId: aTab.userContextId,
+    });
+    state.entries = [
+      {
+        url,
+        triggeringPrincipal_base64:
+          lazy.E10SUtils.serializePrincipal(principal),
+      },
+    ];
+    state.index = 1;
+    delete state.scroll;
+    delete state.formdata;
+    delete state.userTypedValue;
+    lazy.SessionStore.setTabState(aTab, state);
   }
 
   /**
@@ -1284,6 +1336,7 @@ export class Tabbrowser {
       aTab.removeAttribute("pinned");
       this.tabContainer.arrowScrollbox.prepend(aTab);
     });
+    aTab.removeAttribute("pinned-url");
 
     aTab.style.marginInlineStart = "";
     aTab._pinnedUnscrollable = false;
@@ -3328,8 +3381,13 @@ export class Tabbrowser {
     // If we transitioned from one browser to two browsers, we need to set
     // hasSiblings=false on both the existing browser and the new browser.
     if (this.tabs.length == 2) {
-      this.tabs[0].linkedBrowser.browsingContext.hasSiblings = true;
-      this.tabs[1].linkedBrowser.browsingContext.hasSiblings = true;
+      // A lazy tab has no browsing context yet; it sets this when inserted.
+      for (let tab of this.tabs) {
+        let browsingContext = tab.linkedBrowser.browsingContext;
+        if (browsingContext) {
+          browsingContext.hasSiblings = true;
+        }
+      }
     } else {
       aTab.linkedBrowser.browsingContext.hasSiblings = this.tabs.length > 1;
     }
@@ -5026,7 +5084,11 @@ export class Tabbrowser {
 
       // Add a new tab if needed.
       if (!tab) {
-        let createLazyBrowser = restoreTabsLazily && !select && !tabData.pinned;
+        // Pinned tabs of a space that is not shown load only when selected.
+        let createLazyBrowser =
+          restoreTabsLazily &&
+          !select &&
+          (!tabData.pinned || tabData.extData?.hiddenBy == "spaces");
 
         let url = "about:blank";
         if (tabData.entries?.length) {
@@ -6590,8 +6652,16 @@ export class Tabbrowser {
     var closeWindow = false;
     var newTab = false;
     if (this.#isLastTabInWindow(aTab)) {
+      // Tabs of other spaces keep the window open; a new tab replaces the
+      // closed one in the shown space.
       closeWindow =
-        closeWindowWithLastTab ?? this.#shouldCloseWindowWithLastTab;
+        (closeWindowWithLastTab ?? this.#shouldCloseWindowWithLastTab) &&
+        !this.tabs.some(
+          t =>
+            t != aTab &&
+            t.isOpen &&
+            lazy.SessionStore.getCustomTabValue(t, "hiddenBy") == "spaces"
+        );
 
       if (closeWindow) {
         // We've already called beforeunload on all the relevant tabs if we get here,
@@ -7619,7 +7689,7 @@ export class Tabbrowser {
   hideTab(aTab, aSource) {
     if (
       aTab.hidden ||
-      aTab.pinned ||
+      (aTab.pinned && aSource != "spaces") ||
       aTab.selected ||
       aTab.closing ||
       // Tabs that are sharing the screen, microphone or camera cannot be hidden.

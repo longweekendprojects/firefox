@@ -516,6 +516,14 @@ var gBrowserInit = {
 
     UpdateUrlbarSearchSplitterState();
 
+    if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
+      window.gSpaces = ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/spaces.mjs",
+        { global: "current" }
+      );
+      window.gSpaces.init();
+    }
+
     let safeMode = document.getElementById("helpSafeMode");
     if (Services.appinfo.inSafeMode) {
       document.l10n.setAttributes(safeMode, "menu-help-exit-troubleshoot-mode");

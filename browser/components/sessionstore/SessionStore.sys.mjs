@@ -6529,6 +6529,7 @@ class _SessionStore {
         userTypedValue: tabData.userTypedValue || "",
         userTypedClear: tabData.userTypedClear || 0,
       });
+      delete browser._cachedCurrentURI;
     }
 
     // Most of tabData has been restored, now continue with restoring
@@ -6541,7 +6542,7 @@ class _SessionStore {
     }
 
     if (tabData.hidden) {
-      tabbrowser.hideTab(tab);
+      tabbrowser.hideTab(tab, tabData.extData?.hiddenBy);
     } else {
       tabbrowser.showTab(tab);
     }

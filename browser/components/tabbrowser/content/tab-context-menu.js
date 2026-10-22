@@ -338,7 +338,7 @@ var TabContextMenu = {
   },
 
   /* Runtime-inserted menu items, exempt from the layout's coverage check. */
-  DYNAMIC_MENU_ITEM_SELECTORS: ["[tab-group-id]", "[profileid]"],
+  DYNAMIC_MENU_ITEM_SELECTORS: ["[tab-group-id]", "[profileid]", "[spaceid]"],
 
   _tabContextMenuArranged: false,
   _altTabContextMenuPrefObserved: false,
@@ -787,8 +787,7 @@ var TabContextMenu = {
         t.hasAttribute("customizemode")
       );
       contextMoveTabToNewSplitView.disabled =
-        pinnedTabs.length ||
-        customizeTabs.length;
+        pinnedTabs.length || customizeTabs.length;
     }
 
     // Only one of Reload_Tab/Reload_Selected_Tabs should be visible.
@@ -931,6 +930,7 @@ var TabContextMenu = {
 
     document.getElementById("context_openTabInWindow").disabled =
       this.contextTab.hasAttribute("customizemode");
+    window.gSpaces?.updateTabContextMenu(this.contextTab);
 
     // Only one of "Duplicate Tab"/"Duplicate Tabs" should be visible.
     document.getElementById("context_duplicateTab").hidden = this.multiselected;
