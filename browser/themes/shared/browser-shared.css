@@ -434,6 +434,47 @@ body {
   display: none;
 }
 
+/* A little window is a popup window that keeps its navigation controls. */
+:root[little-window] #nav-bar {
+  :is(#back-button, #forward-button, #stop-reload-button) {
+    display: flex;
+  }
+
+  /* Popup windows keep the markup order of the toolbar, not the user's. */
+  #back-button {
+    order: -3;
+  }
+
+  #forward-button {
+    order: -2;
+  }
+
+  #stop-reload-button {
+    order: -1;
+  }
+}
+
+#little-window-open {
+  appearance: none;
+  margin-inline: var(--space-small);
+  padding: var(--space-xsmall) var(--space-medium);
+  border: none;
+  border-radius: var(--border-radius-circle);
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
+  color: inherit;
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+
+  &:hover {
+    background-color: color-mix(in srgb, currentColor 22%, transparent);
+  }
+
+  &:hover:active {
+    background-color: color-mix(in srgb, currentColor 30%, transparent);
+  }
+}
+
 /* Menu bar */
 
 #toolbar-menubar {

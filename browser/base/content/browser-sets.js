@@ -32,6 +32,9 @@ document.addEventListener(
               OpenBrowserWindow();
             }
             break;
+          case "cmd_newLittleWindow":
+            openLittleWindow();
+            break;
           case "cmd_handleBackspace":
             BrowserCommands.handleBackspace();
             break;

@@ -178,6 +178,9 @@ var gBrowserInit = {
       if (extraOptions.hasKey("chromeless-window")) {
         document.documentElement.setAttribute("chromeless-window", true);
       }
+      if (extraOptions.hasKey("little-window")) {
+        document.documentElement.setAttribute("little-window", true);
+      }
       if (extraOptions.hasKey("web-extension-popup-window")) {
         document.documentElement.setAttribute(
           "web-extension-popup-window",
@@ -332,7 +335,8 @@ var gBrowserInit = {
     Services.obs.notifyObservers(window, "browser-window-before-show");
 
     if (
-      !window.toolbar.visible ||
+      (!window.toolbar.visible &&
+        !document.documentElement.hasAttribute("little-window")) ||
       window.document.documentElement.hasAttribute("taskbartab")
     ) {
       // adjust browser UI for popups
@@ -516,7 +520,12 @@ var gBrowserInit = {
 
     UpdateUrlbarSearchSplitterState();
 
-    if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
+    if (document.documentElement.hasAttribute("little-window")) {
+      ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/little-window.mjs",
+        { global: "current" }
+      ).init();
+    } else if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
       window.gSpaces = ChromeUtils.importESModule(
         "chrome://browser/content/tabbrowser/spaces.mjs",
         { global: "current" }

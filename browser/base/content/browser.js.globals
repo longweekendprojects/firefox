@@ -239,5 +239,8 @@
   "ProfilesDatastoreService",
   "gTrustPanelHandler",
   "ContentSharingUtils",
-  "Referrals"
+  "Referrals",
+  "gPeek",
+  "openLinkInPeek",
+  "openLittleWindow"
 ]

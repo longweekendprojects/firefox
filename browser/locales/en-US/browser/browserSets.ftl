@@ -11,6 +11,9 @@ window-zoom-command =
 window-new-shortcut =
     .key = N
 
+little-window-new-shortcut =
+    .key = N
+
 window-minimize-shortcut =
     .key = M
 

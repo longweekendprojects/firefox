@@ -2841,6 +2841,9 @@ pref("browser.tabs.fadeOutExplicitlyUnloadedTabs", true);
 // they are explicitly unloaded) are faded out in the tab bar.
 pref("browser.tabs.fadeOutUnloadedTabs", false);
 
+// Shift+click on a link previews it in a Peek card over the page.
+pref("browser.peek.enabled", true);
+
 // Whether tabs can be "split" or displayed side by side at once.
 pref("browser.tabs.splitView.enabled", true);
 pref("browser.tabs.splitview.hasUsed", false);

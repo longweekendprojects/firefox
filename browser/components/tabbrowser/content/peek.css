@@ -1,0 +1,154 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* Loaded on a window's first Peek by peek.mjs. */
+
+/* stylelint-disable stylelint-plugin-mozilla/use-design-tokens */
+
+#tabbrowser-tabpanels > .peek-panel {
+  -moz-subtree-hidden-only-visually: 0;
+  visibility: inherit;
+  display: flex;
+  position: absolute;
+  inset: auto;
+  z-index: 4;
+  margin: 0;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  flex-direction: column;
+  border-end-start-radius: 10px;
+  border-end-end-radius: 10px;
+  overflow: clip;
+  transition:
+    opacity 140ms ease-out,
+    scale 140ms ease-out;
+
+  &[opening] {
+    opacity: 0;
+    scale: 0.97;
+  }
+
+  > .browserContainer {
+    border-radius: 0;
+  }
+}
+
+#peek-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  transition: opacity 140ms ease-out;
+
+  &[opening] {
+    opacity: 0;
+
+    > .peek-frame {
+      scale: 0.97;
+    }
+  }
+}
+
+.peek-backdrop {
+  position: absolute;
+  pointer-events: auto;
+  background-color: rgb(0 0 0 / 0.35);
+}
+
+.peek-frame {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 10px;
+  background-color: var(--toolbar-background-color);
+  color: var(--toolbar-text-color);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.12),
+    0 12px 40px rgb(0 0 0 / 0.35);
+  transition: scale 140ms ease-out;
+}
+
+.peek-bar {
+  position: relative;
+  align-items: center;
+  gap: var(--space-xxsmall);
+  height: 36px;
+  padding-inline: var(--space-small);
+}
+
+.peek-bar > toolbarbutton,
+.peek-actions > toolbarbutton {
+  appearance: none;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+
+  > .toolbarbutton-icon {
+    width: var(--size-item-small);
+    height: var(--size-item-small);
+  }
+}
+
+.peek-bar > toolbarbutton {
+  padding: 5px;
+  border-radius: var(--border-radius-medium);
+
+  &:not([disabled]):hover {
+    background-color: var(--button-background-color-ghost-hover);
+  }
+
+  &[disabled] {
+    opacity: 0.4;
+  }
+}
+
+.peek-back:-moz-locale-dir(rtl),
+.peek-forward:-moz-locale-dir(rtl) {
+  scale: -1 1;
+}
+
+.peek-host {
+  position: absolute;
+  inset-inline: 120px;
+  text-align: center;
+  font-weight: var(--font-weight-semibold);
+  font-size: 0.95em;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.peek-actions {
+  position: absolute;
+  pointer-events: auto;
+  gap: var(--space-small);
+
+  > toolbarbutton {
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--border-radius-circle);
+    background-color: rgb(20 20 30 / 0.85);
+    color: white;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+
+    &:hover {
+      background-color: rgb(40 40 55 / 0.95);
+    }
+
+    > .toolbarbutton-text {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #tabbrowser-tabpanels > .peek-panel,
+  #peek-layer,
+  .peek-frame {
+    transition: none;
+  }
+}

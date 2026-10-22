@@ -361,6 +361,32 @@ tab-splitview-pane-close =
 # Shown over a pane while another pane is dragged onto its center.
 tab-splitview-pane-drop-swap = Swap panes
 
+## Peek: a link previewed in a card over the current page.
+
+peek-back =
+    .tooltiptext = Go back one page
+    .aria-label = Back
+peek-forward =
+    .tooltiptext = Go forward one page
+    .aria-label = Forward
+peek-reload =
+    .tooltiptext = Reload
+    .aria-label = Reload
+peek-close =
+    .tooltiptext = Close (Esc)
+    .aria-label = Close
+peek-expand =
+    .tooltiptext = Open as a tab
+    .aria-label = Open as a tab
+peek-split =
+    .tooltiptext = Open in split view
+    .aria-label = Open in split view
+
+## Little window: a small popup window for a quick look at a page.
+
+little-window-open = Open in Window
+    .title = Move this page to a full browser window
+
 ##
 tab-devtools-splitter =
     .aria-label = Resize Developer Tools panel

@@ -143,6 +143,19 @@ export class ClickHandlerParent extends JSWindowActorParent {
 
     params.allowInheritPrincipal = true;
 
+    // Shift+click previews the link in a Peek card instead of a new window.
+    if (
+      where == "window" &&
+      data.shiftKey &&
+      window.openLinkInPeek &&
+      window.toolbar.visible &&
+      window.gBrowser?.getTabForBrowser(browser) &&
+      Services.prefs.getBoolPref("browser.peek.enabled", false)
+    ) {
+      window.openLinkInPeek(data.href, params);
+      return;
+    }
+
     window.openLinkIn(data.href, where, params);
   }
 

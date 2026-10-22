@@ -349,6 +349,16 @@ var BrowserCommands = {
   },
 
   openFileWindow() {
+    // Accel+O opens the page of a Peek card as a tab, and moves the page of
+    // a little window to a full window.
+    if (window.gPeek?.isOpen()) {
+      window.gPeek.expand();
+      return;
+    }
+    if (window.gLittleWindow) {
+      window.gLittleWindow.moveToWindow();
+      return;
+    }
     // The file picker is presented as a sheet attached to its parent
     // browsingContext's window. When this command is dispatched from a
     // non-browser chrome window (the macOS hidden menubar window when
@@ -420,6 +430,11 @@ var BrowserCommands = {
     // If we're not a browser window, just close the window.
     if (window.location.href != AppConstants.BROWSER_CHROME_URL) {
       closeWindow(true);
+      return;
+    }
+
+    if (window.gPeek?.isOpen()) {
+      window.gPeek.closeCard();
       return;
     }
 

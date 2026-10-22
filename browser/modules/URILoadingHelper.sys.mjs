@@ -76,13 +76,17 @@ function openInWindow(url, params, sourceWindow) {
     policyContainer,
     resolveOnContentBrowserCreated,
     chromeless,
+    littleWindow,
     width,
     height,
   } = params;
+  // A little window is a popup window, so links and new tabs from it open in
+  // a full browser window, but it keeps its navigation controls.
+  const popupLike = chromeless || littleWindow;
   const chromelessDimensions =
-    chromeless && width && height ? `,width=${width},height=${height}` : "";
+    popupLike && width && height ? `,width=${width},height=${height}` : "";
   const CHROMELESS_FEATURES = `resizable,minimizable,titlebar,close${chromelessDimensions}`;
-  let features = `chrome,dialog=no,${chromeless ? CHROMELESS_FEATURES : "all"}`;
+  let features = `chrome,dialog=no,${popupLike ? CHROMELESS_FEATURES : "all"}`;
   if (params.private) {
     features += ",private";
     // To prevent regular browsing data from leaking to private browsing sites,
@@ -157,6 +161,9 @@ function openInWindow(url, params, sourceWindow) {
   }
   if (chromeless) {
     extraOptions.setPropertyAsBool("chromeless-window", true);
+  }
+  if (littleWindow) {
+    extraOptions.setPropertyAsBool("little-window", true);
   }
   if (params.aswebauth) {
     extraOptions.setPropertyAsBool("aswebauth", true);
@@ -491,6 +498,10 @@ export const URILoadingHelper = {
    *                  Marks a new window as an ASWebAuthenticationSession auth
    *                  window so that it is not tracked by session restore. Only
    *                  used when where == "window" or "chromeless".
+   * @param {boolean} params.littleWindow
+   *                  Opens a new window as a little window: a small popup
+   *                  window with navigation controls. Only used when
+   *                  where == "window".
    * @param {Function} params.resolveOnNewTabCreated
    *                   This callback will be called when a new tab is created.
    * @param {Function} params.resolveOnContentBrowserCreated

@@ -1364,6 +1364,50 @@ function loadOneOrMoreURIs(
   } catch (e) {}
 }
 
+/**
+ * The Peek module of this window, once a Peek card has opened.
+ */
+var gPeek = null;
+
+/**
+ * Opens `url` in a Peek card over the selected page.
+ *
+ * @param {string} url
+ * @param {object} params
+ *   Load parameters, as for openLinkIn.
+ */
+function openLinkInPeek(url, params) {
+  gPeek ??= ChromeUtils.importESModule(
+    "chrome://browser/content/tabbrowser/peek.mjs",
+    { global: "current" }
+  );
+  gPeek.openLink(url, params);
+}
+
+/**
+ * Opens a little window: a small popup window with navigation controls.
+ *
+ * @param {string} [url]
+ *   The page to show. Without one, the window opens small, with the address
+ *   bar ready for a search.
+ * @param {object} [params]
+ *   Load parameters, as for openLinkIn.
+ */
+function openLittleWindow(url = "about:blank", params = {}) {
+  const { pageSize, LAUNCHER_SIZE } = ChromeUtils.importESModule(
+    "chrome://browser/content/tabbrowser/little-window.mjs",
+    { global: "current" }
+  );
+  const size = isBlankPageURL(url) ? LAUNCHER_SIZE : pageSize(window.screen);
+  openLinkIn(url, "window", {
+    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    ...params,
+    littleWindow: true,
+    width: size.width,
+    height: size.height,
+  });
+}
+
 function openLocation(event) {
   if (window.location.href == AppConstants.BROWSER_CHROME_URL) {
     let focusTarget = UrlbarUtils.getURLBarForFocus(window);
