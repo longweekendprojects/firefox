@@ -108,6 +108,13 @@ export class MigrationWizard extends HTMLElement {
                 <label id="payment-methods" class="resource-type-label" data-resource-type="PAYMENT_METHODS">
                   <input type="checkbox"/><span data-l10n-id="migration-payment-methods-option-label"></span>
                 </label>
+                <label id="cookies" class="resource-type-label" data-resource-type="COOKIES">
+                  <input type="checkbox"/><span data-l10n-id="migration-signins-option-label"></span>
+                </label>
+                <label id="session" class="resource-type-label" data-resource-type="SESSION">
+                  <input type="checkbox"/><span data-l10n-id="migration-spaces-and-tabs-option-label"></span>
+                </label>
+                <p id="keychain-note" class="text-deemphasized" hidden="" data-l10n-id="migration-keychain-note"></p>
               </fieldset>
             </details>
 
@@ -548,7 +555,12 @@ export class MigrationWizard extends HTMLElement {
       );
       if (resourceLabel) {
         resourceLabel.hidden = false;
-        resourceLabel.control.checked = true;
+        resourceLabel.control.checked = !(
+          MigrationWizardConstants.KEYCHAIN_OPT_IN_MIGRATORS.includes(key) &&
+          MigrationWizardConstants.KEYCHAIN_RESOURCE_TYPES.includes(
+            resourceType
+          )
+        );
 
         let labelSpan = resourceLabel.querySelector(
           "span[default-data-l10n-id]"
@@ -568,8 +580,18 @@ export class MigrationWizard extends HTMLElement {
         }
       }
     }
+    this.#resourceTypeList.querySelector("#keychain-note").hidden = !(
+      MigrationWizardConstants.KEYCHAIN_OPT_IN_MIGRATORS.includes(key) &&
+      resourceTypes.some(type =>
+        MigrationWizardConstants.KEYCHAIN_RESOURCE_TYPES.includes(type)
+      )
+    );
     let selectAll = this.#shadowRoot.querySelector("#select-all").control;
-    selectAll.checked = true;
+    selectAll.checked = [
+      ...this.#resourceTypeList.querySelectorAll(
+        "label:not([hidden])[data-resource-type]"
+      ),
+    ].every(label => label.control.checked);
 
     this.#displaySelectedResources();
     this.#browserProfileSelector.selectedPanelItem = panelItem;
@@ -1287,6 +1309,10 @@ export class MigrationWizard extends HTMLElement {
         "migration-list-autofill-label",
       [MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.PAYMENT_METHODS]:
         "migration-list-payment-methods-label",
+      [MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.COOKIES]:
+        "migration-list-signins-label",
+      [MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.SESSION]:
+        "migration-list-spaces-and-tabs-label",
     };
 
     if (MigrationWizardConstants.USES_FAVORITES.includes(key)) {

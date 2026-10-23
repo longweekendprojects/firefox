@@ -61,3 +61,6 @@ run-if = [
 run-if = [
   "os == 'mac'",
 ]
+
+["browser_arc_migration.js"]
+run-if = ["os == 'mac'"]

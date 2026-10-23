@@ -21,6 +21,7 @@ XPIDL_SOURCES += [
 XPIDL_MODULE = "migration"
 
 EXTRA_JS_MODULES += [
+    "ArcProfileMigrator.sys.mjs",
     "ChromeMigrationUtils.sys.mjs",
     "ChromeProfileMigrator.sys.mjs",
     "FileMigrators.sys.mjs",

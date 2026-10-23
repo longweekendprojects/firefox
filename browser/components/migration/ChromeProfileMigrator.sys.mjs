@@ -361,6 +361,32 @@ export class ChromeProfileMigrator extends MigratorBase {
     return this.__sourceProfiles;
   }
 
+  /**
+   * Creates the object that decrypts this browser's saved secrets. On macOS
+   * this reads the key from the Keychain, which may prompt the user.
+   *
+   * @returns {object|null} null when the platform is not supported.
+   */
+  _createLoginCrypto() {
+    if (AppConstants.platform == "win") {
+      let { ChromeWindowsLoginCrypto } = ChromeUtils.importESModule(
+        "resource:///modules/ChromeWindowsLoginCrypto.sys.mjs"
+      );
+      return new ChromeWindowsLoginCrypto(this._chromeUserDataPathSuffix);
+    }
+    if (AppConstants.platform == "macosx") {
+      let { ChromeMacOSLoginCrypto } = ChromeUtils.importESModule(
+        "resource:///modules/ChromeMacOSLoginCrypto.sys.mjs"
+      );
+      return new ChromeMacOSLoginCrypto(
+        this._keychainServiceName,
+        this._keychainAccountName,
+        this._keychainMockPassphrase ?? null
+      );
+    }
+    return null;
+  }
+
   async _GetPasswordsResource(aProfileFolder) {
     let loginPath = PathUtils.join(aProfileFolder, "Login Data");
     if (!(await IOUtils.exists(loginPath))) {
@@ -377,12 +403,7 @@ export class ChromeProfileMigrator extends MigratorBase {
       loginPath = tempFilePath;
     }
 
-    let {
-      _chromeUserDataPathSuffix,
-      _keychainServiceName,
-      _keychainAccountName,
-      _keychainMockPassphrase = null,
-    } = this;
+    let createLoginCrypto = () => this._createLoginCrypto();
 
     let countQuery = `SELECT COUNT(*) FROM logins WHERE blacklisted_by_user = 0`;
 
@@ -430,23 +451,8 @@ export class ChromeProfileMigrator extends MigratorBase {
 
         let loginCrypto;
         try {
-          if (AppConstants.platform == "win") {
-            let { ChromeWindowsLoginCrypto } = ChromeUtils.importESModule(
-              "resource:///modules/ChromeWindowsLoginCrypto.sys.mjs"
-            );
-            loginCrypto = new ChromeWindowsLoginCrypto(
-              _chromeUserDataPathSuffix
-            );
-          } else if (AppConstants.platform == "macosx") {
-            let { ChromeMacOSLoginCrypto } = ChromeUtils.importESModule(
-              "resource:///modules/ChromeMacOSLoginCrypto.sys.mjs"
-            );
-            loginCrypto = new ChromeMacOSLoginCrypto(
-              _keychainServiceName,
-              _keychainAccountName,
-              _keychainMockPassphrase
-            );
-          } else {
+          loginCrypto = createLoginCrypto();
+          if (!loginCrypto) {
             aCallback(false);
             return;
           }
@@ -587,12 +593,7 @@ export class ChromeProfileMigrator extends MigratorBase {
       return null;
     }
 
-    let {
-      _chromeUserDataPathSuffix,
-      _keychainServiceName,
-      _keychainAccountName,
-      _keychainMockPassphrase = null,
-    } = this;
+    let createLoginCrypto = () => this._createLoginCrypto();
 
     return {
       type: MigrationUtils.resourceTypes.PAYMENT_METHODS,
@@ -600,23 +601,8 @@ export class ChromeProfileMigrator extends MigratorBase {
       async migrate(aCallback) {
         let loginCrypto;
         try {
-          if (AppConstants.platform == "win") {
-            let { ChromeWindowsLoginCrypto } = ChromeUtils.importESModule(
-              "resource:///modules/ChromeWindowsLoginCrypto.sys.mjs"
-            );
-            loginCrypto = new ChromeWindowsLoginCrypto(
-              _chromeUserDataPathSuffix
-            );
-          } else if (AppConstants.platform == "macosx") {
-            let { ChromeMacOSLoginCrypto } = ChromeUtils.importESModule(
-              "resource:///modules/ChromeMacOSLoginCrypto.sys.mjs"
-            );
-            loginCrypto = new ChromeMacOSLoginCrypto(
-              _keychainServiceName,
-              _keychainAccountName,
-              _keychainMockPassphrase
-            );
-          } else {
+          loginCrypto = createLoginCrypto();
+          if (!loginCrypto) {
             aCallback(false);
             return;
           }
@@ -1014,8 +1000,11 @@ async function GetExtensionsResource(aProfileId, aBrowserKey = "chrome") {
   ) {
     return null;
   }
+  if (aBrowserKey !== "chrome") {
+    return null;
+  }
   let extensions = await lazy.ChromeMigrationUtils.getExtensionList(aProfileId);
-  if (!extensions.length || aBrowserKey !== "chrome") {
+  if (!extensions.length) {
     return null;
   }
 

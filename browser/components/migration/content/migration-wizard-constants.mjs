@@ -89,6 +89,18 @@ export const MigrationWizardConstants = Object.freeze({
   }),
 
   /**
+   * Migrators whose secrets need the user's macOS login password to read.
+   * Their KEYCHAIN_RESOURCE_TYPES start unchecked, with a note explaining
+   * the prompt, so the rest imports without one.
+   */
+  KEYCHAIN_OPT_IN_MIGRATORS: Object.freeze(["arc"]),
+  KEYCHAIN_RESOURCE_TYPES: Object.freeze([
+    "PASSWORDS",
+    "PAYMENT_METHODS",
+    "COOKIES",
+  ]),
+
+  /**
    * The set of keys that maps to migrators that use the term "favorites"
    * in the place of "bookmarks". This tends to be browsers from Microsoft.
    */

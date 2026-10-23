@@ -68,6 +68,10 @@ const MIGRATOR_MODULES = Object.freeze({
 
   // The following migrators are all variants of the ChromeProfileMigrator
 
+  ArcProfileMigrator: {
+    moduleURI: "resource:///modules/ArcProfileMigrator.sys.mjs",
+    platforms: ["macosx"],
+  },
   BraveProfileMigrator: {
     moduleURI: "resource:///modules/ChromeProfileMigrator.sys.mjs",
     platforms: ["linux", "macosx", "win"],
@@ -513,6 +517,7 @@ class MigrationUtils {
       Nightly: "firefox",
       Opera: "opera",
       Vivaldi: "vivaldi",
+      Arc: "arc",
       "Opera GX": "opera-gx",
       "Brave Web Browser": "brave", // Windows, Linux
       Brave: "brave", // OS X

@@ -136,3 +136,28 @@ sidebar-main > #spaces-bar {
     }
   }
 }
+
+/* A space imported with an emoji shows the emoji instead of its icon. In the
+ * sidebar's bottom row, other spaces stay colored dots. */
+.space-button[emoji]:not(sidebar-main .space-button:not([checked])) {
+  > .toolbarbutton-icon {
+    display: none;
+  }
+
+  > .toolbarbutton-text {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+    border-radius: var(--border-radius-medium);
+  }
+
+  &[checked] > .toolbarbutton-text {
+    background-color: color-mix(in srgb, var(--identity-icon-color) 18%, transparent);
+  }
+}

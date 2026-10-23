@@ -44,6 +44,7 @@ migration-wizard-migrator-display-name-opera = Opera
 migration-wizard-migrator-display-name-opera-gx = Opera GX
 migration-wizard-migrator-display-name-safari = Safari
 migration-wizard-migrator-display-name-vivaldi = Vivaldi
+migration-wizard-migrator-display-name-arc = Arc
 
 migration-source-name-ie = Internet Explorer
 migration-source-name-edge = Microsoft Edge
@@ -92,6 +93,12 @@ migration-payment-methods-option-label = Payment methods
 migration-cookies-option-label = Cookies
 migration-session-option-label = Windows and tabs
 migration-otherdata-option-label = Other data
+# Sign-in cookies imported from another browser, so websites stay signed in.
+migration-signins-option-label = Website sign-ins
+# Spaces, pinned tabs, tab folders, split views and open tabs imported from Arc.
+migration-spaces-and-tabs-option-label = Spaces, pinned tabs, and open tabs
+# Shown under the list of data to import from Arc on macOS.
+migration-keychain-note = Saved passwords, payment methods, and website sign-ins need your Mac login password once. Everything else imports without it.
 
 migration-passwords-from-file-progress-header = Import passwords file
 migration-passwords-from-file-success-header = Passwords imported successfully
@@ -193,6 +200,8 @@ migration-list-history-label = history
 migration-list-extensions-label = extensions
 migration-list-autofill-label = autofill data
 migration-list-payment-methods-label = payment methods
+migration-list-signins-label = website sign-ins
+migration-list-spaces-and-tabs-label = spaces and tabs
 
 ##
 

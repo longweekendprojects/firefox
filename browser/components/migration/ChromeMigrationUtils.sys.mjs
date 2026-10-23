@@ -301,6 +301,7 @@ export var ChromeMigrationUtils = {
         ],
         Opera: [["ULibDir", "Application Support", "com.operasoftware.Opera"]],
         Vivaldi: [["ULibDir", "Application Support", "Vivaldi"]],
+        Arc: [["ULibDir", "Application Support", "Arc", "User Data"]],
       },
       linux: {
         Brave: [["Home", ".config", "BraveSoftware", "Brave-Browser"]],

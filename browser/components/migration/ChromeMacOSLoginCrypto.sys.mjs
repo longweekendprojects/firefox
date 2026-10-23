@@ -145,6 +145,15 @@ export class ChromeMacOSLoginCrypto {
    * @returns {string} plaintext password
    */
   async decryptData(ciphertextArray) {
+    return gTextDecoder.decode(await this.decryptBytes(ciphertextArray));
+  }
+
+  /**
+   * @param {Array} ciphertextArray ciphertext prefixed by the encryption version
+   *                            (see ENCRYPTION_VERSION_PREFIX).
+   * @returns {Promise<Uint8Array>} plaintext bytes
+   */
+  async decryptBytes(ciphertextArray) {
     let ciphertext = this.arrayToString(ciphertextArray);
     if (!ciphertext.startsWith(ENCRYPTION_VERSION_PREFIX)) {
       throw new Error("Unknown encryption version");
@@ -158,7 +167,7 @@ export class ChromeMacOSLoginCrypto {
       key,
       this.stringToArray(ciphertext.substring(ENCRYPTION_VERSION_PREFIX.length))
     );
-    return gTextDecoder.decode(plaintext);
+    return new Uint8Array(plaintext);
   }
 
   /**

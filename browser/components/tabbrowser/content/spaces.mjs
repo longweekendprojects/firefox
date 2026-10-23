@@ -478,6 +478,10 @@ function render() {
     button.className = `space-button toolbarbutton-1 identity-color-${space.color} identity-icon-${space.icon}`;
     button.dataset.spaceId = space.id;
     button.setAttribute("type", "radio");
+    if (space.emoji) {
+      button.setAttribute("emoji", "");
+      button.setAttribute("label", space.emoji);
+    }
     if (space.name) {
       button.setAttribute("tooltiptext", space.name);
       button.setAttribute("aria-label", space.name);
@@ -654,6 +658,9 @@ async function commit(id, values, separateLogins) {
   if (!space) {
     space = { id: Services.uuid.generateUUID().toString().slice(1, -1) };
     current.push(space);
+  }
+  if (space.icon != values.icon) {
+    delete space.emoji;
   }
   Object.assign(space, values);
   let userContextId = containerOf(space);
