@@ -80,6 +80,17 @@ sidebar-settings2 =
   .label = Settings
 sidebar-hide-tabs-and-sidebar =
   .label = Hide tabs and sidebar
+sidebar-pinned-tabs-layout =
+  .label = Pinned tabs
+  .description = Automatic fits as many tiles in each row as the sidebar width allows.
+sidebar-pinned-tabs-layout-auto =
+  .label = Automatic
+# Variables:
+#   $columns (Number) - The number of pinned tiles in each row.
+sidebar-pinned-tabs-layout-columns =
+  .label = { $columns } across
+sidebar-pinned-tabs-layout-icons =
+  .label = Small icons
 sidebar-open-tools-from-sidebar =
   .label = Open tools from sidebar
 sidebar-show-on-the-right =

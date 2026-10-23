@@ -30,6 +30,18 @@ const REVEAL_ON_HOVER_PREF = "sidebar.revealOnHover";
 const POSITION_SETTING_PREF = "sidebar.position_start";
 const TAB_DIRECTION_SETTING_PREF = "sidebar.verticalTabs";
 const HOVER_PREVIEW_PREF = "sidebar.openTabsPanel.hoverPreview.enabled";
+const PINNED_LAYOUT_PREF = "browser.tabs.pinnedTiles.columns";
+const PINNED_LAYOUTS = [0, 2, 3, 4, 5, 6, -1];
+
+function pinnedLayoutL10nId(value) {
+  if (value == 0) {
+    return "sidebar-pinned-tabs-layout-auto";
+  }
+  if (value < 0) {
+    return "sidebar-pinned-tabs-layout-icons";
+  }
+  return "sidebar-pinned-tabs-layout-columns";
+}
 
 export class SidebarCustomize extends SidebarPage {
   constructor() {
@@ -88,6 +100,16 @@ export class SidebarCustomize extends SidebarPage {
         this.hoverPreviewEnabled = newValue;
       }
     );
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this.#prefValues,
+      "pinnedLayout",
+      PINNED_LAYOUT_PREF,
+      0,
+      (_aPreference, _previousValue, newValue) => {
+        this.pinnedLayout = newValue;
+      }
+    );
+    this.pinnedLayout = this.#prefValues.pinnedLayout;
     this.visibility = this.#prefValues.visibility;
     this.isPositionStart = this.#prefValues.isPositionStart;
     this.verticalTabsEnabled = this.#prefValues.verticalTabsEnabled;
@@ -106,6 +128,7 @@ export class SidebarCustomize extends SidebarPage {
     expandOnHoverEnabled: { type: Boolean },
     hoverPreviewEnabled: { type: Boolean },
     revealOnHover: { type: Boolean },
+    pinnedLayout: { type: Number },
   };
 
   static queries = {
@@ -118,6 +141,7 @@ export class SidebarCustomize extends SidebarPage {
     expandOnHoverInput: "#expand-on-hover",
     openToolsFromSidebarInput: "#open-tools-from-sidebar",
     hoverPreviewInput: "#hover-preview",
+    pinnedLayoutInput: "#pinned-layout",
   };
 
   connectedCallback() {
@@ -296,6 +320,23 @@ export class SidebarCustomize extends SidebarPage {
                   @change=${this.#handleVisibilityChange}
                   ?checked=${this.visibility == "hide-sidebar"}
                 ></moz-checkbox>
+                <moz-select
+                  slot="nested"
+                  id="pinned-layout"
+                  name="pinnedLayout"
+                  data-l10n-id="sidebar-pinned-tabs-layout"
+                  .value=${String(this.pinnedLayout)}
+                  @change=${this.#handlePinnedLayoutChange}
+                >
+                  ${PINNED_LAYOUTS.map(
+                    value =>
+                      html`<moz-option
+                        value=${String(value)}
+                        data-l10n-id=${pinnedLayoutL10nId(value)}
+                        data-l10n-args=${JSON.stringify({ columns: value })}
+                      ></moz-option>`
+                  )}
+                </moz-select>
               `
             )}
             </moz-checkbox>
@@ -372,6 +413,11 @@ export class SidebarCustomize extends SidebarPage {
         </div>
       </div>
     `;
+  }
+
+  #handlePinnedLayoutChange(e) {
+    e.stopPropagation();
+    Services.prefs.setIntPref(PINNED_LAYOUT_PREF, Number(e.target.value));
   }
 
   #handleVisibilityChange(e) {

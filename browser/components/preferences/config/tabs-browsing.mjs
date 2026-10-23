@@ -104,7 +104,6 @@ Preferences.addAll([
 
   // Browser layout
   { id: "sidebar.verticalTabs", type: "bool" },
-  { id: "browser.tabs.pinnedTiles.columns", type: "int" },
 ]);
 
 if (lazy.AppConstants.platform === "win") {
@@ -575,15 +574,6 @@ Preferences.addSetting({
   get: prefValue => (prefValue ? "true" : "false"),
   set: value => value === "true",
 });
-Preferences.addSetting({
-  id: "pinnedTabsLayout",
-  pref: "browser.tabs.pinnedTiles.columns",
-  deps: ["browserLayoutRadioGroup"],
-  visible: ({ browserLayoutRadioGroup }) =>
-    browserLayoutRadioGroup.value === "true",
-  get: prefValue => String(prefValue),
-  set: value => Number(value),
-});
 
 SettingGroupManager.registerGroups({
   browserLayout: {
@@ -616,20 +606,6 @@ SettingGroupManager.registerGroups({
                 "chrome://browser/content/preferences/browser-layout-vertical.svg",
             },
           },
-        ],
-      },
-      {
-        id: "pinnedTabsLayout",
-        control: "moz-select",
-        l10nId: "pinned-tabs-layout",
-        options: [
-          { value: "0", l10nId: "pinned-tabs-layout-auto" },
-          ...[2, 3, 4, 5, 6].map(columns => ({
-            value: String(columns),
-            l10nId: "pinned-tabs-layout-columns",
-            l10nArgs: { columns },
-          })),
-          { value: "-1", l10nId: "pinned-tabs-layout-icons" },
         ],
       },
     ],

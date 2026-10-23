@@ -307,18 +307,6 @@ open-external-link-in-little-window =
 peek-links-on-shift-click =
     .label = Shift+click a link to preview it in Peek
 
-pinned-tabs-layout =
-    .label = Pinned tabs in the sidebar
-    .description = Automatic fits as many tiles in each row as the sidebar width allows.
-pinned-tabs-layout-auto =
-    .label = Automatic
-# Variables:
-#   $columns (Number) - The number of pinned tiles in each row.
-pinned-tabs-layout-columns =
-    .label = { $columns } across
-pinned-tabs-layout-icons =
-    .label = Small icons
-
 show-tabs-in-taskbar =
     .label = Show tab previews in the Windows taskbar
     .accesskey = k
