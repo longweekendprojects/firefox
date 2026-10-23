@@ -86,7 +86,6 @@ var BrowserCommands = {
     if (
       !gBrowser.selectedTab ||
       gBrowser.selectedTab.hidden ||
-      gBrowser.selectedTab.pinned ||
       gBrowser.selectedTab.splitview
     ) {
       return;
@@ -110,8 +109,8 @@ var BrowserCommands = {
    * @param {"left"|"right"|"up"|"down"} direction
    */
   splitPane(direction) {
-    const tab = gBrowser.selectedTab;
-    if (!tab || tab.hidden || tab.pinned) {
+    const tab = gBrowser.detachPinnedTabForSplit(gBrowser.selectedTab);
+    if (!tab || tab.hidden) {
       return;
     }
     let splitview = tab.splitview;

@@ -1212,3 +1212,66 @@ add_task(async function test_split_row_matches_a_tab_row() {
   }
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_split_pinned_tab() {
+  const tab = await addLoadedTab();
+  gBrowser.pinTab(tab);
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  const browser = tab.linkedBrowser;
+  const pinnedBefore = gBrowser.pinnedTabCount;
+  BrowserCommands.splitPane("right");
+  const splitview = tab.splitview;
+  Assert.ok(splitview, "The pinned tab's page joins a split");
+  Assert.ok(!tab.pinned, "The page moved into the regular tabs");
+  Assert.equal(tab.linkedBrowser, browser, "The page did not reload");
+  Assert.equal(
+    gBrowser.pinnedTabCount,
+    pinnedBefore,
+    "The pinned tabs keep their count"
+  );
+  const pinned = gBrowser.tabs.find(t => t.pinned);
+  Assert.equal(
+    pinned.getAttribute("pinned-url"),
+    PAGE,
+    "The pinned tab keeps its pinned address"
+  );
+  await TestUtils.waitForCondition(
+    () => !pinned.linkedPanel,
+    "The pinned tab that stays behind is unloaded"
+  );
+  for (const t of [...splitview.tabs, pinned]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
+add_task(async function test_narrow_panes_show_their_title() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+    ],
+  });
+  await TestUtils.waitForCondition(
+    () => gBrowser.tabContainer.verticalMode,
+    "Tabs are vertical"
+  );
+  SidebarController._state.launcherExpanded = true;
+  SidebarController._state.expandedLauncherWidth = 200;
+  const tabs = [await addLoadedTab(), await addLoadedTab()];
+  gBrowser.addTabSplitView(tabs);
+  await TestUtils.waitForCondition(
+    () => tabs[0].getBoundingClientRect().width < 100,
+    "The panes are narrow"
+  );
+  for (const tab of tabs) {
+    Assert.notEqual(
+      getComputedStyle(tab.querySelector(".tab-label-container")).display,
+      "none",
+      "A pane under 100 pixels wide still shows its title"
+    );
+  }
+  for (const tab of tabs) {
+    BrowserTestUtils.removeTab(tab);
+  }
+  await SpecialPowers.popPrefEnv();
+});

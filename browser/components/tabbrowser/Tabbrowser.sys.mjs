@@ -1267,6 +1267,37 @@ export class Tabbrowser {
   }
 
   /**
+   * A split view holds only unpinned tabs. To split a pinned tab, as in Arc,
+   * its page moves into the regular tabs without reloading, and an unloaded
+   * copy of the pinned tab, pointed back at its pinned address, takes its
+   * place among the pinned tabs.
+   *
+   * @param {MozTabbrowserTab} aTab
+   * @returns {MozTabbrowserTab} The tab that can join a split view: `aTab`,
+   *   unpinned if it was pinned.
+   */
+  detachPinnedTabForSplit(aTab) {
+    if (!aTab?.pinned) {
+      return aTab;
+    }
+    let pinnedURL = aTab.getAttribute("pinned-url");
+    let replacement = this.duplicateTab(aTab, false, {
+      inBackground: true,
+      tabIndex: aTab._tPos + 1,
+    });
+    if (!replacement.pinned) {
+      this.pinTab(replacement);
+    }
+    if (pinnedURL) {
+      replacement.setAttribute("pinned-url", pinnedURL);
+    }
+    this.moveTabAfter(replacement, aTab);
+    this.unpinTab(aTab);
+    this.resetPinnedTab(replacement);
+    return aTab;
+  }
+
+  /**
    * Unloads a pinned tab and points it back at the address it was pinned
    * with, so selecting it again loads that address. The current page's
    * history is dropped.
@@ -4096,6 +4127,10 @@ export class Tabbrowser {
   ) {
     if (!tabs?.length) {
       throw new Error("Cannot create split view with zero tabs");
+    }
+    tabs = tabs.map(tab => this.detachPinnedTabForSplit(tab));
+    if (insertBefore?.pinned) {
+      insertBefore = this.detachPinnedTabForSplit(insertBefore);
     }
     if (!layout && direction && tabs.length == 2) {
       let secondFirst = direction == "left" || direction == "up";

@@ -784,12 +784,11 @@ var TabContextMenu = {
         splitViewStringId
       );
 
-      let pinnedTabs = this.contextTabs.filter(t => t.pinned);
+      // Pinned tabs split from a copy in the regular tabs, as in Arc.
       let customizeTabs = this.contextTabs.filter(t =>
         t.hasAttribute("customizemode")
       );
-      contextMoveTabToNewSplitView.disabled =
-        pinnedTabs.length || customizeTabs.length;
+      contextMoveTabToNewSplitView.disabled = customizeTabs.length;
     }
 
     // Only one of Reload_Tab/Reload_Selected_Tabs should be visible.

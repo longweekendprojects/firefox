@@ -550,8 +550,7 @@ export class nsContextMenu {
       lazy.LinkPreview.shouldShowContextMenu(this)
     );
     let linkTab = window.gBrowser?.getTabForBrowser(this.browser);
-    let showSplitMenu =
-      shouldShow && showSplitViews && !linkTab?.hidden && !linkTab?.pinned;
+    let showSplitMenu = shouldShow && showSplitViews && !linkTab?.hidden;
     this.showItem("context-openlinkinsplitview-menu", showSplitMenu);
     this.showItem(
       "context-openlinkinpeek",
@@ -1602,7 +1601,9 @@ export class nsContextMenu {
    */
   openLinkInSplitView(direction = "right") {
     let win = this.window;
-    let currentTab = win.gBrowser.getTabForBrowser(this.browser);
+    let currentTab = win.gBrowser.detachPinnedTabForSplit(
+      win.gBrowser.getTabForBrowser(this.browser)
+    );
     let userContextId = currentTab ? currentTab.userContextId : 0;
     let params = {
       userContextId,

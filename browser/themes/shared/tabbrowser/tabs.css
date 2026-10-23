@@ -1829,7 +1829,21 @@ tab-group > tab-split-view-wrapper {
   }
 }
 
-@container split-segment (max-width: 100px) {
+/* As in Arc, a pane shows its title from a narrow width, and its close
+   button only when it is wide. */
+@container split-segment (min-width: 57px) {
+  #tabbrowser-tabs[orient="vertical"][expanded] tab-split-view-wrapper > .tabbrowser-tab .tab-content {
+    padding-inline: 8px 6px !important;
+  }
+}
+
+@container split-segment (max-width: 140px) {
+  tab-split-view-wrapper > .tabbrowser-tab .tab-close-button {
+    display: none;
+  }
+}
+
+@container split-segment (max-width: 56px) {
   tab-split-view-wrapper > .tabbrowser-tab {
     .tab-content {
       justify-content: center;
@@ -3876,7 +3890,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 /* Vertical tab rows: a slightly larger, heavier label and a squarer hover. */
 #tabbrowser-tabs[orient="vertical"] #tabbrowser-arrowscrollbox,
 #tabbrowser-tabs[orient="vertical"] > #vertical-tabs-newtab-button {
-  --tab-border-radius: 6px;
+  --tab-border-radius: 7px;
 
   .tab-label {
     font-size: 1.08em;
@@ -3887,9 +3901,9 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 /* A split row has the same corner radius as a single tab row, and its pane
    segments follow that curve, inset by the row's padding. */
 #tabbrowser-tabs[orient="vertical"][expanded] #tabbrowser-arrowscrollbox tab-split-view-wrapper {
-  --split-row-radius: 6px;
+  --split-row-radius: 7px;
   --split-row-inset: 3px;
-  --tab-border-radius: max(calc(var(--split-row-radius) - var(--split-row-inset)), 3px);
+  --tab-border-radius: 5px;
 
   /* The row takes the same box as a single tab's background, and the panes
      shrink to fit inside it. */
