@@ -3703,6 +3703,8 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
     padding: 0 !important;
     margin: 0 !important;
+    /* Lets the close button stick out past the tile's corner. */
+    overflow: visible;
   }
 
   .tab-stack {

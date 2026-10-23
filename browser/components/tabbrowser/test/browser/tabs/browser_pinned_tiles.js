@@ -286,6 +286,23 @@ add_task(async function test_tile_close_button() {
     tile.top + tile.height / 2,
     "The close button sits at the top of the tile"
   );
+  for (
+    let node = button.flattenedTreeParentNode;
+    node && node.nodeType == Node.ELEMENT_NODE;
+    node = node.flattenedTreeParentNode
+  ) {
+    let style = getComputedStyle(node);
+    if (style.overflowX == "visible" && style.overflowY == "visible") {
+      continue;
+    }
+    let box = node.getBoundingClientRect();
+    let margin =
+      style.overflowX == "clip" ? parseFloat(style.overflowClipMargin) || 0 : 0;
+    Assert.ok(
+      rect.left >= box.left - margin && rect.top >= box.top - margin,
+      `The close button is not cut off by ${node.localName}#${node.id}.${node.className}`
+    );
+  }
   let resting = getComputedStyle(button).backgroundColor;
   Assert.notEqual(
     resting,
