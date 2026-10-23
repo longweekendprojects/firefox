@@ -3777,12 +3777,13 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
    segments follow that curve, inset by the row's padding. */
 #tabbrowser-tabs[orient="vertical"][expanded] #tabbrowser-arrowscrollbox tab-split-view-wrapper {
   --split-row-radius: 6px;
-  --split-row-inset: 2px;
-  --tab-border-radius: calc(var(--split-row-radius) - var(--split-row-inset));
+  --split-row-inset: 4px;
+  --tab-border-radius: max(calc(var(--split-row-radius) - var(--split-row-inset)), 3px);
 
   border-radius: var(--split-row-radius) !important;
   padding: var(--split-row-inset);
   gap: var(--split-row-inset);
+  margin-block: 2px;
 
   > .tabbrowser-tab > .tab-stack > .tab-background {
     margin: 0 !important;
