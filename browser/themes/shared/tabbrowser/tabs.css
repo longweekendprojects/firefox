@@ -2783,8 +2783,9 @@ tab-group {
   }
 
   &::part(scrollbox) {
-    scrollbar-width: thin;
-    scrollbar-color: var(--tab-vertical-scrollbar-color);
+    /* No scrollbar takes width from the tab rows, as in Arc. The fades at
+       the top and bottom show that the list scrolls. */
+    scrollbar-width: none;
     overscroll-behavior-y: contain;
     /* A wheel notch, an arrow key and a scrollbar arrow button move rows. */
     -moz-line-scroll-amount: var(--tab-height-with-margin-padding);
@@ -2885,8 +2886,9 @@ tab-group {
   }
 
   &::part(scrollbox) {
-    scrollbar-width: thin;
-    scrollbar-color: var(--tab-vertical-scrollbar-color);
+    /* No scrollbar takes width from the tab rows, as in Arc. The fades at
+       the top and bottom show that the list scrolls. */
+    scrollbar-width: none;
     overscroll-behavior-y: contain;
     /* A wheel notch, an arrow key and a scrollbar arrow button move rows. */
     -moz-line-scroll-amount: var(--tab-height-with-margin-padding);

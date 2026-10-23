@@ -249,6 +249,12 @@ add_task(async function test_new_tab_button_at_top() {
     scrollbox.scrollTo({ top: 100, behavior: "instant" });
     return button.getBoundingClientRect().top < before - 50;
   }, "The New Tab row scrolls with the tabs");
+  let list = gBrowser.tabContainer.arrowScrollbox.scrollbox;
+  Assert.equal(
+    getComputedStyle(list).scrollbarWidth,
+    "none",
+    "No scrollbar takes width from the tab rows"
+  );
   scrollbox.scrollTo({ top: 0, behavior: "instant" });
   for (let tab of extra) {
     BrowserTestUtils.removeTab(tab);
