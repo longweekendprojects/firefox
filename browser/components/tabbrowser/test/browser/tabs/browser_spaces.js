@@ -443,3 +443,56 @@ add_task(async function test_bar_shares_the_tools_row_when_expanded() {
   );
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_drag_reorders_spaces() {
+  setSpaces([
+    ...TWO_SPACES,
+    { id: "c", name: "C", icon: "fruit", color: "green" },
+  ]);
+  let active = gSpaces.getActiveId();
+  let list = document.getElementById("spaces-list");
+  await TestUtils.waitForCondition(
+    () => list.querySelectorAll(".space-button").length == 3
+  );
+  let [first, , last] = list.querySelectorAll(".space-button");
+  let from = first.getBoundingClientRect();
+  let to = last.getBoundingClientRect();
+  let vertical = Math.abs(to.top - from.top) > 1;
+  let point = r => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  let start = point(from);
+  let end = vertical
+    ? { x: start.x, y: to.bottom + 2 }
+    : { x: to.right + 2, y: start.y };
+  let mouse = (type, { x, y }) =>
+    EventUtils.synthesizeMouseAtPoint(x, y, { type }, window);
+  mouse("mousedown", start);
+  for (let i = 1; i <= 5; i++) {
+    mouse("mousemove", {
+      x: start.x + ((end.x - start.x) * i) / 5,
+      y: start.y + ((end.y - start.y) * i) / 5,
+    });
+  }
+  Assert.ok(
+    first.hasAttribute("dragging") && list.hasAttribute("reordering"),
+    "The dragged space follows the pointer"
+  );
+  mouse("mouseup", end);
+  await TestUtils.waitForCondition(
+    () =>
+      JSON.parse(Services.prefs.getStringPref(LIST_PREF))
+        .map(s => s.id)
+        .join() == "b,c,a",
+    "Dropping after the last space moves the space to the end"
+  );
+  Assert.equal(
+    gSpaces.getActiveId(),
+    active,
+    "Dragging a space does not switch to it"
+  );
+  Assert.deepEqual(
+    [...list.querySelectorAll(".space-button")].map(b => b.dataset.spaceId),
+    ["b", "c", "a"],
+    "The buttons show the new order"
+  );
+  setSpaces(TWO_SPACES);
+});

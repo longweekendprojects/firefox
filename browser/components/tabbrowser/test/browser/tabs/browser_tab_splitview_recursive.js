@@ -1166,3 +1166,40 @@ add_task(async function test_icon_only_panes_center_their_icon() {
   }
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_split_row_matches_a_tab_row() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+    ],
+  });
+  await TestUtils.waitForCondition(
+    () => gBrowser.tabContainer.verticalMode,
+    "Tabs are vertical"
+  );
+  SidebarController._state.launcherExpanded = true;
+  await TestUtils.waitForCondition(() =>
+    gBrowser.tabContainer.hasAttribute("expanded")
+  );
+  const single = await addLoadedTab();
+  const tabs = [await addLoadedTab(), await addLoadedTab()];
+  gBrowser.addTabSplitView(tabs);
+  const splitview = tabs[0].splitview;
+  await TestUtils.waitForCondition(
+    () => splitview.getBoundingClientRect().height
+  );
+  const tab = single.querySelector(".tab-background").getBoundingClientRect();
+  const row = splitview.getBoundingClientRect();
+  for (const [name, a, b] of [
+    ["left edge", row.left, tab.left],
+    ["right edge", row.right, tab.right],
+    ["height", row.height, tab.height],
+  ]) {
+    Assert.less(Math.abs(a - b), 1, `The split row has a tab's ${name}`);
+  }
+  for (const t of [single, ...tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+  await SpecialPowers.popPrefEnv();
+});

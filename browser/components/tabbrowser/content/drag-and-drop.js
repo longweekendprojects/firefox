@@ -71,6 +71,8 @@
     #dropAnimationEndTime = 0;
     #staleDragCheckTimer = null;
     #splitTimer = 0;
+    #pinPreview = null;
+    #pinGeometry = null;
 
     constructor(tabbrowserTabs) {
       this._tabbrowserTabs = tabbrowserTabs;
@@ -317,7 +319,9 @@
 
       this._tabDropIndicator.hidden = true;
       event.stopPropagation();
-      if (draggedTab && dropEffect == "copy") {
+      if (this.#pinPreview?.draggedTab == draggedTab && dropEffect == "move") {
+        this.#dropIntoPinPreview();
+      } else if (draggedTab && dropEffect == "copy") {
         let duplicatedDraggedTab;
         let duplicatedTabs = [];
         let dropTarget =
@@ -2119,10 +2123,16 @@
 
       let { width: tabWidth, height: tabHeight } =
         draggedTab.getBoundingClientRect();
-      let shiftSizeX = tabWidth;
-      let shiftSizeY = tabHeight;
-      dragData.tabWidth = tabWidth;
-      dragData.tabHeight = tabHeight;
+      let tileGap =
+        parseFloat(
+          window
+            .getComputedStyle(this._tabbrowserTabs.pinnedTabsContainer)
+            .getPropertyValue("--pinned-tile-gap")
+        ) || 0;
+      let shiftSizeX = tabWidth + tileGap;
+      let shiftSizeY = tabHeight + tileGap;
+      dragData.tabWidth = shiftSizeX;
+      dragData.tabHeight = shiftSizeY;
 
       // Move the dragged tab based on the mouse position.
       let periphery = document.getElementById(
@@ -2190,7 +2200,7 @@
           );
           if (tab.currentIndex && tabRow != shiftedTabRow) {
             return [
-              RTL_UI ? tabWidth * shiftNumber : -tabWidth * shiftNumber,
+              RTL_UI ? shiftSizeX * shiftNumber : -shiftSizeX * shiftNumber,
               shiftSizeY,
             ];
           }
@@ -2207,7 +2217,7 @@
           );
           if (tab.currentIndex && tabRow != shiftedTabRow) {
             return [
-              RTL_UI ? -tabWidth * shiftNumber : tabWidth * shiftNumber,
+              RTL_UI ? -shiftSizeX * shiftNumber : shiftSizeX * shiftNumber,
               -shiftSizeY,
             ];
           }
@@ -2281,6 +2291,10 @@
       let dragData = draggedTab._dragData;
       let movingTabs = dragData.movingTabs;
       let movingTabsSet = dragData.movingTabsSet;
+
+      if (this.#updatePinPreview(event, draggedTab)) {
+        return;
+      }
 
       dragData.animLastScreenPos ??= this._tabbrowserTabs.verticalMode
         ? dragData.screenY
@@ -2372,7 +2386,10 @@
         translate = Math.min(Math.max(translate, startBound), endBound);
       }
 
-      if (!gBrowser.pinnedTabCount && !this._dragToPinPromoCard.shouldRender) {
+      if (
+        !this._tabbrowserTabs.visibleTabs[0]?.pinned &&
+        !this._dragToPinPromoCard.shouldRender
+      ) {
         let pinnedDropIndicatorMargin = parseFloat(
           window.getComputedStyle(this._pinnedDropIndicator).marginInline
         );
@@ -2952,7 +2969,274 @@
       this._pinnedDropIndicator.removeAttribute("interactive");
     }
 
+    /**
+     * Whether an unpinned tab can be previewed as a pinned tile: one plain tab
+     * dragged in the expanded vertical tab strip while pinned tabs show as
+     * tiles.
+     */
+    #canPreviewPin(draggedTab) {
+      let tabs = this._tabbrowserTabs;
+      let container = tabs.pinnedTabsContainer;
+      return (
+        isTab(draggedTab) &&
+        !draggedTab.pinned &&
+        !draggedTab.splitview &&
+        draggedTab._dragData.movingTabs.length == 1 &&
+        tabs.verticalMode &&
+        tabs.hasAttribute("expanded") &&
+        container.hasAttribute("tile-layout") &&
+        !container.hasAttribute("no-visible-pins")
+      );
+    }
+
+    /**
+     * Over the pinned tiles, an unpinned tab follows the pointer as a tile and
+     * the tiles move aside to show where it would be pinned.
+     *
+     * @returns {boolean} true while the preview handles the drag.
+     */
+    #updatePinPreview(event, draggedTab) {
+      let preview = this.#pinPreview;
+      if (!preview && !this.#canPreviewPin(draggedTab)) {
+        return false;
+      }
+      let rect = window.windowUtils.getBoundsWithoutFlushing(
+        this._tabbrowserTabs.pinnedTabsContainer
+      );
+      let { clientX: x, clientY: y } = event;
+      let margin = preview ? 12 : 8;
+      let inside =
+        x >= rect.left &&
+        x <= rect.right &&
+        y >= rect.top - margin &&
+        y <= rect.bottom + margin;
+      if (!inside) {
+        this.#endPinPreview();
+        return false;
+      }
+      preview ??= this.#startPinPreview(draggedTab);
+      preview.floating.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      let index = this.#nearestPinSlot(x, y);
+      if (index != preview.index) {
+        preview.index = index;
+        this.#shiftPinnedTiles();
+      }
+      return true;
+    }
+
+    /** Grid geometry of the visible pinned tiles, measured once per drag. */
+    #measurePinGrid() {
+      let container = this._tabbrowserTabs.pinnedTabsContainer;
+      let tiles = this._tabbrowserTabs.visibleTabs.filter(t => t.pinned);
+      let rects = tiles.map(t =>
+        window.windowUtils.getBoundsWithoutFlushing(t)
+      );
+      let first = rects[0];
+      let gap =
+        parseFloat(
+          window
+            .getComputedStyle(container)
+            .getPropertyValue("--pinned-tile-gap")
+        ) || 0;
+      let wrapper = container.shadowRoot?.querySelector(
+        "[part~='items-wrapper']"
+      );
+      let template = wrapper
+        ? window.getComputedStyle(wrapper).gridTemplateColumns
+        : "";
+      let columns = template.split(" ").filter(Boolean).length;
+      if (!columns) {
+        columns = rects.findIndex(r => Math.abs(r.top - first.top) > 1);
+        if (columns < 0) {
+          columns = rects.length;
+        }
+      }
+      let colStep =
+        rects.length > 1 && Math.abs(rects[1].top - first.top) <= 1
+          ? rects[1].left - first.left
+          : (RTL_UI ? -1 : 1) * (first.width + gap);
+      let rowStep =
+        rects.length > columns
+          ? rects[columns].top - first.top
+          : first.height + gap;
+      return {
+        tiles,
+        columns,
+        colStep,
+        rowStep,
+        width: first.width,
+        height: first.height,
+        originX: first.left + first.width / 2,
+        originY: first.top + first.height / 2,
+      };
+    }
+
+    /** Center of grid slot `k`, in client coordinates. */
+    #pinSlotCenter(k) {
+      let g = this.#pinGeometry;
+      return {
+        x: g.originX + (k % g.columns) * g.colStep,
+        y: g.originY + Math.floor(k / g.columns) * g.rowStep,
+      };
+    }
+
+    #nearestPinSlot(x, y) {
+      let best = 0;
+      let bestDistance = Infinity;
+      for (let k = 0; k <= this.#pinGeometry.tiles.length; k++) {
+        let c = this.#pinSlotCenter(k);
+        let distance = (c.x - x) ** 2 + (c.y - y) ** 2;
+        if (distance < bestDistance) {
+          best = k;
+          bestDistance = distance;
+        }
+      }
+      return best;
+    }
+
+    #shiftPinnedTiles() {
+      let { index } = this.#pinPreview;
+      this.#pinGeometry.tiles.forEach((tile, j) => {
+        if (j < index) {
+          tile.style.transform = "";
+          return;
+        }
+        let from = this.#pinSlotCenter(j);
+        let to = this.#pinSlotCenter(j + 1);
+        tile.style.transform = `translate(${to.x - from.x}px, ${to.y - from.y}px)`;
+      });
+    }
+
+    #startPinPreview(draggedTab) {
+      let dragData = draggedTab._dragData;
+      this.#pinGeometry ??= this.#measurePinGrid();
+      let geometry = this.#pinGeometry;
+      let container = this._tabbrowserTabs.pinnedTabsContainer;
+
+      if (dragData.splitTarget) {
+        this.#setSplitTarget(dragData, null);
+      }
+      this.#clearSplitTimer(dragData);
+      this._clearDragOverGroupingTimer();
+      for (let item of this._tabbrowserTabs.dragAndDropElements) {
+        if (!item.pinned && item != draggedTab) {
+          elementToMove(item).style.transform = "";
+        }
+      }
+
+      let preview = {
+        draggedTab,
+        index: -1,
+        scrollboxHeight: container.scrollbox.style.height,
+        minHeight: container.style.minHeight,
+      };
+      if (geometry.tiles.length % geometry.columns == 0) {
+        let grow = px => px && `${parseFloat(px) + geometry.rowStep}px`;
+        container.scrollbox.style.height = grow(preview.scrollboxHeight);
+        container.style.minHeight = grow(preview.minHeight);
+      }
+      container.setAttribute("pin-preview", "");
+      draggedTab.setAttribute("pinpreview", "");
+
+      let rowRect = window.windowUtils.getBoundsWithoutFlushing(draggedTab);
+      let floating = document.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div"
+      );
+      floating.id = "pin-drag-tile";
+      let icon = document.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "img"
+      );
+      icon.src =
+        draggedTab.getAttribute("image") ||
+        "chrome://global/skin/icons/defaultFavicon.svg";
+      floating.append(icon);
+      floating.style.width = `${rowRect.width}px`;
+      floating.style.height = `${rowRect.height}px`;
+      document.body.append(floating);
+      if (gReduceMotion) {
+        floating.style.transition = "none";
+      }
+      floating.getBoundingClientRect();
+      floating.style.width = `${geometry.width}px`;
+      floating.style.height = `${geometry.height}px`;
+      preview.floating = floating;
+      this.#pinPreview = preview;
+      return preview;
+    }
+
+    /**
+     * Ends the pin preview. With `instant`, the tiles drop their shift without
+     * a transition, for the moment the tab is pinned into the gap. With
+     * `clearHeights`, the pinned tabs container gets its natural height back
+     * instead of the height fixed at drag start.
+     */
+    #endPinPreview({ instant = false, clearHeights = instant } = {}) {
+      let preview = this.#pinPreview;
+      if (!preview) {
+        return;
+      }
+      this.#pinPreview = null;
+      let container = this._tabbrowserTabs.pinnedTabsContainer;
+      for (let tile of this.#pinGeometry.tiles) {
+        if (instant) {
+          tile.style.transition = "none";
+        }
+        tile.style.transform = "";
+      }
+      if (clearHeights) {
+        container.scrollbox.style.height = "";
+        container.style.minHeight = "";
+      } else {
+        container.scrollbox.style.height = preview.scrollboxHeight;
+        container.style.minHeight = preview.minHeight;
+      }
+      container.removeAttribute("pin-preview");
+      preview.draggedTab.removeAttribute("pinpreview");
+      preview.floating.remove();
+      let dragData = preview.draggedTab._dragData;
+      if (dragData) {
+        dragData.animDropElementIndex = null;
+        dragData.animLastScreenPos = null;
+      }
+    }
+
+    /** Pins the dragged tab into the gap the preview shows. */
+    #dropIntoPinPreview() {
+      let { draggedTab, index, floating } = this.#pinPreview;
+      let { tiles } = this.#pinGeometry;
+      let from = floating.getBoundingClientRect();
+      this.#endPinPreview({ instant: true });
+      this.finishAnimateTabMove();
+      let metricsContext = gBrowser.TabMetrics.userTriggeredContext(
+        gBrowser.TabMetrics.METRIC_SOURCE.DRAG_AND_DROP
+      );
+      gBrowser.pinTab(draggedTab, { metricsContext });
+      if (tiles[index]) {
+        gBrowser.moveTabBefore(draggedTab, tiles[index], { metricsContext });
+      } else if (tiles.length) {
+        gBrowser.moveTabAfter(draggedTab, tiles.at(-1), { metricsContext });
+      }
+      let to = draggedTab.getBoundingClientRect();
+      window.requestAnimationFrame(() => {
+        for (let tile of tiles) {
+          tile.style.transition = "";
+        }
+      });
+      if (!gReduceMotion && to.width) {
+        let dx = from.left + from.width / 2 - (to.left + to.width / 2);
+        let dy = from.top + from.height / 2 - (to.top + to.height / 2);
+        draggedTab.animate(
+          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+          { duration: 180, easing: "ease-out" }
+        );
+      }
+    }
+
     finishAnimateTabMove() {
+      this.#endPinPreview({ clearHeights: true });
+      this.#pinGeometry = null;
       if (!this.#isMovingTab()) {
         return;
       }

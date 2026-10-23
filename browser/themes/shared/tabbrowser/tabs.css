@@ -3714,8 +3714,51 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     margin: 0 !important;
   }
 
-  .tab-label-container,
+  .tab-label-container {
+    display: none !important;
+  }
+
+  .tab-content {
+    position: relative;
+  }
+
+  /* Resting on a tile shows a round close button at its top left corner,
+     which closes the tab and so removes it from the pinned tabs. */
   .tab-close-button {
+    display: flex !important;
+    position: absolute;
+    inset-block-start: -5px;
+    inset-inline-start: -5px;
+    width: 18px;
+    height: 18px;
+    margin: 0 !important;
+    padding: 3px;
+    border-radius: 50%;
+    background-color: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.3),
+      0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 120ms ease-out,
+      visibility 0s 120ms;
+
+    &:hover {
+      background-color: color-mix(in srgb, currentColor 22%, var(--tab-selected-bgcolor, var(--toolbar-bgcolor)));
+    }
+  }
+
+  .tabbrowser-tab:hover .tab-close-button {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 120ms ease-out 600ms,
+      visibility 0s 600ms;
+  }
+
+  &[dragActive] .tab-close-button,
+  #tabbrowser-tabs[movingtab] & .tab-close-button {
     display: none !important;
   }
 
@@ -3742,6 +3785,46 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+/* An unpinned tab dragged over the pinned tiles follows the pointer as a
+   tile, and the tiles move aside to show where it will be pinned. */
+.tabbrowser-tab[pinpreview] {
+  opacity: 0;
+}
+
+#tabbrowser-tabs[movingtab] > #pinned-tabs-container[pin-preview] .tabbrowser-tab {
+  transition: transform 180ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+#pin-drag-tile {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--toolbar-color);
+  background-color: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
+  border-radius: var(--border-radius-large);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.25),
+    0 0 0 1px color-mix(in srgb, currentColor 12%, transparent);
+  transition:
+    width 160ms ease-out,
+    height 160ms ease-out;
+
+  > img {
+    width: 18px;
+    height: 18px;
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+}
+
 #pinned-tabs-container[no-visible-pins],
 #pinned-tabs-container[no-visible-pins] + #vertical-pinned-tabs-splitter {
   display: none !important;
@@ -3750,7 +3833,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 /* Under the pinned tabs, a faint line that fades out toward both sides. */
 #tabbrowser-tabs[orient="vertical"][expanded] > #vertical-pinned-tabs-splitter:not(:hover) {
   background-image: var(--sidebar-fade-divider-image);
-  background-size: 80% 1px;
+  background-size: var(--sidebar-fade-divider-size);
   background-position: center;
   border-top: none;
 }
@@ -3799,16 +3882,43 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
    segments follow that curve, inset by the row's padding. */
 #tabbrowser-tabs[orient="vertical"][expanded] #tabbrowser-arrowscrollbox tab-split-view-wrapper {
   --split-row-radius: 6px;
-  --split-row-inset: 4px;
+  --split-row-inset: 3px;
   --tab-border-radius: max(calc(var(--split-row-radius) - var(--split-row-inset)), 3px);
 
+  /* The row takes the same box as a single tab's background, and the panes
+     shrink to fit inside it. */
+  box-sizing: border-box;
+  height: var(--tab-min-height);
   border-radius: var(--split-row-radius) !important;
   padding: var(--split-row-inset);
   gap: var(--split-row-inset);
-  margin-block: 2px;
+  margin-block: 5px 4px;
+  margin-inline: var(--tab-inner-inline-margin) !important;
 
-  > .tabbrowser-tab > .tab-stack > .tab-background {
-    margin: 0 !important;
+  > .tabbrowser-tab {
+    min-height: 0 !important;
+    height: 100%;
+    padding-block: 0 !important;
+
+    > .tab-stack {
+      height: 100%;
+    }
+
+    > .tab-stack > .tab-background {
+      margin: 0 !important;
+      min-height: 0 !important;
+      height: 100%;
+    }
+  }
+
+  /* An unfolded split lists one pane per row, each as tall as the panes of
+     a folded split. */
+  &[unfolded] {
+    height: auto;
+
+    > .tabbrowser-tab {
+      height: calc(var(--tab-min-height) - 2 * var(--split-row-inset));
+    }
   }
 
   &:not([hasactivetab]) {

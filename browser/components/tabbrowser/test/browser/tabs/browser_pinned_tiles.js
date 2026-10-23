@@ -213,3 +213,39 @@ add_task(async function test_new_tab_button_at_top() {
   BrowserTestUtils.removeTab(pinnedTab);
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_tile_close_button() {
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let keep = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  gBrowser.pinTab(keep);
+  gBrowser.pinTab(tab);
+  await settle();
+  let button = tab.querySelector(".tab-close-button");
+  Assert.equal(
+    getComputedStyle(button).visibility,
+    "hidden",
+    "The close button is hidden until the pointer rests on the tile"
+  );
+  EventUtils.synthesizeMouseAtCenter(tab, { type: "mousemove" });
+  await TestUtils.waitForCondition(
+    () => getComputedStyle(button).visibility == "visible",
+    "Resting on the tile shows the close button"
+  );
+  let tile = tab.getBoundingClientRect();
+  let rect = button.getBoundingClientRect();
+  Assert.less(
+    rect.left + rect.width / 2,
+    tile.left + tile.width / 2,
+    "The close button sits on the left of the tile"
+  );
+  Assert.less(
+    rect.top + rect.height / 2,
+    tile.top + tile.height / 2,
+    "The close button sits at the top of the tile"
+  );
+  let closed = BrowserTestUtils.waitForTabClosing(tab);
+  EventUtils.synthesizeMouseAtCenter(button, {});
+  await closed;
+  Assert.ok(keep.pinned, "Other pinned tabs stay");
+  BrowserTestUtils.removeTab(keep);
+});

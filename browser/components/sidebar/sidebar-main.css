@@ -225,9 +225,22 @@
 @media -moz-pref("sidebar.verticalTabs") {
   .buttons-wrapper {
     background-image: var(--sidebar-fade-divider-image);
-    background-size: 80% 1px;
+    background-size: var(--sidebar-fade-divider-size);
     background-position: center top;
     background-repeat: no-repeat;
+  }
+
+  /* With the splitter above the bottom row, the line sits on the splitter,
+   * right where the tab list ends. */
+  :host([expanded]) #sidebar-tools-and-extensions-splitter:not(:hover) {
+    background-image: var(--sidebar-fade-divider-image);
+    background-size: var(--sidebar-fade-divider-size);
+    background-position: center;
+    margin-block-end: 0;
+  }
+
+  :host([expanded]) #sidebar-tools-and-extensions-splitter + .buttons-wrapper {
+    background-image: none;
   }
 }
 

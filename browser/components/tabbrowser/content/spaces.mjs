@@ -17,7 +17,7 @@
  *
  * A horizontal swipe over the tab strip shows the next or previous space, and
  * on macOS Ctrl+1 to Ctrl+9 show a space by position. The sidebar takes a
- * tint of the shown space's color.
+ * tint of the shown space's color. Dragging a space button reorders spaces.
  */
 
 import { ContainerEditor } from "chrome://browser/content/usercontext/ContainerEditor.mjs";
@@ -47,6 +47,9 @@ const SWIPE_DISTANCE = 80;
 // Pause in scroll events, in milliseconds, that ends a swipe.
 const SWIPE_END_DELAY = 200;
 let swipe = { distance: 0, done: false, timer: 0 };
+// Pointer travel, in CSS pixels, that turns a press on a space into a drag.
+const REORDER_THRESHOLD = 4;
+let reorder = null;
 
 function readSpaces() {
   try {
@@ -432,6 +435,18 @@ function buildBar() {
       switchTo(id);
     }
   });
+  list.addEventListener("pointerdown", onReorderStart);
+  list.addEventListener(
+    "click",
+    event => {
+      if (list.hasAttribute("just-reordered")) {
+        list.removeAttribute("just-reordered");
+        event.stopPropagation();
+        event.preventDefault();
+      }
+    },
+    true
+  );
   list.addEventListener("contextmenu", event => {
     let button = event.target.closest(".space-button");
     if (!button) {
@@ -467,6 +482,113 @@ function placeBar() {
     bar.removeAttribute("slot");
     container.append(bar);
   }
+}
+
+/** Starts tracking a press on a space button that may become a drag. */
+function onReorderStart(event) {
+  let button = event.target.closest(".space-button");
+  if (event.button != 0 || !button || spaces.length < 2) {
+    return;
+  }
+  let buttons = [...list.querySelectorAll(".space-button")];
+  let rects = buttons.map(b => b.getBoundingClientRect());
+  let vertical = rects.length > 1 && Math.abs(rects[1].top - rects[0].top) > 1;
+  reorder = {
+    button,
+    buttons,
+    rects,
+    vertical,
+    pointerId: event.pointerId,
+    start: vertical ? event.clientY : event.clientX,
+    from: buttons.indexOf(button),
+    to: buttons.indexOf(button),
+    dragging: false,
+  };
+  list.addEventListener("pointermove", onReorderMove);
+  list.addEventListener("pointerup", onReorderEnd);
+  list.addEventListener("pointercancel", onReorderEnd);
+}
+
+function onReorderMove(event) {
+  if (!reorder || event.pointerId != reorder.pointerId) {
+    return;
+  }
+  let { button, buttons, rects, vertical, from } = reorder;
+  let pos = vertical ? event.clientY : event.clientX;
+  let delta = pos - reorder.start;
+  if (!reorder.dragging) {
+    if (Math.abs(delta) < REORDER_THRESHOLD) {
+      return;
+    }
+    reorder.dragging = true;
+    button.setPointerCapture(event.pointerId);
+    list.setAttribute("reordering", "");
+    button.setAttribute("dragging", "");
+  }
+  let start = vertical ? "top" : "left";
+  let end = vertical ? "bottom" : "right";
+  let size = vertical ? "height" : "width";
+  delta = Math.min(
+    Math.max(delta, rects[0][start] - rects[from][start]),
+    rects.at(-1)[end] - rects[from][end]
+  );
+  button.style.transform = vertical
+    ? `translateY(${delta}px)`
+    : `translateX(${delta}px)`;
+
+  let to = 0;
+  rects.forEach((rect, i) => {
+    if (i != from && pos > rect[start] + rect[size] / 2) {
+      to++;
+    }
+  });
+  reorder.to = to;
+  let gap = rects.length > 1 ? Math.max(0, rects[1][start] - rects[0][end]) : 0;
+  let shift = rects[from][size] + gap;
+  buttons.forEach((other, i) => {
+    let offset = 0;
+    if (from < to && i > from && i <= to) {
+      offset = -shift;
+    } else if (from > to && i >= to && i < from) {
+      offset = shift;
+    }
+    if (other != button) {
+      other.style.transform = offset
+        ? `${vertical ? "translateY" : "translateX"}(${offset}px)`
+        : "";
+    }
+  });
+}
+
+/** Saves the new order of a finished drag. */
+function onReorderEnd(event) {
+  if (!reorder || event.pointerId != reorder.pointerId) {
+    return;
+  }
+  let { button, buttons, dragging, from, to } = reorder;
+  reorder = null;
+  list.removeEventListener("pointermove", onReorderMove);
+  list.removeEventListener("pointerup", onReorderEnd);
+  list.removeEventListener("pointercancel", onReorderEnd);
+  if (!dragging) {
+    return;
+  }
+  list.removeAttribute("reordering");
+  button.removeAttribute("dragging");
+  for (let b of buttons) {
+    b.style.transform = "";
+  }
+  if (event.type == "pointerup") {
+    list.setAttribute("just-reordered", "");
+    window.setTimeout(() => list.removeAttribute("just-reordered"), 0);
+  }
+  if (event.type != "pointerup" || from == to) {
+    return;
+  }
+  let reordered = [...spaces];
+  let [moved] = reordered.splice(from, 1);
+  reordered.splice(to, 0, moved);
+  writeSpaces(reordered);
 }
 
 function render() {
