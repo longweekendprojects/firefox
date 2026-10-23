@@ -54,7 +54,7 @@ add_task(async function test_reveal_and_conceal() {
     sidebarContainer.hasAttribute("sidebar-hover-revealed"),
     "The sidebar floats over the page"
   );
-  Assert.ok(edge().hidden, "The edge is inactive while revealed");
+  Assert.ok(!edge().hidden, "The edge stays to cover the gap while revealed");
   Assert.ok(
     SidebarController.sidebarMain.expanded,
     "The revealed sidebar is expanded"
@@ -155,7 +155,9 @@ function leaveWindow(target, clientX) {
 function reenterWindow() {
   document
     .getElementById("tabbrowser-tabbox")
-    .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    .dispatchEvent(
+      new MouseEvent("mouseover", { bubbles: true, clientX: 400, clientY: 300 })
+    );
 }
 
 add_task(async function test_overshooting_the_edge_reveals_and_stays() {
@@ -374,4 +376,43 @@ add_task(async function test_bottom_row_aligned_and_steady_while_revealing() {
   }
   await hoverContent();
   await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+});
+
+add_task(async function test_pointer_resting_in_the_gap_keeps_sidebar() {
+  await hoverEdge();
+  await Promise.all(sidebarContainer.getAnimations().map(a => a.finished));
+  let hides = 0;
+  const observer = new MutationObserver(() => {
+    if (sidebarContainer.hidden) {
+      hides++;
+    }
+  });
+  observer.observe(sidebarContainer, { attributes: true });
+  const gap = parseFloat(getComputedStyle(sidebarContainer).left);
+  Assert.greater(gap, 2, "The floating sidebar leaves a gap at the edge");
+  for (const [x, y] of [[1, 300]]) {
+    const hit = document.elementFromPoint(x, y);
+    Assert.ok(
+      hit == edge() || sidebarContainer.contains(hit),
+      `The gap at ${x},${y} belongs to the sidebar`
+    );
+  }
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 700));
+  for (let i = 0; i < 5; i++) {
+    EventUtils.synthesizeMouse(document.documentElement, 1, 300 + i, {
+      type: "mousemove",
+    });
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    await new Promise(r => setTimeout(r, 150));
+  }
+  observer.disconnect();
+  is(hides, 0, "The sidebar never hides while the pointer rests in the gap");
+  Assert.ok(!sidebarContainer.hidden, "The sidebar stays revealed");
+
+  await hoverContent();
+  await TestUtils.waitForCondition(
+    () => sidebarContainer.hidden,
+    "Moving onto the page still hides it"
+  );
 });

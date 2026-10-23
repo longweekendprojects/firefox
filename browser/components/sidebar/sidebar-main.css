@@ -220,6 +220,17 @@
   align-self: end;
 }
 
+/* A faint line that fades out toward both sides marks where the bottom
+ * row starts. */
+@media -moz-pref("sidebar.verticalTabs") {
+  .buttons-wrapper {
+    background-image: var(--sidebar-fade-divider-image);
+    background-size: 80% 1px;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+}
+
 /* Spaces share the bottom row with the tools, and wrap above them when the
  * row is too narrow for both. The tools are compact to leave them room. */
 :host([expanded]) .buttons-wrapper {

@@ -2875,7 +2875,9 @@ var SidebarController = {
       "sidebar-positionend",
       this.sidebarContainer.hasAttribute("sidebar-positionend")
     );
-    this._revealEdge.hidden = this._revealed;
+    // The strip stays while the sidebar is revealed, so a pointer resting in
+    // the gap at the window edge keeps the sidebar shown.
+    this._revealEdge.hidden = false;
   },
 
   _startReveal() {
@@ -2887,7 +2889,6 @@ var SidebarController = {
       return;
     }
     this._revealed = true;
-    this._revealEdge.hidden = true;
     this._initWindowControls();
     const container = this.sidebarContainer;
     this._finishConceal();
@@ -2931,7 +2932,10 @@ var SidebarController = {
         break;
       case "mouseover":
         this._pointerOutsideAtEdge = false;
-        if (!this.sidebarContainer.contains(e.target)) {
+        if (
+          !this.sidebarContainer.contains(e.target) &&
+          e.target != this._revealEdge
+        ) {
           this._scheduleConceal();
         }
         break;
@@ -3041,6 +3045,7 @@ var SidebarController = {
       this._pointerOutsideAtEdge ||
       this._revealResize ||
       this.sidebarContainer.matches(":hover") ||
+      this._revealEdge?.matches(":hover") ||
       this._launcherSplitter.matches(":hover")
     ) {
       return;

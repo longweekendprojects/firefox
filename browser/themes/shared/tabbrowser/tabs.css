@@ -3742,8 +3742,23 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+#pinned-tabs-container[no-visible-pins],
+#pinned-tabs-container[no-visible-pins] + #vertical-pinned-tabs-splitter {
+  display: none !important;
+}
+
+/* Under the pinned tabs, a faint line that fades out toward both sides. */
+#tabbrowser-tabs[orient="vertical"][expanded] > #vertical-pinned-tabs-splitter:not(:hover) {
+  background-image: var(--sidebar-fade-divider-image);
+  background-size: 80% 1px;
+  background-position: center;
+  border-top: none;
+}
+
 #tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] ~ #vertical-pinned-tabs-splitter {
-  display: none;
+  min-height: 1px;
+  margin-block: 8px 2px;
+  pointer-events: none;
 }
 
 /* The New Tab button above the other tabs, under the pinned tabs, as in Arc.
@@ -3770,7 +3785,8 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 /* Vertical tab rows: a slightly larger, heavier label and a squarer hover. */
-#tabbrowser-tabs[orient="vertical"] #tabbrowser-arrowscrollbox {
+#tabbrowser-tabs[orient="vertical"] #tabbrowser-arrowscrollbox,
+#tabbrowser-tabs[orient="vertical"] > #vertical-tabs-newtab-button {
   --tab-border-radius: 6px;
 
   .tab-label {

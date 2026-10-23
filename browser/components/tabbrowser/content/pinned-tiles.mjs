@@ -117,6 +117,8 @@ export function update() {
   );
   let setting = Services.prefs.getIntPref(COLUMNS_PREF, 0);
   let count = gBrowser.visibleTabs.filter(tab => tab.pinned).length;
+  // Pinned tabs of other spaces are hidden, not removed, so :empty misses them.
+  container.toggleAttribute("no-visible-pins", !count);
   if (setting < -1) {
     container.removeAttribute("tile-layout");
     container.style.removeProperty("--pinned-tile-columns");

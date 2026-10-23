@@ -179,6 +179,15 @@ add_setup(async () => {
   });
 });
 
+add_task(async function test_arc_is_offered_by_default() {
+  Assert.ok(
+    Services.prefs
+      .getDefaultBranch("")
+      .getBoolPref("browser.migrate.arc.enabled", false),
+    "The import wizard lists Arc by default"
+  );
+});
+
 add_task(async function test_import_everything_from_arc() {
   let root = await IOUtils.createUniqueDirectory(PathUtils.tempDir, "arc");
   let userData = PathUtils.join(root, "User Data");

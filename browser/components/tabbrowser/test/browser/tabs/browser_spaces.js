@@ -72,10 +72,25 @@ add_task(async function test_switch_spaces() {
     bar.querySelector('[data-space-id="b"]').hasAttribute("checked"),
     "Bar marks space B"
   );
+  let pinnedArea = gBrowser.pinnedTabsContainer;
+  await TestUtils.waitForCondition(
+    () => !pinnedArea.getBoundingClientRect().height,
+    "A space without pinned tabs shows no pinned area"
+  );
+  Assert.ok(
+    !document
+      .getElementById("vertical-pinned-tabs-splitter")
+      .getBoundingClientRect().height,
+    "nor the line under it"
+  );
 
   gSpaces.switchTo("a");
   Assert.equal(gBrowser.selectedTab, tabA, "Space A reselects its last tab");
   Assert.ok(!pinned.hidden, "Pinned tab of space A is shown again");
+  await TestUtils.waitForCondition(
+    () => pinnedArea.getBoundingClientRect().height > 0,
+    "The pinned area returns with space A"
+  );
   Assert.ok(tabB.hidden, "Space B tab is hidden");
   Assert.deepEqual(
     [...visibleSpaces()],

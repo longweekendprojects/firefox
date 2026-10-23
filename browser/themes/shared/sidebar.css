@@ -316,6 +316,7 @@ sidebar-main,
  * hit-testing. */
 :root {
   --sidebar-divider-color: var(--toolbarbutton-icon-fill);
+  --sidebar-fade-divider-image: linear-gradient(to right, transparent, color-mix(in srgb, currentColor 16%, transparent), transparent);
   --sidebar-divider-image:
     radial-gradient(circle closest-side, var(--sidebar-divider-color) 100%, transparent 100%),
     radial-gradient(circle closest-side, var(--sidebar-divider-color) 100%, transparent 100%),
