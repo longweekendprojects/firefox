@@ -250,11 +250,21 @@ add_task(async function test_new_tab_button_at_top() {
     return button.getBoundingClientRect().top < before - 50;
   }, "The New Tab row scrolls with the tabs");
   let list = gBrowser.tabContainer.arrowScrollbox.scrollbox;
-  Assert.equal(
+  Assert.notEqual(
     getComputedStyle(list).scrollbarWidth,
     "none",
-    "No scrollbar takes width from the tab rows"
+    "The tab list shows a scrollbar"
   );
+  let scrollbarStart =
+    list.getBoundingClientRect().left + list.clientLeft + list.clientWidth;
+  if (scrollbarStart < list.getBoundingClientRect().right - 1) {
+    let row = extra[0].querySelector(".tab-background").getBoundingClientRect();
+    Assert.lessOrEqual(
+      scrollbarStart - row.right,
+      4,
+      "A tab row reaches close to a classic scrollbar"
+    );
+  }
   scrollbox.scrollTo({ top: 0, behavior: "instant" });
   for (let tab of extra) {
     BrowserTestUtils.removeTab(tab);

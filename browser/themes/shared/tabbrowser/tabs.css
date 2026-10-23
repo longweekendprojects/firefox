@@ -2783,9 +2783,8 @@ tab-group {
   }
 
   &::part(scrollbox) {
-    /* No scrollbar takes width from the tab rows, as in Arc. The fades at
-       the top and bottom show that the list scrolls. */
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--tab-vertical-scrollbar-color);
     overscroll-behavior-y: contain;
     /* A wheel notch, an arrow key and a scrollbar arrow button move rows. */
     -moz-line-scroll-amount: var(--tab-height-with-margin-padding);
@@ -2886,9 +2885,8 @@ tab-group {
   }
 
   &::part(scrollbox) {
-    /* No scrollbar takes width from the tab rows, as in Arc. The fades at
-       the top and bottom show that the list scrolls. */
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--tab-vertical-scrollbar-color);
     overscroll-behavior-y: contain;
     /* A wheel notch, an arrow key and a scrollbar arrow button move rows. */
     -moz-line-scroll-amount: var(--tab-height-with-margin-padding);
@@ -3012,6 +3010,8 @@ tab-group {
     --tab-padding-block-end: 0px;
     /* Taller rows, so the titles have more room above and below. */
     --tab-min-height: 36px;
+    /* 5px between rows. */
+    --tab-margin-block: 2.5px;
   }
 
   min-height: 0;
@@ -3056,7 +3056,7 @@ tab-group {
   }
 
   .tab-background {
-    margin-inline: var(--tab-inner-inline-margin);
+    margin-inline: var(--tab-inner-inline-margin) var(--tab-row-margin-end, var(--tab-inner-inline-margin));
     @media not -moz-pref("browser.nova.enabled") {
       /* Needed to flip the direction of the tab-context-line. */
       flex-direction: row-reverse;
@@ -3924,23 +3924,31 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+/* A classic scrollbar already separates the rows from the sidebar edge, so
+   the rows keep only a small gap before it. */
+@media not (-moz-overlay-scrollbars) {
+  #tabbrowser-tabs[orient="vertical"][expanded] #tabbrowser-arrowscrollbox[overflowing] {
+    --tab-row-margin-end: 3px;
+  }
+}
+
 /* Vertical tab rows: a slightly larger, heavier label and a squarer hover. */
 #tabbrowser-tabs[orient="vertical"] #tabbrowser-arrowscrollbox,
 #tabbrowser-tabs[orient="vertical"] > #vertical-tabs-newtab-button {
-  --tab-border-radius: 7px;
+  --tab-border-radius: 9px;
 
   .tab-label {
     font-size: 1.2em;
-    font-weight: 500;
+    font-weight: 450;
   }
 }
 
 /* A split row has the same corner radius as a single tab row, and its pane
    segments follow that curve, inset by the row's padding. */
 #tabbrowser-tabs[orient="vertical"][expanded] #tabbrowser-arrowscrollbox tab-split-view-wrapper {
-  --split-row-radius: 7px;
+  --split-row-radius: 9px;
   --split-row-inset: 3px;
-  --tab-border-radius: 5px;
+  --tab-border-radius: 6px;
 
   /* The row takes the same box as a single tab's background, and the panes
      shrink to fit inside it. */
@@ -3950,7 +3958,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   padding: var(--split-row-inset);
   gap: var(--split-row-inset);
   margin-block: calc(var(--tab-padding-block-start) + var(--tab-margin-block)) calc(var(--tab-padding-block-end) + var(--tab-margin-block));
-  margin-inline: var(--tab-inner-inline-margin) !important;
+  margin-inline: var(--tab-inner-inline-margin) var(--tab-row-margin-end, var(--tab-inner-inline-margin)) !important;
 
   > .tabbrowser-tab {
     min-height: 0 !important;

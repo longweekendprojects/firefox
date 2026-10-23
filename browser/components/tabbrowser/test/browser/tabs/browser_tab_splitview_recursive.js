@@ -1302,7 +1302,7 @@ add_task(async function test_new_tab_button_keeps_the_tab_gap() {
   const tabGap = bg(second).top - bg(first).bottom;
   const buttonRect = button.getBoundingClientRect();
   info(`tab gap ${tabGap}, button ${buttonRect.top}-${buttonRect.bottom}`);
-  Assert.lessOrEqual(tabGap, 4, "Tab rows sit close together");
+  Assert.lessOrEqual(tabGap, 5, "Tab rows sit close together");
   Assert.less(
     Math.abs(bg(first).top - buttonRect.bottom - tabGap),
     1,

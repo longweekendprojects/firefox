@@ -20,7 +20,7 @@
   box-sizing: border-box;
   min-height: var(--tab-min-height);
   margin-block: var(--newtab-row-margin-start, 0) var(--tab-margin-block);
-  margin-inline: var(--tab-inner-inline-margin);
+  margin-inline: var(--tab-inner-inline-margin) var(--tab-row-margin-end, var(--tab-inner-inline-margin));
   padding: 0 calc(var(--tab-inline-padding) - var(--tab-inner-inline-margin));
   border-radius: var(--tab-border-radius);
   color: inherit;
