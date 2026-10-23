@@ -26,6 +26,7 @@ const l10nMap = new Map([
 ]);
 const VISIBILITY_SETTING_PREF = "sidebar.visibility";
 const EXPAND_ON_HOVER_PREF = "sidebar.expandOnHover";
+const REVEAL_ON_HOVER_PREF = "sidebar.revealOnHover";
 const POSITION_SETTING_PREF = "sidebar.position_start";
 const TAB_DIRECTION_SETTING_PREF = "sidebar.verticalTabs";
 const HOVER_PREVIEW_PREF = "sidebar.openTabsPanel.hoverPreview.enabled";
@@ -71,6 +72,15 @@ export class SidebarCustomize extends SidebarPage {
     );
     XPCOMUtils.defineLazyPreferenceGetter(
       this.#prefValues,
+      "revealOnHover",
+      REVEAL_ON_HOVER_PREF,
+      false,
+      (_aPreference, _previousValue, newValue) => {
+        this.revealOnHover = newValue;
+      }
+    );
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this.#prefValues,
       "hoverPreviewEnabled",
       HOVER_PREVIEW_PREF,
       true,
@@ -83,6 +93,7 @@ export class SidebarCustomize extends SidebarPage {
     this.verticalTabsEnabled = this.#prefValues.verticalTabsEnabled;
     this.expandOnHoverEnabled = this.#prefValues.expandOnHoverEnabled;
     this.hoverPreviewEnabled = this.#prefValues.hoverPreviewEnabled;
+    this.revealOnHover = this.#prefValues.revealOnHover;
     this.boundObserve = (...args) => this.observe(...args);
   }
 
@@ -94,6 +105,7 @@ export class SidebarCustomize extends SidebarPage {
     verticalTabsEnabled: { type: Boolean },
     expandOnHoverEnabled: { type: Boolean },
     hoverPreviewEnabled: { type: Boolean },
+    revealOnHover: { type: Boolean },
   };
 
   static queries = {
@@ -270,7 +282,8 @@ export class SidebarCustomize extends SidebarPage {
                       name="expand-on-hover"
                       data-l10n-id="expand-sidebar-on-hover"
                       @change=${this.#toggleExpandOnHover}
-                      ?checked=${this.visibility == "expand-on-hover"}
+                      ?checked=${this.visibility == "expand-on-hover" ||
+                      (this.visibility == "hide-sidebar" && this.revealOnHover)}
                     ></moz-checkbox>
                   `
                 )}
@@ -363,11 +376,18 @@ export class SidebarCustomize extends SidebarPage {
 
   #handleVisibilityChange(e) {
     e.stopPropagation();
-    this.visibility = e.target.checked ? "hide-sidebar" : "always-show";
-    Services.prefs.setStringPref(
-      VISIBILITY_SETTING_PREF,
-      e.target.checked ? "hide-sidebar" : "always-show"
-    );
+    let visibility;
+    if (e.target.checked) {
+      Services.prefs.setBoolPref(
+        REVEAL_ON_HOVER_PREF,
+        this.visibility == "expand-on-hover"
+      );
+      visibility = "hide-sidebar";
+    } else {
+      visibility = this.revealOnHover ? "expand-on-hover" : "always-show";
+    }
+    this.visibility = visibility;
+    Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, visibility);
     Glean.sidebarCustomize.sidebarDisplay.record({
       preference: e.target.checked ? "hide" : "always",
     });
@@ -386,6 +406,10 @@ export class SidebarCustomize extends SidebarPage {
 
   #toggleExpandOnHover(e) {
     e.stopPropagation();
+    if (this.visibility == "hide-sidebar") {
+      Services.prefs.setBoolPref(REVEAL_ON_HOVER_PREF, e.target.checked);
+      return;
+    }
     this.visibility = e.target.checked ? "expand-on-hover" : "always-show";
     if (e.target.checked) {
       Services.prefs.setStringPref("sidebar.visibility", "expand-on-hover");

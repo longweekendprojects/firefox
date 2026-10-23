@@ -266,6 +266,7 @@ add_task(async function test_hide_sidebar_available_with_expand_on_hover() {
     set: [
       [VERTICAL_TABS_PREF, true],
       ["sidebar.expandOnHover", true],
+      ["sidebar.revealOnHover", false],
       [SIDEBAR_VISIBILITY_PREF, "expand-on-hover"],
     ],
   });
@@ -282,19 +283,44 @@ add_task(async function test_hide_sidebar_available_with_expand_on_hover() {
   is(
     Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "hide-sidebar",
-    "Choosing hide tabs and sidebar replaces expand on hover."
+    "Hide tabs and sidebar is chosen."
   );
-  ok(!panel.expandOnHoverInput.checked, "Expand on hover is unchecked.");
-  ok(!panel.expandOnHoverInput.disabled, "Expand on hover can be chosen.");
+  ok(
+    Services.prefs.getBoolPref("sidebar.revealOnHover"),
+    "Expand on hover carries over as reveal on hover."
+  );
+  ok(panel.visibilityInput.checked, "Hide tabs and sidebar is checked.");
+  ok(panel.expandOnHoverInput.checked, "Expand on hover stays checked.");
 
   panel.expandOnHoverInput.click();
+  await panel.updateComplete;
+  ok(
+    !Services.prefs.getBoolPref("sidebar.revealOnHover"),
+    "Unchecking expand on hover turns reveal on hover off."
+  );
+  is(
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
+    "hide-sidebar",
+    "The sidebar stays hidden."
+  );
+  ok(!panel.expandOnHoverInput.checked, "Expand on hover is unchecked.");
+
+  panel.expandOnHoverInput.click();
+  await panel.updateComplete;
+  ok(
+    Services.prefs.getBoolPref("sidebar.revealOnHover"),
+    "Checking expand on hover turns reveal on hover on."
+  );
+
+  panel.visibilityInput.click();
   await panel.updateComplete;
   is(
     Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "expand-on-hover",
-    "Choosing expand on hover replaces hide tabs and sidebar."
+    "Unchecking hide tabs and sidebar keeps expand on hover."
   );
   ok(!panel.visibilityInput.checked, "Hide tabs and sidebar is unchecked.");
+  ok(panel.expandOnHoverInput.checked, "Expand on hover is checked.");
 
   SidebarController.hide();
   await SpecialPowers.popPrefEnv();

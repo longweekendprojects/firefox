@@ -546,6 +546,7 @@ export class SidebarState {
     this.#updateTabbrowser(visible);
     this.#sidebarBoxEl.style.paddingInlineStart =
       this.panelOpen && !visible ? "var(--space-small)" : "unset";
+    this.#controller._updateRevealEdge?.();
   }
 
   get launcherExpanded() {

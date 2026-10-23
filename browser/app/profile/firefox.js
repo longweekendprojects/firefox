@@ -2303,6 +2303,9 @@ pref("sidebar.visibility", "always-show");
 // or has history cleared on browser close.
 pref("sidebar.backupState", "{}");
 pref("sidebar.expandOnHover", true);
+// With sidebar.visibility "hide-sidebar", slide the hidden sidebar in over
+// the page when the pointer reaches the window edge.
+pref("sidebar.revealOnHover", false);
 pref("sidebar.old-sidebar.has-used", false);
 pref("sidebar.new-sidebar.has-used", false);
 pref("sidebar.history.sortOption", "date");

@@ -23,6 +23,8 @@ const toolsNameMap = {
   viewResourceMonitorSidebar: "resourcemonitor",
 };
 const EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS = 1000;
+const REVEAL_ON_HOVER_DELAY_MS = 60;
+const REVEAL_ON_HOVER_HIDE_DELAY_MS = 300;
 const LAUNCHER_SPLITTER_WIDTH = 4;
 
 var SidebarController = {
@@ -2799,6 +2801,156 @@ var SidebarController = {
     );
   },
 
+  _revealEdge: null,
+  _revealTimer: null,
+  _revealed: false,
+  _revealPopups: new Set(),
+
+  /**
+   * Whether a hidden sidebar should slide in over the page when the pointer
+   * reaches the window edge (vertical tabs, "hide-sidebar" visibility).
+   */
+  get _revealOnHoverWanted() {
+    return (
+      this.sidebarRevampEnabled &&
+      this.sidebarVerticalTabsEnabled &&
+      this.sidebarRevampVisibility == "hide-sidebar" &&
+      this._revealOnHoverPref
+    );
+  },
+
+  _updateRevealEdge() {
+    if (this.uninitializing || this.inSingleTabWindow || !this._state) {
+      return;
+    }
+    const active = this._revealOnHoverWanted && !this._state.launcherVisible;
+    if (!active) {
+      this._endReveal();
+      if (this._revealEdge) {
+        this._revealEdge.hidden = true;
+      }
+      return;
+    }
+    if (!this._revealEdge) {
+      const edge = document.createXULElement("box");
+      edge.id = "sidebar-reveal-edge";
+      edge.addEventListener("mouseenter", () => {
+        clearTimeout(this._revealTimer);
+        this._revealTimer = setTimeout(
+          () => this._startReveal(),
+          REVEAL_ON_HOVER_DELAY_MS
+        );
+      });
+      edge.addEventListener("mouseleave", () => {
+        if (!this._revealed) {
+          clearTimeout(this._revealTimer);
+        }
+      });
+      edge.addEventListener("dragenter", () => this._startReveal());
+      document.getElementById("browser").prepend(edge);
+      this._revealEdge = edge;
+    }
+    this._revealEdge.toggleAttribute(
+      "sidebar-positionend",
+      this.sidebarContainer.hasAttribute("sidebar-positionend")
+    );
+    this._revealEdge.hidden = this._revealed;
+  },
+
+  _startReveal() {
+    if (
+      this._revealed ||
+      !this._revealOnHoverWanted ||
+      this._state.launcherVisible
+    ) {
+      return;
+    }
+    this._revealed = true;
+    this._revealEdge.hidden = true;
+    const container = this.sidebarContainer;
+    container.setAttribute("sidebar-hover-revealed", "");
+    container.hidden = false;
+    if (!this._state.launcherExpanded) {
+      this._state.launcherExpanded = true;
+    }
+    this.sidebarMain.requestUpdate();
+    this._onRevealEvent ??= e => this._handleRevealEvent(e);
+    container.addEventListener("mouseleave", this._onRevealEvent);
+    container.addEventListener("mouseenter", this._onRevealEvent);
+    document.addEventListener("popupshown", this._onRevealEvent);
+    document.addEventListener("popuphidden", this._onRevealEvent);
+    document.addEventListener("dragend", this._onRevealEvent, true);
+    if (!container.matches(":hover")) {
+      this._scheduleConceal();
+    }
+  },
+
+  _handleRevealEvent(e) {
+    switch (e.type) {
+      case "mouseenter":
+        clearTimeout(this._revealTimer);
+        break;
+      case "popupshown":
+        if (e.composedTarget.tagName != "tooltip") {
+          this._revealPopups.add(e.composedTarget);
+        }
+        break;
+      case "popuphidden":
+        this._revealPopups.delete(e.composedTarget);
+        this._scheduleConceal();
+        break;
+      default:
+        this._scheduleConceal();
+    }
+  },
+
+  _scheduleConceal() {
+    clearTimeout(this._revealTimer);
+    this._revealTimer = setTimeout(
+      () => this._maybeConceal(),
+      REVEAL_ON_HOVER_HIDE_DELAY_MS
+    );
+  },
+
+  _maybeConceal() {
+    if (!this._revealed || this.sidebarContainer.matches(":hover")) {
+      return;
+    }
+    for (const popup of this._revealPopups) {
+      if (popup.state == "open" || popup.state == "showing") {
+        return;
+      }
+      this._revealPopups.delete(popup);
+    }
+    const dragService = Cc["@mozilla.org/widget/dragservice;1"].getService(
+      Ci.nsIDragService
+    );
+    if (dragService.getCurrentSession(window)) {
+      return;
+    }
+    this._endReveal();
+    this._updateRevealEdge();
+  },
+
+  _endReveal() {
+    clearTimeout(this._revealTimer);
+    if (!this._revealed) {
+      return;
+    }
+    this._revealed = false;
+    this._revealPopups.clear();
+    const container = this.sidebarContainer;
+    container.removeEventListener("mouseleave", this._onRevealEvent);
+    container.removeEventListener("mouseenter", this._onRevealEvent);
+    document.removeEventListener("popupshown", this._onRevealEvent);
+    document.removeEventListener("popuphidden", this._onRevealEvent);
+    document.removeEventListener("dragend", this._onRevealEvent, true);
+    container.removeAttribute("sidebar-hover-revealed");
+    if (!this._state?.launcherVisible) {
+      container.hidden = true;
+    }
+  },
+
   /**
    * Report visibility preference to Glean.
    *
@@ -2917,6 +3069,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
       }
     }
   }
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  SidebarController,
+  "_revealOnHoverPref",
+  "sidebar.revealOnHover",
+  false,
+  () => SidebarController._updateRevealEdge()
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,

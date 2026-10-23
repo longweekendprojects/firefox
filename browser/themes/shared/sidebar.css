@@ -575,3 +575,61 @@ sidebar-main,
     display: none;
   }
 }
+
+/* A hidden sidebar that slides in over the page from the window edge. */
+
+#sidebar-reveal-edge {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 6px;
+  z-index: var(--browser-area-z-index-sidebar-expand-on-hover);
+
+  &[sidebar-positionend] {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+  }
+}
+
+#sidebar-container[sidebar-hover-revealed] {
+  position: absolute;
+  inset-block: var(--space-small);
+  inset-inline-start: 0;
+  z-index: var(--browser-area-z-index-sidebar-expand-on-hover);
+  background-image: image(var(--toolbox-background-color));
+  background-color: light-dark(#e8e8e8, #202020);
+  color: var(--toolbox-text-color);
+  border: 0.01px solid var(--sidebar-border-color);
+  border-inline-start: none;
+  border-start-end-radius: var(--border-radius-large);
+  border-end-end-radius: var(--border-radius-large);
+  box-shadow: 0 4px 24px light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.5));
+
+  &[sidebar-positionend] {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    border-inline-start: 0.01px solid var(--sidebar-border-color);
+    border-inline-end: none;
+    border-radius: var(--border-radius-large) 0 0 var(--border-radius-large);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: sidebar-reveal-in 140ms ease-out;
+
+    &[sidebar-positionend] {
+      animation-name: sidebar-reveal-in-end;
+    }
+  }
+}
+
+@keyframes sidebar-reveal-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes sidebar-reveal-in-end {
+  from {
+    transform: translateX(100%);
+  }
+}

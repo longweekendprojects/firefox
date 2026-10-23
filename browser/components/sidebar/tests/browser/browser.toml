@@ -151,3 +151,5 @@ skip-if = [
 ["browser_view_sidebar_menu.js"]
 
 ["browser_sidebar_button_not_highlighted.js"]
+
+["browser_sidebar_reveal_on_hover.js"]

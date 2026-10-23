@@ -136,9 +136,12 @@ function getMenu() {
  */
 export async function hideSidebar() {
   let controller = window.SidebarController;
-  if (
-    Services.prefs.getStringPref("sidebar.visibility", "") != "hide-sidebar"
-  ) {
+  let visibility = Services.prefs.getStringPref("sidebar.visibility", "");
+  if (visibility != "hide-sidebar") {
+    Services.prefs.setBoolPref(
+      "sidebar.revealOnHover",
+      visibility == "expand-on-hover"
+    );
     Services.prefs.setStringPref("sidebar.visibility", "hide-sidebar");
     await new Promise(resolve => window.requestAnimationFrame(resolve));
   }
