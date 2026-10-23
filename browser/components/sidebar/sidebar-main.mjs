@@ -181,6 +181,21 @@ export default class SidebarMain extends MozLitElement {
         if (!window.SidebarController.sidebarVerticalTabsEnabled) {
           return;
         }
+        // A hidden sidebar, or one sliding in or out, is not overflowing.
+        const container = window.SidebarController.sidebarContainer;
+        if (
+          !entries[0]?.rootBounds?.width ||
+          container.getAnimations().length
+        ) {
+          if (container.getAnimations().length) {
+            container.addEventListener(
+              "animationend",
+              () => this.requestUpdate(),
+              { once: true }
+            );
+          }
+          return;
+        }
         this.shouldShowOverflowButton = entries.some(
           entry =>
             !entry.isIntersecting &&

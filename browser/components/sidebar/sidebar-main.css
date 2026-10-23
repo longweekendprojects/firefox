@@ -230,9 +230,13 @@
 :host([expanded]) .buttons-wrapper > .tools-and-extensions[orientation="horizontal"] {
   gap: 1px;
   padding-inline: var(--space-small) 0;
+  padding-block: var(--space-xsmall);
+  margin-block: 0;
 }
 
 :host([expanded]) .buttons-wrapper > .tools-and-extensions[orientation="horizontal"] > moz-button {
   --button-outer-padding-inline: 0;
+  --button-outer-padding-block: 0;
   --button-size-icon: 28px;
+  --button-min-height: 28px;
 }

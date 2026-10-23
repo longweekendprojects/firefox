@@ -328,3 +328,50 @@ add_task(async function test_full_screen_window_buttons() {
   await TestUtils.waitForCondition(() => sidebarContainer.hidden);
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_bottom_row_aligned_and_steady_while_revealing() {
+  function bottomRow() {
+    const main = SidebarController.sidebarMain;
+    const gear = main.shadowRoot
+      .querySelector(".buttons-wrapper moz-button[view='viewCustomizeSidebar']")
+      .shadowRoot.querySelector("button");
+    const space = document.querySelector("#spaces-bar .space-button[checked]");
+    const add = document.getElementById("spaces-add-button");
+    return {
+      rects: [gear, space, add].map(el =>
+        (
+          el.querySelector?.(".toolbarbutton-icon") ?? el
+        ).getBoundingClientRect()
+      ),
+      overflow: main.shouldShowOverflowButton,
+    };
+  }
+
+  EventUtils.synthesizeMouse(edge(), 2, 100, { type: "mousemove" });
+  await TestUtils.waitForCondition(() => !sidebarContainer.hidden);
+  const offsets = new Set();
+  while (sidebarContainer.getAnimations().length) {
+    const { rects, overflow } = bottomRow();
+    Assert.ok(!overflow, "No overflow button while sliding in");
+    offsets.add(rects.map(r => Math.round(r.x - rects[0].x)).join(","));
+    await new Promise(r => requestAnimationFrame(r));
+  }
+  Assert.lessOrEqual(
+    offsets.size,
+    1,
+    "Buttons keep their spacing while sliding in"
+  );
+
+  const { rects } = bottomRow();
+  for (const r of rects) {
+    Assert.equal(r.width, rects[0].width, "Buttons share a width");
+    Assert.equal(r.height, rects[0].height, "Buttons share a height");
+    Assert.equal(
+      r.y + r.height / 2,
+      rects[0].y + rects[0].height / 2,
+      "Buttons share a vertical center"
+    );
+  }
+  await hoverContent();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+});

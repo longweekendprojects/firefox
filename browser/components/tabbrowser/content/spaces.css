@@ -118,9 +118,9 @@ sidebar-main > #spaces-bar {
   }
 
   > #spaces-add-button > .toolbarbutton-icon {
-    width: 24px;
-    height: 24px;
-    padding: 4px;
+    width: 28px;
+    height: 28px;
+    padding: 6px;
   }
 
   .space-button:not([checked]) {
