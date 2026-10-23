@@ -592,7 +592,7 @@ sidebar-main,
 }
 
 #sidebar-launcher-splitter[sidebar-hover-revealed] {
-  position: absolute;
+  position: fixed;
   inset-block: anchor(--sidebar-hover-revealed top) auto;
   height: anchor-size(--sidebar-hover-revealed height);
   inset-inline-start: anchor(--sidebar-hover-revealed right);
@@ -604,27 +604,25 @@ sidebar-main,
   }
 }
 
+/* The revealed sidebar floats over the whole window, toolbar included, as in
+ * Arc. On macOS its top row holds the window buttons. */
 #sidebar-container[sidebar-hover-revealed] {
   anchor-name: --sidebar-hover-revealed;
-  position: absolute;
+  position: fixed;
   inset-block: var(--space-small);
-  inset-inline-start: 0;
+  inset-inline-start: var(--space-small);
   z-index: var(--browser-area-z-index-sidebar-expand-on-hover);
+  flex-direction: column;
   background-image: image(var(--toolbox-background-color));
   background-color: light-dark(#e8e8e8, #202020);
   color: var(--toolbox-text-color);
   border: 0.01px solid var(--sidebar-border-color);
-  border-inline-start: none;
-  border-start-end-radius: var(--border-radius-large);
-  border-end-end-radius: var(--border-radius-large);
+  border-radius: var(--border-radius-large);
   box-shadow: 0 4px 24px light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.5));
 
   &[sidebar-positionend] {
     inset-inline-start: auto;
-    inset-inline-end: 0;
-    border-inline-start: 0.01px solid var(--sidebar-border-color);
-    border-inline-end: none;
-    border-radius: var(--border-radius-large) 0 0 var(--border-radius-large);
+    inset-inline-end: var(--space-small);
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -668,5 +666,80 @@ sidebar-main,
 @keyframes sidebar-reveal-in-end {
   from {
     transform: translateX(100%);
+  }
+}
+
+#sidebar-container[sidebar-hover-revealed] > sidebar-main {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+#sidebar-window-controls {
+  display: none;
+}
+
+@media (-moz-platform: macos) {
+  /* Leaves room for the macOS window buttons, which the system draws over the
+   * top left of the window, and lets the row drag the window. In full screen
+   * the system hides them, so the row shows its own. */
+  #sidebar-container[sidebar-hover-revealed]:not([sidebar-positionend]) > #sidebar-window-controls {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    height: calc(var(--tab-min-height, 36px) + var(--space-xsmall));
+    padding-inline: 12px;
+    -moz-window-dragging: drag;
+
+    :root:not([inFullscreen]) & > .sidebar-window-control {
+      visibility: hidden;
+    }
+  }
+}
+
+.sidebar-window-control {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0.5px solid rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  -moz-window-dragging: no-drag;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 8px;
+  -moz-context-properties: fill;
+  fill: rgba(0, 0, 0, 0.55);
+
+  /* The colors are the macOS window button colors. */
+  /* stylelint-disable stylelint-plugin-mozilla/use-design-tokens */
+  &#sidebar-window-close {
+    background-color: #ff5f57;
+  }
+
+  &#sidebar-window-minimize {
+    background-color: #febc2e;
+  }
+
+  &#sidebar-window-fullscreen {
+    background-color: #28c840;
+  }
+
+  &:disabled {
+    background-color: light-dark(#d0d0d0, #4a4a4a);
+  }
+  /* stylelint-enable stylelint-plugin-mozilla/use-design-tokens */
+
+  #sidebar-window-controls:hover > & {
+    &#sidebar-window-close {
+      background-image: url("chrome://global/skin/icons/close.svg");
+    }
+
+    &#sidebar-window-fullscreen {
+      background-image: url("chrome://browser/skin/fullscreen-exit.svg");
+    }
   }
 }

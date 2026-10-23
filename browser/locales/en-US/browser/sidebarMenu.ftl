@@ -18,3 +18,16 @@ sidebar-menu-close =
 
 sidebar-close-button =
   .tooltiptext = Close sidebar
+
+## Window buttons at the top of a hidden sidebar shown over a full screen
+## window, in place of the macOS window buttons.
+
+sidebar-window-close =
+  .title = Close window
+  .aria-label = Close window
+sidebar-window-minimize =
+  .title = Minimize
+  .aria-label = Minimize
+sidebar-window-exit-fullscreen =
+  .title = Exit full screen
+  .aria-label = Exit full screen

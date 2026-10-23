@@ -260,3 +260,71 @@ add_task(async function test_resize_while_revealed() {
   await TestUtils.waitForCondition(() => sidebarContainer.hidden);
   AccessibilityUtils.resetEnv();
 });
+
+add_task(async function test_revealed_sidebar_covers_window_top() {
+  await hoverEdge();
+  await Promise.all(sidebarContainer.getAnimations().map(a => a.finished));
+  const sidebar = sidebarContainer.getBoundingClientRect();
+  const navBar = document.getElementById("nav-bar").getBoundingClientRect();
+  Assert.less(
+    sidebar.top,
+    navBar.bottom,
+    "The revealed sidebar reaches the top of the window"
+  );
+  const hit = document.elementFromPoint(
+    sidebar.left + sidebar.width / 2,
+    navBar.top + navBar.height / 2
+  );
+  Assert.ok(sidebarContainer.contains(hit), "It floats over the toolbar");
+  if (AppConstants.platform == "macosx") {
+    const controls = document.getElementById("sidebar-window-controls");
+    Assert.greater(
+      controls.getBoundingClientRect().height,
+      0,
+      "Its top row leaves room for the window buttons"
+    );
+    Assert.equal(
+      getComputedStyle(document.getElementById("sidebar-window-close"))
+        .visibility,
+      "hidden",
+      "Outside full screen the system window buttons are used"
+    );
+  }
+  await hoverContent();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+});
+
+add_task(async function test_full_screen_window_buttons() {
+  if (AppConstants.platform != "macosx") {
+    Assert.ok(true, "Only macOS draws window buttons in the sidebar");
+    return;
+  }
+  await SpecialPowers.pushPrefEnv({
+    set: [["full-screen-api.macos-native-full-screen", false]],
+  });
+  const entered = BrowserTestUtils.waitForEvent(window, "fullscreen");
+  window.fullScreen = true;
+  await entered;
+  await TestUtils.waitForCondition(() =>
+    document.documentElement.hasAttribute("inFullscreen")
+  );
+  await hoverEdge();
+  for (const id of [
+    "sidebar-window-close",
+    "sidebar-window-minimize",
+    "sidebar-window-fullscreen",
+  ]) {
+    Assert.equal(
+      getComputedStyle(document.getElementById(id)).visibility,
+      "visible",
+      `${id} shows in full screen`
+    );
+  }
+  const exited = BrowserTestUtils.waitForEvent(window, "fullscreen");
+  document.getElementById("sidebar-window-fullscreen").click();
+  await exited;
+  Assert.ok(!window.fullScreen, "The green button leaves full screen");
+  await hoverContent();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+  await SpecialPowers.popPrefEnv();
+});

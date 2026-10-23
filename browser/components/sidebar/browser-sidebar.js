@@ -2888,6 +2888,7 @@ var SidebarController = {
     }
     this._revealed = true;
     this._revealEdge.hidden = true;
+    this._initWindowControls();
     const container = this.sidebarContainer;
     this._finishConceal();
     container.setAttribute("sidebar-hover-revealed", "");
@@ -3121,6 +3122,27 @@ var SidebarController = {
   /**
    * Completes a pending slide-out of the hover-revealed sidebar, if any.
    */
+  /**
+   * Wires the window buttons at the top of the revealed sidebar. They show
+   * only in full screen on macOS, where the system hides its own.
+   */
+  _initWindowControls() {
+    if (this._windowControlsReady) {
+      return;
+    }
+    this._windowControlsReady = true;
+    document
+      .getElementById("sidebar-window-close")
+      ?.addEventListener("click", event =>
+        window.BrowserCommands.tryToCloseWindow(event)
+      );
+    document
+      .getElementById("sidebar-window-fullscreen")
+      ?.addEventListener("click", () => {
+        window.fullScreen = false;
+      });
+  },
+
   _finishConceal() {
     if (!this._onConcealEnd) {
       return;
