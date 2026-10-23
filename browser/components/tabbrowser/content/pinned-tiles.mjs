@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser */
+/* global gBrowser, BrowserCommands */
 
 /**
  * Pinned tiles: in the expanded vertical tab strip, pinned tabs show as a
@@ -15,7 +15,10 @@
  * is chosen in Settings or from the pinned tab context menu.
  *
  * With browser.tabs.vertical.newTabButtonAtTop, the vertical tab strip's New
- * Tab button sits above the other tabs, as in Arc.
+ * Tab button sits above the other tabs, as in Arc. In the expanded sidebar it
+ * is the first row of the scrolled tab list, so it scrolls with the tabs. It
+ * lives in the tab list's shadow tree, so tab code that walks the list's
+ * children never sees it.
  */
 
 const COLUMNS_PREF = "browser.tabs.pinnedTiles.columns";
@@ -35,6 +38,7 @@ let container = null;
 let resizeObserver = null;
 let lastWidth = 0;
 let pendingFrame = 0;
+let listButton = null;
 
 /**
  * Columns for `count` tiles in automatic layout: as many tiles per row as
@@ -77,6 +81,10 @@ export function init() {
   }
   Services.prefs.addObserver(COLUMNS_PREF, scheduleUpdate);
   Services.prefs.addObserver(NEW_TAB_AT_TOP_PREF, scheduleUpdate);
+  new MutationObserver(scheduleUpdate).observe(gBrowser.tabContainer, {
+    attributes: true,
+    attributeFilter: ["orient", "expanded"],
+  });
   window.addEventListener("unload", uninit, { once: true });
   resizeObserver = new ResizeObserver(([entry]) => {
     let width = Math.round(entry.contentRect.width);
@@ -111,10 +119,18 @@ function scheduleUpdate() {
 
 /** Applies the layout pref to the pinned tabs container. */
 export function update() {
-  gBrowser.tabContainer.toggleAttribute(
-    "newtab-at-top",
-    Services.prefs.getBoolPref(NEW_TAB_AT_TOP_PREF, false)
-  );
+  let newTabAtTop = Services.prefs.getBoolPref(NEW_TAB_AT_TOP_PREF, false);
+  gBrowser.tabContainer.toggleAttribute("newtab-at-top", newTabAtTop);
+  let tabs = gBrowser.tabContainer;
+  if (newTabAtTop && tabs.verticalMode) {
+    ensureListButton();
+    tabs.arrowScrollbox.setAttribute(
+      "newtab-row",
+      tabs.hasAttribute("expanded") ? "expanded" : "collapsed"
+    );
+  } else {
+    tabs.arrowScrollbox.removeAttribute("newtab-row");
+  }
   let setting = Services.prefs.getIntPref(COLUMNS_PREF, 0);
   let count = gBrowser.visibleTabs.filter(tab => tab.pinned).length;
   // Pinned tabs of other spaces are hidden, not removed, so :empty misses them.
@@ -134,6 +150,38 @@ export function update() {
     : autoColumns(count, gridWidth());
   container.setAttribute("tile-layout", setting ? "fixed" : "auto");
   container.style.setProperty("--pinned-tile-columns", columns);
+}
+
+/** Adds the New Tab row at the start of the scrolled tab list. */
+function ensureListButton() {
+  if (listButton) {
+    return;
+  }
+  let scrollbox = gBrowser.tabContainer.arrowScrollbox.scrollbox;
+  let link = document.createElementNS("http://www.w3.org/1999/xhtml", "link");
+  link.rel = "stylesheet";
+  link.href = "chrome://browser/content/tabbrowser/newtab-in-list.css";
+  listButton = document.createXULElement("toolbarbutton");
+  listButton.id = "tabs-list-newtab-button";
+  listButton.className = "toolbarbutton-1";
+  listButton.setAttribute("part", "list-newtab-button");
+  listButton.addEventListener("command", event =>
+    BrowserCommands.openTab({ event })
+  );
+  scrollbox.prepend(link, listButton);
+  let source = document.getElementById("vertical-tabs-newtab-button");
+  let copyLabel = () => {
+    listButton.setAttribute("label", source.getAttribute("label") ?? "");
+    listButton.setAttribute(
+      "tooltiptext",
+      source.getAttribute("tooltiptext") ?? ""
+    );
+  };
+  copyLabel();
+  new MutationObserver(copyLabel).observe(source, {
+    attributes: true,
+    attributeFilter: ["label", "tooltiptext"],
+  });
 }
 
 /**

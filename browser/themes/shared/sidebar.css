@@ -319,11 +319,11 @@ sidebar-main,
   --sidebar-fade-divider-image: linear-gradient(
     to right,
     transparent,
-    color-mix(in srgb, currentColor 22%, transparent) 22%,
-    color-mix(in srgb, currentColor 22%, transparent) 78%,
+    color-mix(in srgb, currentColor 22%, transparent) 15%,
+    color-mix(in srgb, currentColor 22%, transparent) 85%,
     transparent
   );
-  --sidebar-fade-divider-size: 94% 1px;
+  --sidebar-fade-divider-size: 100% 1px;
   --sidebar-divider-image:
     radial-gradient(circle closest-side, var(--sidebar-divider-color) 100%, transparent 100%),
     radial-gradient(circle closest-side, var(--sidebar-divider-color) 100%, transparent 100%),

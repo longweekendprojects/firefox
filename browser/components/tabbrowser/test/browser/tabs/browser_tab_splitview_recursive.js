@@ -1289,7 +1289,9 @@ add_task(async function test_new_tab_button_keeps_the_tab_gap() {
     gBrowser.tabContainer.hasAttribute("expanded")
   );
   const extra = await addLoadedTab();
-  const button = document.getElementById("vertical-tabs-newtab-button");
+  const button = gBrowser.tabContainer.arrowScrollbox.scrollbox.querySelector(
+    "#tabs-list-newtab-button"
+  );
   await TestUtils.waitForCondition(
     () => button.getBoundingClientRect().height,
     "The New Tab button shows"

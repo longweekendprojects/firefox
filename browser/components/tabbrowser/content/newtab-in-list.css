@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* The label matches the tab labels, which have no font token. */
+/* stylelint-disable stylelint-plugin-mozilla/use-design-tokens */
+
+/* The New Tab row at the start of the scrolled vertical tab list. It sits
+   in the list's shadow tree, so it takes the tab strip's custom properties
+   but none of its rules. */
+#tabs-list-newtab-button {
+  display: none;
+}
+
+:host([newtab-row]) #tabs-list-newtab-button {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: var(--tab-min-height);
+  margin-block: 0 var(--tab-margin-block);
+  margin-inline: var(--tab-inner-inline-margin);
+  padding: 0 calc(var(--tab-inline-padding) - var(--tab-inner-inline-margin));
+  border-radius: var(--tab-border-radius);
+  color: inherit;
+  list-style-image: url("chrome://global/skin/icons/plus.svg");
+  -moz-context-properties: fill;
+  fill: var(--toolbarbutton-icon-fill);
+
+  &:hover {
+    background-color: var(--tab-background-color-hover);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
+  }
+
+  > .toolbarbutton-icon {
+    width: var(--size-item-small);
+    height: var(--size-item-small);
+  }
+
+  > .toolbarbutton-text {
+    display: block;
+    text-align: start;
+    padding-inline-start: var(--tab-icon-end-margin);
+    font-size: 1.08em;
+    font-weight: var(--font-weight-semibold);
+    color: var(--toolbarbutton-icon-fill);
+  }
+}
+
+:host([newtab-row="collapsed"]) #tabs-list-newtab-button {
+  justify-content: center;
+  padding: 0;
+
+  > .toolbarbutton-text {
+    display: none;
+  }
+}

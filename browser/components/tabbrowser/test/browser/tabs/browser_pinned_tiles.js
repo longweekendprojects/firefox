@@ -193,7 +193,9 @@ add_task(async function test_new_tab_button_at_top() {
   let pinnedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
   gBrowser.pinTab(pinnedTab);
   await settle();
-  let button = document.getElementById("vertical-tabs-newtab-button");
+  let button = gBrowser.tabContainer.arrowScrollbox.scrollbox.querySelector(
+    "#tabs-list-newtab-button"
+  );
   Assert.ok(BrowserTestUtils.isVisible(button), "New Tab shows above the tabs");
   let firstTab = gBrowser.visibleTabs.find(t => !t.pinned);
   Assert.lessOrEqual(
@@ -210,6 +212,35 @@ add_task(async function test_new_tab_button_at_top() {
     !BrowserTestUtils.isVisible(document.getElementById("tabs-newtab-button")),
     "The New Tab button after the tabs is not shown"
   );
+  Assert.ok(
+    !BrowserTestUtils.isVisible(
+      document.getElementById("vertical-tabs-newtab-button")
+    ),
+    "The New Tab button outside the tab list is not shown"
+  );
+
+  let opened = BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "TabOpen");
+  EventUtils.synthesizeMouseAtCenter(button, {});
+  let { target: newTab } = await opened;
+  Assert.ok(true, "Clicking the New Tab row opens a tab");
+  BrowserTestUtils.removeTab(newTab);
+
+  let extra = [];
+  for (let i = 0; i < 40; i++) {
+    extra.push(BrowserTestUtils.addTab(gBrowser, "about:blank"));
+  }
+  await settle();
+  let scrollbox = gBrowser.tabContainer.arrowScrollbox.scrollbox;
+  let before = button.getBoundingClientRect().top;
+  scrollbox.scrollTo({ top: 100, behavior: "instant" });
+  await TestUtils.waitForCondition(
+    () => button.getBoundingClientRect().top < before - 50,
+    "The New Tab row scrolls with the tabs"
+  );
+  scrollbox.scrollTo({ top: 0, behavior: "instant" });
+  for (let tab of extra) {
+    BrowserTestUtils.removeTab(tab);
+  }
   BrowserTestUtils.removeTab(pinnedTab);
   await SpecialPowers.popPrefEnv();
 });
@@ -243,9 +274,49 @@ add_task(async function test_tile_close_button() {
     tile.top + tile.height / 2,
     "The close button sits at the top of the tile"
   );
+  let resting = getComputedStyle(button).backgroundColor;
+  Assert.notEqual(
+    resting,
+    "rgba(0, 0, 0, 0)",
+    "The close button has a solid circle behind it"
+  );
+  EventUtils.synthesizeMouseAtCenter(button, { type: "mousemove" });
+  await TestUtils.waitForCondition(
+    () => getComputedStyle(button).backgroundColor != resting,
+    "The close button lightens under the pointer"
+  );
   let closed = BrowserTestUtils.waitForTabClosing(tab);
   EventUtils.synthesizeMouseAtCenter(button, {});
   await closed;
   Assert.ok(keep.pinned, "Other pinned tabs stay");
   BrowserTestUtils.removeTab(keep);
+});
+
+add_task(async function test_line_under_tiles_is_centered() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.vertical.newTabButtonAtTop", true]],
+  });
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  gBrowser.pinTab(tab);
+  await settle();
+  let tile = tab.getBoundingClientRect();
+  let line = document
+    .getElementById("vertical-pinned-tabs-splitter")
+    .getBoundingClientRect();
+  let lineY = line.top + line.height / 2;
+  let button = gBrowser.tabContainer.arrowScrollbox.scrollbox
+    .querySelector("#tabs-list-newtab-button")
+    .getBoundingClientRect();
+  let above = lineY - tile.bottom;
+  let below = button.top - lineY;
+  info(`above ${above}, below ${below}`);
+  Assert.less(Math.abs(above - below), 1, "The line sits midway");
+  Assert.lessOrEqual(above, 8, "The line sits close to the tiles");
+  Assert.equal(
+    getComputedStyle(gBrowser.tabContainer, "::after").display,
+    "none",
+    "No extra solid line is drawn"
+  );
+  BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
 });

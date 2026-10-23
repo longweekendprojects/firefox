@@ -3693,9 +3693,14 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
   .tabbrowser-tab {
     min-width: 0 !important;
-    max-width: none !important;
-    width: auto !important;
     height: var(--pinned-tile-height);
+
+    /* A dragged tile keeps the width fixed at drag start. */
+    &:not([dragtarget]) {
+      max-width: none !important;
+      width: auto !important;
+    }
+
     padding: 0 !important;
     margin: 0 !important;
   }
@@ -3754,10 +3759,11 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     margin: 0 !important;
     padding: 3px;
     border-radius: 50%;
-    background-color: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+    background-color: light-dark(#fff, #1c1b22);
     box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.3),
-      0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
+      0 1px 4px rgba(0, 0, 0, 0.45),
+      0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
     opacity: 0;
     visibility: hidden;
     transition:
@@ -3765,7 +3771,8 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
       visibility 0s 120ms;
 
     &:hover {
-      background-color: color-mix(in srgb, currentColor 22%, var(--tab-selected-bgcolor, var(--toolbar-bgcolor)));
+      /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+      background-color: light-dark(#dcdce2, #5b5b66);
     }
   }
 
@@ -3828,7 +3835,9 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   justify-content: center;
   pointer-events: none;
   color: var(--toolbar-color);
-  background-color: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  background-color: light-dark(#fff, #2b2a33);
+  background-image: linear-gradient(var(--tab-background-color-selected), var(--tab-background-color-selected));
   border-radius: var(--border-radius-large);
   box-shadow:
     0 6px 18px rgba(0, 0, 0, 0.25),
@@ -3858,30 +3867,31 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   border-top: none;
 }
 
+/* The line sits as far below the tiles as above the New Tab button. The
+   tab strip's own bottom border is not drawn: the sidebar's bottom row has
+   its own faded line. */
 #tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] ~ #vertical-pinned-tabs-splitter {
-  min-height: 1px;
-  margin-block: 8px 2px;
+  min-height: 4px;
+  margin-block: calc(4px - var(--space-small));
   pointer-events: none;
+}
+
+#tabbrowser-tabs[orient="vertical"][expanded]::after {
+  display: none;
 }
 
 /* The New Tab button above the other tabs, under the pinned tabs, as in Arc.
    The button after the tabs is not shown, so the two never swap places when
    the tab list overflows. */
 #tabbrowser-tabs[orient="vertical"][newtab-at-top] {
+  /* The New Tab row is the first row of the scrolled tab list instead. */
   > #vertical-tabs-newtab-button {
-    display: flex !important;
-    order: 1;
+    display: none !important;
   }
 
-  /* The button sits one tab gap above the first tab. */
-  &[expanded] {
-    > #vertical-tabs-newtab-button {
-      margin-block-end: calc(var(--tab-margin-block) - var(--space-small));
-    }
-
-    #tabbrowser-arrowscrollbox .tabbrowser-tab:nth-child(1 of :not([hidden], [pinned])) {
-      padding-block-start: var(--tab-padding-block-start);
-    }
+  /* The first tab sits one tab gap under the New Tab row. */
+  #tabbrowser-arrowscrollbox .tabbrowser-tab:nth-child(1 of :not([hidden], [pinned])) {
+    padding-block-start: var(--tab-padding-block-start);
   }
 
   > #tabbrowser-arrowscrollbox,

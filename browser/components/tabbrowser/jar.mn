@@ -18,6 +18,7 @@ browser.jar:
    content/browser/tabbrowser/peek.mjs                    (content/peek.mjs)
    content/browser/tabbrowser/pinned-tiles.mjs            (content/pinned-tiles.mjs)
    content/browser/tabbrowser/spaces.css                  (content/spaces.css)
+   content/browser/tabbrowser/newtab-in-list.css          (content/newtab-in-list.css)
    content/browser/tabbrowser/spaces.mjs                  (content/spaces.mjs)
    content/browser/tabbrowser/split-view-footer.js        (content/split-view-footer.js)
    content/browser/tabbrowser/splitview-panes.css         (content/splitview-panes.css)

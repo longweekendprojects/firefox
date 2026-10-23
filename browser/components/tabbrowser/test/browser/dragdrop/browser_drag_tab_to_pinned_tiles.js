@@ -138,3 +138,56 @@ add_task(async function test_drag_tab_to_end_of_pinned_tiles() {
     }
   }
 });
+
+add_task(async function test_drag_pinned_tile_keeps_its_size() {
+  let pinned = [];
+  for (let i = 0; i < 4; i++) {
+    let tab = await addTab(`data:text/html,pinned${i}`);
+    gBrowser.pinTab(tab);
+    pinned.push(tab);
+  }
+  let container = gBrowser.pinnedTabsContainer;
+  await TestUtils.waitForCondition(() => container.hasAttribute("tile-layout"));
+  let size = pinned[0].getBoundingClientRect();
+  let target = pinned[2].getBoundingClientRect();
+  let dragged;
+  try {
+    await customDragAndDrop(
+      pinned[0],
+      pinned[2],
+      TestUtils.waitForCondition(() => {
+        if (!pinned[0].hasAttribute("dragtarget")) {
+          return false;
+        }
+        dragged = pinned[0].getBoundingClientRect();
+        return true;
+      }, "The tile is being dragged"),
+      null,
+      {
+        clientX: target.left + target.width / 2,
+        clientY: target.top + target.height / 2,
+        dropEffect: "move",
+      }
+    );
+    Assert.less(
+      Math.abs(dragged.width - size.width),
+      1,
+      "A dragged tile keeps its width"
+    );
+    Assert.less(
+      Math.abs(dragged.height - size.height),
+      1,
+      "A dragged tile keeps its height"
+    );
+    Assert.ok(pinned[0].pinned, "The tile stays pinned");
+    Assert.notEqual(
+      gBrowser.visibleTabs.filter(t => t.pinned)[0],
+      pinned[0],
+      "The tile moves to where it was dropped"
+    );
+  } finally {
+    for (let t of pinned) {
+      BrowserTestUtils.removeTab(t);
+    }
+  }
+});
