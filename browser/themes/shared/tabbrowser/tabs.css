@@ -3776,3 +3776,19 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     font-weight: 500;
   }
 }
+
+/* A split row has the same corner radius as a single tab row, and its pane
+   segments follow that curve, inset by the row's padding. */
+#tabbrowser-tabs[orient="vertical"][expanded] #tabbrowser-arrowscrollbox tab-split-view-wrapper {
+  --split-row-radius: 6px;
+  --split-row-inset: 2px;
+  --tab-border-radius: calc(var(--split-row-radius) - var(--split-row-inset));
+
+  border-radius: var(--split-row-radius) !important;
+  padding: var(--split-row-inset);
+  gap: var(--split-row-inset);
+
+  > .tabbrowser-tab > .tab-stack > .tab-background {
+    margin: 0 !important;
+  }
+}
