@@ -93,3 +93,46 @@
 #sidebar-container[space-tint] {
   background-image: linear-gradient(color-mix(in srgb, var(--space-tint-color) 10%, transparent), color-mix(in srgb, var(--space-tint-color) 10%, transparent));
 }
+
+/* In the sidebar's bottom row, as in Arc, the shown space is an icon and the
+ * others are colored dots. */
+sidebar-main > #spaces-bar {
+  display: flex;
+  align-items: center;
+  flex: 1 0 auto;
+  gap: 2px;
+  padding-block: var(--space-xsmall);
+  padding-inline: var(--space-xxsmall) var(--space-xsmall);
+
+  > #spaces-list {
+    flex: 1;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0;
+  }
+
+  .toolbarbutton-1 > .toolbarbutton-icon {
+    width: 28px;
+    height: 28px;
+    padding: 6px;
+  }
+
+  > #spaces-add-button > .toolbarbutton-icon {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+  }
+
+  .space-button:not([checked]) {
+    opacity: 0.7;
+
+    > .toolbarbutton-icon {
+      width: 12px;
+      padding: 11px 3px;
+      background-clip: content-box;
+      background-color: var(--identity-icon-color);
+      border-radius: 50%;
+      fill: transparent;
+    }
+  }
+}

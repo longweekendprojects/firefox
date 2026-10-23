@@ -376,3 +376,55 @@ add_task(async function test_swipe_keys_and_tint() {
   );
   Services.prefs.clearUserPref(LIST_PREF);
 });
+
+add_task(async function test_bar_shares_the_tools_row_when_expanded() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.visibility", "always-show"],
+      ["sidebar.main.tools", "history,bookmarks"],
+    ],
+  });
+  await SidebarController.promiseInitialized;
+  setSpaces(TWO_SPACES);
+  let bar = document.getElementById("spaces-bar");
+  let main = document.querySelector("sidebar-main");
+  let container = gBrowser.tabContainer;
+
+  if (!container.hasAttribute("expanded")) {
+    SidebarController.handleToolbarButtonClick();
+  }
+  await BrowserTestUtils.waitForMutationCondition(
+    container,
+    { attributes: true },
+    () => container.hasAttribute("expanded")
+  );
+  await TestUtils.waitForCondition(
+    () => main.shadowRoot.querySelector(".tools-and-extensions moz-button"),
+    "Tools are shown"
+  );
+  Assert.equal(
+    bar.parentNode,
+    main,
+    "The bar sits in the sidebar's bottom row"
+  );
+  let tools = main.shadowRoot
+    .querySelector(".tools-and-extensions")
+    .getBoundingClientRect();
+  let row = bar.getBoundingClientRect();
+  Assert.less(row.top, tools.bottom, "The bar is level with the tools");
+  Assert.greater(row.bottom, tools.top, "The bar is level with the tools");
+  Assert.greaterOrEqual(row.left, tools.right, "The bar follows the tools");
+
+  SidebarController.handleToolbarButtonClick();
+  await BrowserTestUtils.waitForMutationCondition(
+    container,
+    { attributes: true },
+    () => !container.hasAttribute("expanded")
+  );
+  Assert.equal(
+    bar.parentNode,
+    container,
+    "The bar returns to the tab strip when the sidebar collapses"
+  );
+  await SpecialPowers.popPrefEnv();
+});

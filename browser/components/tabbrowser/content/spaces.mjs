@@ -421,7 +421,11 @@ function buildBar() {
   document.l10n.setAttributes(add, "spaces-add-button");
   add.addEventListener("command", () => openEditor(add));
   bar.append(list, add);
-  gBrowser.tabContainer.append(bar);
+  placeBar();
+  new MutationObserver(placeBar).observe(gBrowser.tabContainer, {
+    attributes: true,
+    attributeFilter: ["orient", "expanded"],
+  });
   list.addEventListener("command", event => {
     let id = event.target.closest(".space-button")?.dataset.spaceId;
     if (id) {
@@ -442,6 +446,27 @@ function buildBar() {
       event
     );
   });
+}
+
+/**
+ * Puts the bar in the sidebar's bottom row, next to the sidebar tools, while
+ * the vertical tab strip is expanded, and at the end of the tab strip
+ * otherwise.
+ */
+function placeBar() {
+  let container = gBrowser.tabContainer;
+  let main = document.querySelector("sidebar-main");
+  let inRow =
+    main &&
+    container.getAttribute("orient") == "vertical" &&
+    container.hasAttribute("expanded");
+  if (inRow && bar.parentNode != main) {
+    bar.slot = "spaces";
+    main.append(bar);
+  } else if (!inRow && bar.parentNode != container) {
+    bar.removeAttribute("slot");
+    container.append(bar);
+  }
 }
 
 function render() {

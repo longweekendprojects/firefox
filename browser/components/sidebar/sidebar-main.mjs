@@ -931,6 +931,7 @@ export default class SidebarMain extends MozLitElement {
             >
             </moz-button>
           </button-group>
+          <slot name="spaces"></slot>
         </div>
       </div>
     `;

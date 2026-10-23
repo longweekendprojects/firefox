@@ -261,6 +261,45 @@ add_task(async function test_customize_visibility_setting() {
   await SpecialPowers.popPrefEnv();
 });
 
+add_task(async function test_hide_sidebar_available_with_expand_on_hover() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [VERTICAL_TABS_PREF, true],
+      ["sidebar.expandOnHover", true],
+      [SIDEBAR_VISIBILITY_PREF, "expand-on-hover"],
+    ],
+  });
+  await SidebarTestUtils.waitForTabstripOrientation(window, "vertical");
+
+  const panel = await showCustomizePanel(window);
+  ok(panel.expandOnHoverInput.checked, "Expand on hover is checked.");
+  ok(
+    !panel.visibilityInput.disabled,
+    "Hide tabs and sidebar can be chosen while expand on hover is on."
+  );
+  panel.visibilityInput.click();
+  await panel.updateComplete;
+  is(
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
+    "hide-sidebar",
+    "Choosing hide tabs and sidebar replaces expand on hover."
+  );
+  ok(!panel.expandOnHoverInput.checked, "Expand on hover is unchecked.");
+  ok(!panel.expandOnHoverInput.disabled, "Expand on hover can be chosen.");
+
+  panel.expandOnHoverInput.click();
+  await panel.updateComplete;
+  is(
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
+    "expand-on-hover",
+    "Choosing expand on hover replaces hide tabs and sidebar."
+  );
+  ok(!panel.visibilityInput.checked, "Hide tabs and sidebar is unchecked.");
+
+  SidebarController.hide();
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_vertical_tabs_setting() {
   const panel = await showCustomizePanel(window);
   ok(

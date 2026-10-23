@@ -219,3 +219,20 @@
 .bottom-actions {
   align-self: end;
 }
+
+/* Spaces share the bottom row with the tools, and wrap above them when the
+ * row is too narrow for both. The tools are compact to leave them room. */
+:host([expanded]) .buttons-wrapper {
+  flex-wrap: wrap-reverse;
+  align-items: center;
+}
+
+:host([expanded]) .buttons-wrapper > .tools-and-extensions[orientation="horizontal"] {
+  gap: 1px;
+  padding-inline: var(--space-small) 0;
+}
+
+:host([expanded]) .buttons-wrapper > .tools-and-extensions[orientation="horizontal"] > moz-button {
+  --button-outer-padding-inline: 0;
+  --button-size-icon: 28px;
+}

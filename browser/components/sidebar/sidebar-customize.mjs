@@ -270,9 +270,7 @@ export class SidebarCustomize extends SidebarPage {
                       name="expand-on-hover"
                       data-l10n-id="expand-sidebar-on-hover"
                       @change=${this.#toggleExpandOnHover}
-                      ?checked=${this.getWindow().SidebarController._state
-                        .revampVisibility === "expand-on-hover"}
-                      ?disabled=${this.visibility == "hide-sidebar"}
+                      ?checked=${this.visibility == "expand-on-hover"}
                     ></moz-checkbox>
                   `
                 )}
@@ -284,8 +282,6 @@ export class SidebarCustomize extends SidebarPage {
                   data-l10n-id="sidebar-hide-tabs-and-sidebar"
                   @change=${this.#handleVisibilityChange}
                   ?checked=${this.visibility == "hide-sidebar"}
-                  ?disabled=${this.getWindow().SidebarController._state
-                    .revampVisibility === "expand-on-hover"}
                 ></moz-checkbox>
               `
             )}
@@ -390,6 +386,7 @@ export class SidebarCustomize extends SidebarPage {
 
   #toggleExpandOnHover(e) {
     e.stopPropagation();
+    this.visibility = e.target.checked ? "expand-on-hover" : "always-show";
     if (e.target.checked) {
       Services.prefs.setStringPref("sidebar.visibility", "expand-on-hover");
       Glean.sidebarCustomize.expandOnHoverEnabled.record({
