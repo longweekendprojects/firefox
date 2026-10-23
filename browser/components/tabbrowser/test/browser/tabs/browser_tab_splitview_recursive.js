@@ -1182,6 +1182,7 @@ add_task(async function test_split_row_matches_a_tab_row() {
   await TestUtils.waitForCondition(() =>
     gBrowser.tabContainer.hasAttribute("expanded")
   );
+  const before = await addLoadedTab();
   const single = await addLoadedTab();
   const tabs = [await addLoadedTab(), await addLoadedTab()];
   gBrowser.addTabSplitView(tabs);
@@ -1198,7 +1199,15 @@ add_task(async function test_split_row_matches_a_tab_row() {
   ]) {
     Assert.less(Math.abs(a - b), 1, `The split row has a tab's ${name}`);
   }
-  for (const t of [single, ...tabs]) {
+  const above = before.querySelector(".tab-background").getBoundingClientRect();
+  const tabGap = tab.top - above.bottom;
+  Assert.lessOrEqual(tabGap, 6, "Tab rows sit close together");
+  Assert.less(
+    Math.abs(row.top - tab.bottom - tabGap),
+    1,
+    "A split row keeps the same gap as a tab row"
+  );
+  for (const t of [before, single, ...tabs]) {
     BrowserTestUtils.removeTab(t);
   }
   await SpecialPowers.popPrefEnv();

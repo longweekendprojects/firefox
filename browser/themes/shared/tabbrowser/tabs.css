@@ -2990,6 +2990,12 @@ tab-group {
   --tab-padding-block-start: 3px;
   --tab-padding-block-end: 2px;
 
+  /* Tab rows in the expanded sidebar sit a little closer together. */
+  &[expanded] {
+    --tab-padding-block-start: 1px;
+    --tab-padding-block-end: 1px;
+  }
+
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -3892,7 +3898,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   border-radius: var(--split-row-radius) !important;
   padding: var(--split-row-inset);
   gap: var(--split-row-inset);
-  margin-block: 5px 4px;
+  margin-block: calc(var(--tab-padding-block-start) + var(--tab-margin-block)) calc(var(--tab-padding-block-end) + var(--tab-margin-block));
   margin-inline: var(--tab-inner-inline-margin) !important;
 
   > .tabbrowser-tab {
