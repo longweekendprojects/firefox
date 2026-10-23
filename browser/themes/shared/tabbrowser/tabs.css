@@ -3803,3 +3803,13 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     display: none;
   }
 }
+
+/* Vertical tab rows: a slightly larger, heavier label and a squarer hover. */
+#tabbrowser-tabs[orient="vertical"] #tabbrowser-arrowscrollbox {
+  --tab-border-radius: 6px;
+
+  .tab-label {
+    font-size: 1.08em;
+    font-weight: 500;
+  }
+}
