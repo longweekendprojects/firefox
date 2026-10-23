@@ -3010,6 +3010,8 @@ tab-group {
   &[expanded] {
     --tab-padding-block-start: 0px;
     --tab-padding-block-end: 0px;
+    /* Taller rows, so the titles have more room above and below. */
+    --tab-min-height: 36px;
   }
 
   min-height: 0;
@@ -3928,7 +3930,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   --tab-border-radius: 7px;
 
   .tab-label {
-    font-size: 1.15em;
+    font-size: 1.2em;
     font-weight: 500;
   }
 }

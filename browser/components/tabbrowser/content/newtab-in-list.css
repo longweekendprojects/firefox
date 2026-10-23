@@ -56,7 +56,7 @@
     display: block;
     text-align: start;
     padding-inline-start: var(--tab-icon-end-margin);
-    font-size: 1.15em;
+    font-size: 1.2em;
     font-weight: var(--font-weight-semibold);
     color: var(--toolbarbutton-icon-fill);
   }
