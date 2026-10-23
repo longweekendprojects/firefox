@@ -140,3 +140,71 @@ add_task(async function test_closing_settings_after_choosing_hide() {
   Services.prefs.clearUserPref("sidebar.revealOnHover");
   await SpecialPowers.popPrefEnv();
 });
+
+function leaveWindow(target, clientX) {
+  target.dispatchEvent(
+    new MouseEvent(target == edge() ? "mouseleave" : "mouseout", {
+      bubbles: target != edge(),
+      clientX,
+      clientY: 100,
+      relatedTarget: null,
+    })
+  );
+}
+
+function reenterWindow() {
+  document
+    .getElementById("tabbrowser-tabbox")
+    .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+}
+
+add_task(async function test_overshooting_the_edge_reveals_and_stays() {
+  Assert.ok(!edge().hidden, "The reveal edge is active");
+  leaveWindow(edge(), -3);
+  Assert.ok(!sidebarContainer.hidden, "Leaving through the edge reveals");
+
+  leaveWindow(sidebarContainer, -3);
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 600));
+  Assert.ok(
+    !sidebarContainer.hidden,
+    "The sidebar stays while the pointer is past the window edge"
+  );
+
+  reenterWindow();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+
+  const tabbox = document.getElementById("tabbrowser-tabbox");
+  leaveWindow(tabbox, 20);
+  Assert.ok(
+    !sidebarContainer.hidden,
+    "A fast exit that skips the edge strip still reveals"
+  );
+  reenterWindow();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+
+  leaveWindow(tabbox, 600);
+  Assert.ok(sidebarContainer.hidden, "Leaving far from the edge does not");
+});
+
+add_task(async function test_conceal_slides_out() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["ui.prefersReducedMotion", 0]],
+  });
+  await hoverEdge();
+  let sawSlideOut = false;
+  const observer = new MutationObserver(() => {
+    sawSlideOut ||= sidebarContainer.hasAttribute("sidebar-hover-concealing");
+  });
+  observer.observe(sidebarContainer, { attributes: true });
+  await hoverContent();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+  observer.disconnect();
+  Assert.ok(sawSlideOut, "The sidebar slides out before hiding");
+  Assert.ok(
+    !sidebarContainer.hasAttribute("sidebar-hover-concealing") &&
+      !sidebarContainer.hasAttribute("sidebar-hover-revealed"),
+    "Slide-out attributes are cleared"
+  );
+  Assert.ok(!edge().hidden, "The edge is active again");
+});

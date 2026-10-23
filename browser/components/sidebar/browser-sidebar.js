@@ -23,8 +23,9 @@ const toolsNameMap = {
   viewResourceMonitorSidebar: "resourcemonitor",
 };
 const EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS = 1000;
-const REVEAL_ON_HOVER_DELAY_MS = 60;
-const REVEAL_ON_HOVER_HIDE_DELAY_MS = 300;
+const REVEAL_ON_HOVER_DELAY_MS = 40;
+const REVEAL_ON_HOVER_HIDE_DELAY_MS = 350;
+const REVEAL_ON_HOVER_EXIT_SLOP_PX = 48;
 const LAUNCHER_SPLITTER_WIDTH = 4;
 
 var SidebarController = {
@@ -2826,6 +2827,7 @@ var SidebarController = {
     const active = this._revealOnHoverWanted && !this._state.launcherVisible;
     if (!active) {
       this._endReveal();
+      this._finishConceal();
       if (this._revealEdge) {
         this._revealEdge.hidden = true;
       }
@@ -2841,11 +2843,29 @@ var SidebarController = {
           REVEAL_ON_HOVER_DELAY_MS
         );
       });
-      edge.addEventListener("mouseleave", () => {
-        if (!this._revealed) {
-          clearTimeout(this._revealTimer);
+      edge.addEventListener("mouseleave", e => {
+        if (this._revealed) {
+          return;
+        }
+        clearTimeout(this._revealTimer);
+        if (this._pointerLeftThroughEdge(e)) {
+          this._startReveal();
         }
       });
+      document.addEventListener(
+        "mouseout",
+        e => {
+          if (
+            !e.relatedTarget &&
+            !this._revealed &&
+            !this._revealEdge.hidden &&
+            this._pointerLeftThroughEdge(e)
+          ) {
+            this._startReveal();
+          }
+        },
+        true
+      );
       edge.addEventListener("dragenter", () => this._startReveal());
       document.getElementById("browser").prepend(edge);
       this._revealEdge = edge;
@@ -2868,6 +2888,7 @@ var SidebarController = {
     this._revealed = true;
     this._revealEdge.hidden = true;
     const container = this.sidebarContainer;
+    this._finishConceal();
     container.setAttribute("sidebar-hover-revealed", "");
     container.hidden = false;
     if (!this._state.launcherExpanded) {
@@ -2880,7 +2901,8 @@ var SidebarController = {
     document.addEventListener("popupshown", this._onRevealEvent);
     document.addEventListener("popuphidden", this._onRevealEvent);
     document.addEventListener("dragend", this._onRevealEvent, true);
-    if (!container.matches(":hover")) {
+    document.addEventListener("mouseover", this._onRevealEvent, true);
+    if (!container.matches(":hover") && !this._pointerOutsideAtEdge) {
       this._scheduleConceal();
     }
   },
@@ -2889,6 +2911,12 @@ var SidebarController = {
     switch (e.type) {
       case "mouseenter":
         clearTimeout(this._revealTimer);
+        break;
+      case "mouseover":
+        this._pointerOutsideAtEdge = false;
+        if (!this.sidebarContainer.contains(e.target)) {
+          this._scheduleConceal();
+        }
         break;
       case "popupshown":
         if (e.composedTarget.tagName != "tooltip") {
@@ -2899,9 +2927,35 @@ var SidebarController = {
         this._revealPopups.delete(e.composedTarget);
         this._scheduleConceal();
         break;
+      case "mouseleave":
+        if (!e.relatedTarget && this._pointerLeftThroughEdge(e)) {
+          break;
+        }
+        this._scheduleConceal();
+        break;
       default:
         this._scheduleConceal();
     }
+  },
+
+  /**
+   * Whether a pointer event left the window, or the edge strip, through the
+   * window edge the sidebar sits on.
+   *
+   * @param {MouseEvent} e
+   */
+  _pointerLeftThroughEdge(e) {
+    const rect = this._revealEdge.getBoundingClientRect();
+    const atEnd = this._revealEdge.hasAttribute("sidebar-positionend");
+    const outside = atEnd
+      ? e.clientX >= rect.right - 1
+      : e.clientX <= rect.left + 1;
+    const nearEdge = atEnd
+      ? e.clientX >= rect.left - REVEAL_ON_HOVER_EXIT_SLOP_PX
+      : e.clientX <= rect.right + REVEAL_ON_HOVER_EXIT_SLOP_PX;
+    const left = e.relatedTarget ? outside : nearEdge;
+    this._pointerOutsideAtEdge = left;
+    return left;
   },
 
   _scheduleConceal() {
@@ -2913,7 +2967,11 @@ var SidebarController = {
   },
 
   _maybeConceal() {
-    if (!this._revealed || this.sidebarContainer.matches(":hover")) {
+    if (
+      !this._revealed ||
+      this._pointerOutsideAtEdge ||
+      this.sidebarContainer.matches(":hover")
+    ) {
       return;
     }
     for (const popup of this._revealPopups) {
@@ -2928,16 +2986,17 @@ var SidebarController = {
     if (dragService.getCurrentSession(window)) {
       return;
     }
-    this._endReveal();
+    this._endReveal({ animate: true });
     this._updateRevealEdge();
   },
 
-  _endReveal() {
+  _endReveal({ animate = false } = {}) {
     clearTimeout(this._revealTimer);
     if (!this._revealed) {
       return;
     }
     this._revealed = false;
+    this._pointerOutsideAtEdge = false;
     this._revealPopups.clear();
     const container = this.sidebarContainer;
     container.removeEventListener("mouseleave", this._onRevealEvent);
@@ -2945,8 +3004,42 @@ var SidebarController = {
     document.removeEventListener("popupshown", this._onRevealEvent);
     document.removeEventListener("popuphidden", this._onRevealEvent);
     document.removeEventListener("dragend", this._onRevealEvent, true);
+    document.removeEventListener("mouseover", this._onRevealEvent, true);
+    if (
+      animate &&
+      !this._state?.launcherVisible &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      container.setAttribute("sidebar-hover-concealing", "");
+      this._onConcealEnd = e => {
+        if (e.target == container) {
+          this._finishConceal();
+        }
+      };
+      container.addEventListener("animationend", this._onConcealEnd);
+      container.addEventListener("animationcancel", this._onConcealEnd);
+      return;
+    }
     container.removeAttribute("sidebar-hover-revealed");
     if (!this._state?.launcherVisible) {
+      container.hidden = true;
+    }
+  },
+
+  /**
+   * Completes a pending slide-out of the hover-revealed sidebar, if any.
+   */
+  _finishConceal() {
+    if (!this._onConcealEnd) {
+      return;
+    }
+    const container = this.sidebarContainer;
+    container.removeEventListener("animationend", this._onConcealEnd);
+    container.removeEventListener("animationcancel", this._onConcealEnd);
+    this._onConcealEnd = null;
+    container.removeAttribute("sidebar-hover-concealing");
+    container.removeAttribute("sidebar-hover-revealed");
+    if (!this._revealed && !this._state?.launcherVisible) {
       container.hidden = true;
     }
   },
