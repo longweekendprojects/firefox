@@ -1827,10 +1827,6 @@ tab-group > tab-split-view-wrapper {
       border-inline-start: 1px solid transparent !important;
     }
   }
-
-  &:not([hasactivetab]) > .tabbrowser-tab:not(:first-child) {
-    border-inline-start-color: var(--toolbarbutton-icon-fill) !important;
-  }
 }
 
 @container split-segment (max-width: 100px) {
@@ -3790,5 +3786,10 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
   > .tabbrowser-tab > .tab-stack > .tab-background {
     margin: 0 !important;
+  }
+
+  &:not([hasactivetab]) {
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/no-background-without-text-color */
+    background-color: color-mix(in srgb, var(--tab-background-color-hover) 50%, transparent);
   }
 }
