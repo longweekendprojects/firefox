@@ -1124,3 +1124,45 @@ add_task(
     await FormHistory.update({ op: "remove", fieldname: "searchbar-history" });
   }
 );
+
+add_task(async function test_icon_only_panes_center_their_icon() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+    ],
+  });
+  await TestUtils.waitForCondition(
+    () => gBrowser.tabContainer.verticalMode,
+    "Tabs are vertical"
+  );
+  SidebarController._state.launcherExpanded = true;
+  SidebarController._state.expandedLauncherWidth = 160;
+  const tabs = [
+    await addLoadedTab(),
+    await addLoadedTab(),
+    await addLoadedTab(),
+  ];
+  gBrowser.addTabSplitView(tabs);
+  await BrowserTestUtils.switchTab(gBrowser, tabs[0]);
+  await TestUtils.waitForCondition(() =>
+    tabs.every(
+      tab =>
+        getComputedStyle(tab.querySelector(".tab-label-container")).display ==
+        "none"
+    )
+  );
+  for (const tab of tabs) {
+    const pane = tab.querySelector(".tab-background").getBoundingClientRect();
+    const icon = tab.querySelector(".tab-icon-image").getBoundingClientRect();
+    Assert.less(
+      Math.abs(icon.left + icon.width / 2 - (pane.left + pane.width / 2)),
+      1,
+      "The icon sits in the center of its pane"
+    );
+  }
+  for (const tab of tabs) {
+    BrowserTestUtils.removeTab(tab);
+  }
+  await SpecialPowers.popPrefEnv();
+});

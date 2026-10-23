@@ -1840,6 +1840,12 @@ tab-group > tab-split-view-wrapper {
     .tab-close-button {
       display: none;
     }
+
+    /* With no title after it, the icon drops its end margin so it sits in
+       the center of the pane. */
+    .tab-icon-stack > * {
+      margin-inline: 0 !important;
+    }
   }
 }
 
