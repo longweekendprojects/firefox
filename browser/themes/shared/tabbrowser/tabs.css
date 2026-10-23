@@ -3882,6 +3882,16 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   display: none;
 }
 
+/* With the New Tab row at the top, the tab list starts right under the line,
+   so its scroll shadow starts there too. The New Tab row keeps the gap. */
+#tabbrowser-tabs[orient="vertical"][expanded][newtab-at-top] > #pinned-tabs-container[tile-layout]:not([no-visible-pins]) ~ #vertical-pinned-tabs-splitter {
+  margin-block-end: calc(0px - var(--space-small));
+
+  ~ #tabbrowser-arrowscrollbox {
+    --newtab-row-margin-start: 4px;
+  }
+}
+
 /* The New Tab button above the other tabs, under the pinned tabs, as in Arc.
    The button after the tabs is not shown, so the two never swap places when
    the tab list overflows. */

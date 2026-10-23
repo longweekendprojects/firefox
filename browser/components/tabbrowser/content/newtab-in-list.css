@@ -19,7 +19,7 @@
   flex-shrink: 0;
   box-sizing: border-box;
   min-height: var(--tab-min-height);
-  margin-block: 0 var(--tab-margin-block);
+  margin-block: var(--newtab-row-margin-start, 0) var(--tab-margin-block);
   margin-inline: var(--tab-inner-inline-margin);
   padding: 0 calc(var(--tab-inline-padding) - var(--tab-inner-inline-margin));
   border-radius: var(--tab-border-radius);

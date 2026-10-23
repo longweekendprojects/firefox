@@ -341,6 +341,13 @@ add_task(async function test_line_under_tiles_is_centered() {
   info(`above ${above}, below ${below}`);
   Assert.less(Math.abs(above - below), 1, "The line sits midway");
   Assert.lessOrEqual(above, 8, "The line sits close to the tiles");
+  let shadowTop =
+    gBrowser.tabContainer.arrowScrollbox.getBoundingClientRect().top;
+  Assert.lessOrEqual(
+    shadowTop - lineY,
+    2,
+    "The tab list and its scroll shadow start right under the line"
+  );
   Assert.equal(
     getComputedStyle(gBrowser.tabContainer, "::after").display,
     "none",
