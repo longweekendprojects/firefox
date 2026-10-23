@@ -582,7 +582,7 @@ sidebar-main,
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
-  width: 6px;
+  width: 8px;
   z-index: var(--browser-area-z-index-sidebar-expand-on-hover);
 
   &[sidebar-positionend] {

@@ -102,3 +102,41 @@ add_task(async function test_pref_off_disables_edge() {
   await SpecialPowers.popPrefEnv();
   Assert.ok(!edge().hidden, "The edge is active with the pref on");
 });
+
+add_task(async function test_closing_settings_after_choosing_hide() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revealOnHover", false],
+      [SIDEBAR_VISIBILITY_PREF, "expand-on-hover"],
+    ],
+  });
+  await SidebarController.waitUntilStable();
+  Assert.ok(!sidebarContainer.hidden, "The collapsed sidebar is shown");
+
+  await SidebarController.show("viewCustomizeSidebar");
+  Services.prefs.setBoolPref("sidebar.revealOnHover", true);
+  Services.prefs.setStringPref(SIDEBAR_VISIBILITY_PREF, "hide-sidebar");
+  await SidebarController.waitUntilStable();
+  SidebarController.hide();
+  await SidebarController.waitUntilStable();
+
+  Assert.ok(!sidebarContainer.hidden, "The sidebar is shown again");
+  Assert.ok(
+    SidebarController.sidebarMain.expanded,
+    "The sidebar comes back wide, not compact"
+  );
+
+  await SidebarController.handleToolbarButtonClick();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+  Assert.ok(!edge().hidden, "The edge is active once the sidebar is hidden");
+  await hoverEdge();
+  Assert.ok(
+    SidebarController.sidebarMain.expanded,
+    "The revealed sidebar is wide"
+  );
+  await hoverContent();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+
+  Services.prefs.clearUserPref("sidebar.revealOnHover");
+  await SpecialPowers.popPrefEnv();
+});

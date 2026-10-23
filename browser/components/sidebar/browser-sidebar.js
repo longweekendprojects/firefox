@@ -2408,7 +2408,7 @@ var SidebarController = {
             this.sidebarRevampVisibility
           )
         ) {
-          this._state.launcherVisible = this._launcherStateAtOpen;
+          this._state.updateVisibility(this._launcherStateAtOpen);
         }
         delete this._launcherStateAtOpen;
       }
