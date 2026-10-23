@@ -1236,8 +1236,8 @@ add_task(async function test_split_pinned_tab() {
     "The pinned tab keeps its pinned address"
   );
   await TestUtils.waitForCondition(
-    () => !pinned.linkedPanel,
-    "The pinned tab that stays behind is unloaded"
+    () => !pinned.linkedPanel || pinned.hasAttribute("pending"),
+    "The pinned tab that stays behind does not load its page"
   );
   for (const t of [...splitview.tabs, pinned]) {
     BrowserTestUtils.removeTab(t);
@@ -1273,5 +1273,39 @@ add_task(async function test_narrow_panes_show_their_title() {
   for (const tab of tabs) {
     BrowserTestUtils.removeTab(tab);
   }
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_new_tab_button_keeps_the_tab_gap() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+      ["browser.tabs.vertical.newTabButtonAtTop", true],
+    ],
+  });
+  SidebarController._state.launcherExpanded = true;
+  await TestUtils.waitForCondition(() =>
+    gBrowser.tabContainer.hasAttribute("expanded")
+  );
+  const extra = await addLoadedTab();
+  const button = document.getElementById("vertical-tabs-newtab-button");
+  await TestUtils.waitForCondition(
+    () => button.getBoundingClientRect().height,
+    "The New Tab button shows"
+  );
+  const bg = tab =>
+    tab.querySelector(".tab-background").getBoundingClientRect();
+  const [first, second] = gBrowser.visibleTabs.filter(t => !t.pinned);
+  const tabGap = bg(second).top - bg(first).bottom;
+  const buttonRect = button.getBoundingClientRect();
+  info(`tab gap ${tabGap}, button ${buttonRect.top}-${buttonRect.bottom}`);
+  Assert.lessOrEqual(tabGap, 4, "Tab rows sit close together");
+  Assert.less(
+    Math.abs(bg(first).top - buttonRect.bottom - tabGap),
+    1,
+    "The New Tab button sits one tab gap above the first tab"
+  );
+  BrowserTestUtils.removeTab(extra);
   await SpecialPowers.popPrefEnv();
 });

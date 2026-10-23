@@ -3006,8 +3006,8 @@ tab-group {
 
   /* Tab rows in the expanded sidebar sit a little closer together. */
   &[expanded] {
-    --tab-padding-block-start: 1px;
-    --tab-padding-block-end: 1px;
+    --tab-padding-block-start: 0px;
+    --tab-padding-block-end: 0px;
   }
 
   min-height: 0;
@@ -3871,6 +3871,17 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   > #vertical-tabs-newtab-button {
     display: flex !important;
     order: 1;
+  }
+
+  /* The button sits one tab gap above the first tab. */
+  &[expanded] {
+    > #vertical-tabs-newtab-button {
+      margin-block-end: calc(var(--tab-margin-block) - var(--space-small));
+    }
+
+    #tabbrowser-arrowscrollbox .tabbrowser-tab:nth-child(1 of :not([hidden], [pinned])) {
+      padding-block-start: var(--tab-padding-block-start);
+    }
   }
 
   > #tabbrowser-arrowscrollbox,
