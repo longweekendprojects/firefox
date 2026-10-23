@@ -3926,7 +3926,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   --tab-border-radius: 7px;
 
   .tab-label {
-    font-size: 1.08em;
+    font-size: 1.15em;
     font-weight: 500;
   }
 }
