@@ -103,12 +103,18 @@ add_task(async function test_switch_spaces() {
   Assert.ok(tabA.hidden && pinned.hidden, "Space A is hidden again");
 
   gSpaces.switchTo("a");
+  gBrowser.moveTabToEnd(tabA);
   gSpaces.moveTabs([tabA], "b");
   Assert.ok(tabA.selected, "The moved tab stays selected");
   Assert.equal(
     gSpaces.getActiveId(),
     "b",
     "Moving the selected tab follows it"
+  );
+  Assert.equal(
+    gBrowser.visibleTabs.find(t => !t.pinned),
+    tabA,
+    "A moved tab goes to the top of the space's tabs"
   );
 
   let state = JSON.parse(SessionStore.getTabState(tabA));

@@ -382,6 +382,20 @@ export function moveTabs(tabs, id) {
   for (let tab of moving) {
     tab.setAttribute("space", id);
   }
+  // Moved tabs go to the top of the regular tabs, where new tabs open.
+  let items = [];
+  for (let tab of gBrowser.tabs) {
+    let item = tab.splitview ?? tab;
+    if (moving.has(tab) && !tab.pinned && !items.includes(item)) {
+      items.push(item);
+    }
+  }
+  for (let item of items.reverse()) {
+    gBrowser.moveTabTo(item, {
+      tabIndex: gBrowser.pinnedTabCount,
+      forceUngrouped: true,
+    });
+  }
   if (follow) {
     switchTo(id, { tab: follow });
   } else {
