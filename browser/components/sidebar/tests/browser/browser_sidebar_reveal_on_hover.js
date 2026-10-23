@@ -208,3 +208,55 @@ add_task(async function test_conceal_slides_out() {
   );
   Assert.ok(!edge().hidden, "The edge is active again");
 });
+
+add_task(async function test_resize_while_revealed() {
+  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+  await hoverEdge();
+  const splitter = SidebarController._launcherSplitter;
+  Assert.ok(
+    !splitter.hidden,
+    "The resize handle shows on the revealed sidebar"
+  );
+  await TestUtils.waitForCondition(() => {
+    const handle = splitter.getBoundingClientRect();
+    const side = sidebarContainer.getBoundingClientRect();
+    return handle.width > 0 && Math.abs(handle.left - side.right) < 8;
+  }, "The resize handle sits on the sidebar's edge");
+
+  const before = sidebarContainer.getBoundingClientRect().width;
+  const start = splitter.getBoundingClientRect();
+  const x = start.left + start.width / 2;
+  const y = start.top + 100;
+  EventUtils.synthesizeMouseAtPoint(x, y, { type: "mousedown" });
+  for (let i = 1; i <= 10; i++) {
+    await new Promise(r => requestAnimationFrame(r));
+    EventUtils.synthesizeMouseAtPoint(x + i * 6, y, { type: "mousemove" });
+  }
+  await new Promise(r => requestAnimationFrame(r));
+  EventUtils.synthesizeMouseAtPoint(x + 60, y, { type: "mouseup" });
+
+  await TestUtils.waitForCondition(
+    () => sidebarContainer.getBoundingClientRect().width > before + 20,
+    "The revealed sidebar got wider"
+  );
+  Assert.ok(
+    sidebarContainer.hasAttribute("sidebar-hover-revealed"),
+    "The sidebar is still revealed after resizing"
+  );
+  const saved = SidebarController._state.expandedLauncherWidth;
+  Assert.greater(saved, before + 20, "The new width is saved");
+
+  await hoverContent();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+  Assert.ok(splitter.hidden, "The resize handle hides with the sidebar");
+
+  await hoverEdge();
+  Assert.less(
+    Math.abs(sidebarContainer.getBoundingClientRect().width - saved),
+    2,
+    "The next reveal uses the new width"
+  );
+  await hoverContent();
+  await TestUtils.waitForCondition(() => sidebarContainer.hidden);
+  AccessibilityUtils.resetEnv();
+});

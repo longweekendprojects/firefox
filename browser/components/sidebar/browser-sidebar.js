@@ -26,6 +26,7 @@ const EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS = 1000;
 const REVEAL_ON_HOVER_DELAY_MS = 40;
 const REVEAL_ON_HOVER_HIDE_DELAY_MS = 350;
 const REVEAL_ON_HOVER_EXIT_SLOP_PX = 48;
+const REVEAL_RESIZE_MIN_WIDTH = 160;
 const LAUNCHER_SPLITTER_WIDTH = 4;
 
 var SidebarController = {
@@ -2891,6 +2892,8 @@ var SidebarController = {
     this._finishConceal();
     container.setAttribute("sidebar-hover-revealed", "");
     container.hidden = false;
+    this._launcherSplitter.setAttribute("sidebar-hover-revealed", "");
+    this._launcherSplitter.hidden = false;
     if (!this._state.launcherExpanded) {
       this._state.launcherExpanded = true;
     }
@@ -2898,6 +2901,12 @@ var SidebarController = {
     this._onRevealEvent ??= e => this._handleRevealEvent(e);
     container.addEventListener("mouseleave", this._onRevealEvent);
     container.addEventListener("mouseenter", this._onRevealEvent);
+    this._launcherSplitter.addEventListener("mouseenter", this._onRevealEvent);
+    this._launcherSplitter.addEventListener("mouseleave", this._onRevealEvent);
+    this._launcherSplitter.addEventListener("mousedown", this._onRevealEvent, {
+      capture: true,
+    });
+    this._launcherSplitter.addEventListener("pointerdown", this._onRevealEvent);
     document.addEventListener("popupshown", this._onRevealEvent);
     document.addEventListener("popuphidden", this._onRevealEvent);
     document.addEventListener("dragend", this._onRevealEvent, true);
@@ -2911,6 +2920,13 @@ var SidebarController = {
     switch (e.type) {
       case "mouseenter":
         clearTimeout(this._revealTimer);
+        break;
+      case "mousedown":
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        break;
+      case "pointerdown":
+        this._startRevealResize(e);
         break;
       case "mouseover":
         this._pointerOutsideAtEdge = false;
@@ -2936,6 +2952,57 @@ var SidebarController = {
       default:
         this._scheduleConceal();
     }
+  },
+
+  /**
+   * Resizes the hover-revealed sidebar by dragging its edge. The stock
+   * splitter cannot resize the floating sidebar, since it is out of flow.
+   *
+   * @param {PointerEvent} e
+   */
+  _startRevealResize(e) {
+    if (e.button != 0 || this._revealResize) {
+      return;
+    }
+    const splitter = this._launcherSplitter;
+    const container = this.sidebarContainer;
+    const atEnd = container.hasAttribute("sidebar-positionend");
+    const startX = e.clientX;
+    const startWidth = container.getBoundingClientRect().width;
+    const maxWidth = Math.round(window.innerWidth * 0.75);
+    splitter.setPointerCapture(e.pointerId);
+    splitter.setAttribute("state", "dragging");
+    let width = startWidth;
+    const onMove = moveEvent => {
+      const delta = moveEvent.clientX - startX;
+      width = Math.round(
+        Math.min(
+          maxWidth,
+          Math.max(
+            REVEAL_RESIZE_MIN_WIDTH,
+            startWidth + (atEnd ? -delta : delta)
+          )
+        )
+      );
+      container.style.width = `${width}px`;
+    };
+    const end = () => {
+      splitter.removeEventListener("pointermove", onMove);
+      splitter.removeEventListener("pointerup", end);
+      splitter.removeEventListener("lostpointercapture", end);
+      splitter.removeAttribute("state");
+      this._revealResize = null;
+      if (width != startWidth) {
+        this._state.expandedLauncherWidth = width;
+      }
+      this._scheduleConceal();
+    };
+    splitter.addEventListener("pointermove", onMove);
+    splitter.addEventListener("pointerup", end);
+    splitter.addEventListener("lostpointercapture", end);
+    this._revealResize = { end };
+    clearTimeout(this._revealTimer);
+    e.preventDefault();
   },
 
   /**
@@ -2970,7 +3037,9 @@ var SidebarController = {
     if (
       !this._revealed ||
       this._pointerOutsideAtEdge ||
-      this.sidebarContainer.matches(":hover")
+      this._revealResize ||
+      this.sidebarContainer.matches(":hover") ||
+      this._launcherSplitter.matches(":hover")
     ) {
       return;
     }
@@ -3001,6 +3070,28 @@ var SidebarController = {
     const container = this.sidebarContainer;
     container.removeEventListener("mouseleave", this._onRevealEvent);
     container.removeEventListener("mouseenter", this._onRevealEvent);
+    this._launcherSplitter.removeEventListener(
+      "mouseenter",
+      this._onRevealEvent
+    );
+    this._launcherSplitter.removeEventListener(
+      "mouseleave",
+      this._onRevealEvent
+    );
+    this._launcherSplitter.removeEventListener(
+      "mousedown",
+      this._onRevealEvent,
+      { capture: true }
+    );
+    this._launcherSplitter.removeEventListener(
+      "pointerdown",
+      this._onRevealEvent
+    );
+    this._revealResize?.end();
+    this._launcherSplitter.removeAttribute("sidebar-hover-revealed");
+    if (!this._state?.launcherVisible) {
+      this._launcherSplitter.hidden = true;
+    }
     document.removeEventListener("popupshown", this._onRevealEvent);
     document.removeEventListener("popuphidden", this._onRevealEvent);
     document.removeEventListener("dragend", this._onRevealEvent, true);

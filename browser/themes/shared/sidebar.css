@@ -591,7 +591,21 @@ sidebar-main,
   }
 }
 
+#sidebar-launcher-splitter[sidebar-hover-revealed] {
+  position: absolute;
+  inset-block: anchor(--sidebar-hover-revealed top) auto;
+  height: anchor-size(--sidebar-hover-revealed height);
+  inset-inline-start: anchor(--sidebar-hover-revealed right);
+  z-index: var(--browser-area-z-index-sidebar-expand-on-hover);
+
+  #sidebar-container[sidebar-positionend] + & {
+    inset-inline-start: auto;
+    inset-inline-end: anchor(--sidebar-hover-revealed left);
+  }
+}
+
 #sidebar-container[sidebar-hover-revealed] {
+  anchor-name: --sidebar-hover-revealed;
   position: absolute;
   inset-block: var(--space-small);
   inset-inline-start: 0;
