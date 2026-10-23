@@ -28,8 +28,18 @@
   -moz-context-properties: fill;
   fill: var(--toolbarbutton-icon-fill);
 
+  > .toolbarbutton-icon,
+  > .toolbarbutton-text {
+    opacity: 0.65;
+  }
+
   &:hover {
     background-color: var(--tab-background-color-hover);
+
+    > .toolbarbutton-icon,
+    > .toolbarbutton-text {
+      opacity: 1;
+    }
   }
 
   &:focus-visible {

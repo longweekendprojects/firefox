@@ -219,6 +219,13 @@ add_task(async function test_new_tab_button_at_top() {
     "The New Tab button outside the tab list is not shown"
   );
 
+  Assert.less(
+    parseFloat(
+      getComputedStyle(button.querySelector(".toolbarbutton-text")).opacity
+    ),
+    1,
+    "The New Tab row is dimmer than the tabs"
+  );
   let opened = BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "TabOpen");
   EventUtils.synthesizeMouseAtCenter(button, {});
   let { target: newTab } = await opened;
@@ -229,14 +236,19 @@ add_task(async function test_new_tab_button_at_top() {
   for (let i = 0; i < 40; i++) {
     extra.push(BrowserTestUtils.addTab(gBrowser, "about:blank"));
   }
+  await TestUtils.waitForCondition(
+    () => gBrowser.tabContainer.arrowScrollbox.hasAttribute("overflowing"),
+    "The tab list overflows"
+  );
   await settle();
   let scrollbox = gBrowser.tabContainer.arrowScrollbox.scrollbox;
+  scrollbox.scrollTo({ top: 0, behavior: "instant" });
+  await settle();
   let before = button.getBoundingClientRect().top;
-  scrollbox.scrollTo({ top: 100, behavior: "instant" });
-  await TestUtils.waitForCondition(
-    () => button.getBoundingClientRect().top < before - 50,
-    "The New Tab row scrolls with the tabs"
-  );
+  await TestUtils.waitForCondition(() => {
+    scrollbox.scrollTo({ top: 100, behavior: "instant" });
+    return button.getBoundingClientRect().top < before - 50;
+  }, "The New Tab row scrolls with the tabs");
   scrollbox.scrollTo({ top: 0, behavior: "instant" });
   for (let tab of extra) {
     BrowserTestUtils.removeTab(tab);
