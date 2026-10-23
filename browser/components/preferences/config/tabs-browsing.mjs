@@ -51,6 +51,7 @@ Preferences.addAll([
   { id: "browser.tabs.insertAtStart", type: "bool" },
   { id: "browser.peek.enabled", type: "bool" },
   { id: "browser.littlewindow.externalLinks", type: "bool" },
+  { id: "browser.tabs.splitview.paneShortcutsOverrideSites", type: "bool" },
   { id: "browser.tabs.warnOnClose", type: "bool" },
   { id: "browser.warnOnQuitShortcut", type: "bool" },
   { id: "browser.tabs.warnOnOpen", type: "bool" },
@@ -180,6 +181,11 @@ Preferences.addSetting({
 Preferences.addSetting({
   id: "peekLinks",
   pref: "browser.peek.enabled",
+});
+Preferences.addSetting({
+  id: "paneShortcutsOverrideSites",
+  pref: "browser.tabs.splitview.paneShortcutsOverrideSites",
+  visible: () => lazy.AppConstants.platform == "macosx",
 });
 Preferences.addSetting({
   id: "openAppLinksInLittleWindow",
@@ -644,6 +650,10 @@ SettingGroupManager.registerGroups({
           {
             id: "peekLinks",
             l10nId: "peek-links-on-shift-click",
+          },
+          {
+            id: "paneShortcutsOverrideSites",
+            l10nId: "split-pane-shortcuts-override-sites",
           },
           {
             id: "warnOpenMany",

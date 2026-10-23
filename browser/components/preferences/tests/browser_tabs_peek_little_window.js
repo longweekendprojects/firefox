@@ -19,6 +19,7 @@ add_task(async function test_checkboxes() {
     set: [
       ["browser.peek.enabled", false],
       ["browser.littlewindow.externalLinks", false],
+      ["browser.tabs.splitview.paneShortcutsOverrideSites", false],
     ],
   });
   await openPreferencesViaOpenPreferencesAPI(TABS_PANE, { leaveOpen: true });
@@ -27,6 +28,14 @@ add_task(async function test_checkboxes() {
   for (let [id, pref] of [
     ["peekLinks", "browser.peek.enabled"],
     ["openAppLinksInLittleWindow", "browser.littlewindow.externalLinks"],
+    ...(AppConstants.platform == "macosx"
+      ? [
+          [
+            "paneShortcutsOverrideSites",
+            "browser.tabs.splitview.paneShortcutsOverrideSites",
+          ],
+        ]
+      : []),
   ]) {
     await TestUtils.waitForCondition(
       () => doc.getElementById(id),

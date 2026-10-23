@@ -48,7 +48,9 @@ https_first_disabled = true
 run-if = [
   "fission",
 ]
-skip-if = ["verify-standalone"]
+skip-if = [
+  "verify-standalone",
+]
 
 ["browser_blank_tab_label.js"]
 tags = "vertical-tabs"
@@ -408,6 +410,8 @@ skip-if =  [
 ["browser_paste_event_at_middle_click_on_link.js"]
 support-files = ["file_anchor_elements.html"]
 
+["browser_peek_little_window.js"]
+
 ["browser_pinnedTabs.js"]
 tags = "vertical-tabs"
 
@@ -416,10 +420,6 @@ tags = "vertical-tabs"
 
 ["browser_pinnedTabs_closeByKeyboard.js"]
 tags = "vertical-tabs"
-
-["browser_spaces.js"]
-
-["browser_peek_little_window.js"]
 
 ["browser_pinned_and_hidden_tabs.js"]
 
@@ -490,6 +490,8 @@ skip-if = [
 
 ["browser_selectTabAtIndex.js"]
 tags = "vertical-tabs"
+
+["browser_spaces.js"]
 
 ["browser_standalonePinnedTab.js"]
 # Unclear why this fails with vertical tabs
@@ -647,7 +649,7 @@ tags = "vertical-tabs"
 
 ["browser_tab_note_preview.js"]
 skip-if = [
-  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 2020468
+  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && a11y_checks && opt", # Bug 2020468
 ]
 
 ["browser_tab_play.js"]
@@ -656,14 +658,14 @@ tags = "vertical-tabs"
 ["browser_tab_preview.js"]
 tags = "vertical-tabs"
 skip-if = [
-  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 2010318
+  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && a11y_checks && opt", # Bug 2010318
 ]
 
 ["browser_tab_splitview.js"]
 
 ["browser_tab_splitview_about_opentabs.js"]
 skip-if = [
-  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 2014213
+  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && a11y_checks && opt", # Bug 2014213
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2019466
 ]
 
@@ -686,14 +688,19 @@ disabled = "Recursive split view replaces the footer with pane headers (browser_
 
 ["browser_tab_splitview_keyboard_focus.js"]
 
+["browser_tab_splitview_mac_shortcuts.js"]
+run-if = [
+  "os == 'mac'",
+]
+
 ["browser_tab_splitview_recursive.js"]
 
 ["browser_tab_splitview_recursive_lifecycle.js"]
 
-["browser_tab_splitview_separate_pane.js"]
-
 ["browser_tab_splitview_resize.js"]
 disabled = "Recursive split view replaces the single splitter (browser_tab_splitview_recursive.js)"
+
+["browser_tab_splitview_separate_pane.js"]
 
 ["browser_tab_splitview_splitter_keyboard.js"]
 disabled = "Recursive split view replaces the single splitter (browser_tab_splitview_recursive.js)"
@@ -756,14 +763,14 @@ skip-if = [
 
 ["browser_testOpenNewRemoteTabsFromNonRemoteBrowsers.js"]
 
-["browser_undo_open_tab.js"]
-
 ["browser_undo_close_tabs.js"]
 skip-if = [
   "true", # bug 1642084
 ]
 
 ["browser_undo_close_tabs_at_start.js"]
+
+["browser_undo_open_tab.js"]
 
 ["browser_url_prefilled_on_startup.js"]
 support-files = ["startup-delayed-redirect.sjs"]

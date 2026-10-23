@@ -113,6 +113,24 @@ export class CustomKeysParent extends JSWindowActorParent {
     );
     add(cat, "key_addTabSplitView", "customkeys-view-add-split-view");
     add(cat, "key_separateTabSplitView", "customkeys-view-separate-split-view");
+    for (const direction of ["Up", "Left", "Down", "Right"]) {
+      const l10n = direction.toLowerCase();
+      add(
+        cat,
+        `key_splitPane${direction}`,
+        `customkeys-view-split-pane-${l10n}`
+      );
+      add(
+        cat,
+        `key_focusPane${direction}`,
+        `customkeys-view-focus-pane-${l10n}`
+      );
+      add(
+        cat,
+        `key_focusPane${direction}Always`,
+        `customkeys-view-focus-pane-${l10n}`
+      );
+    }
     const editCat = topWin.document.getElementById("edit-menu").label;
     cat = keys[editCat];
     add(

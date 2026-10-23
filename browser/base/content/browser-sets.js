@@ -448,6 +448,37 @@ document.addEventListener(
           break;
       }
     });
+
+    const PANE_KEYS_PREF = "browser.tabs.splitview.paneShortcutsOverrideSites";
+    const updatePaneKeys = () => {
+      const keyset = document.getElementById("paneFocusKeyset");
+      if (!keyset) {
+        return;
+      }
+      const override = Services.prefs.getBoolPref(PANE_KEYS_PREF, false);
+      if (keyset.hasAttribute("override") == override) {
+        return;
+      }
+      keyset.toggleAttribute("override", override);
+      for (const key of keyset.children) {
+        if (override) {
+          key.setAttribute("reserved", "true");
+        } else {
+          key.removeAttribute("reserved");
+        }
+      }
+      // Gecko reads <key> attributes only when their keyset is bound.
+      const parent = keyset.parentNode;
+      keyset.remove();
+      parent.append(keyset);
+    };
+    updatePaneKeys();
+    Services.prefs.addObserver(PANE_KEYS_PREF, updatePaneKeys);
+    window.addEventListener(
+      "unload",
+      () => Services.prefs.removeObserver(PANE_KEYS_PREF, updatePaneKeys),
+      { once: true }
+    );
   },
   { once: true }
 );

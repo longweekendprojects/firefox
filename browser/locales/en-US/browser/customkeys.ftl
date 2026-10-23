@@ -75,6 +75,14 @@ customkeys-view-picture-in-picture = Picture-in-Picture
 customkeys-view-add-split-view = Add Split View
 # Separate is a verb
 customkeys-view-separate-split-view = Separate Split View
+customkeys-view-split-pane-up = Split Pane Up
+customkeys-view-split-pane-left = Split Pane Left
+customkeys-view-split-pane-down = Split Pane Down
+customkeys-view-split-pane-right = Split Pane Right
+customkeys-view-focus-pane-up = Move to Pane Above
+customkeys-view-focus-pane-left = Move to Pane on the Left
+customkeys-view-focus-pane-down = Move to Pane Below
+customkeys-view-focus-pane-right = Move to Pane on the Right
 customkeys-dev-tools = Web Developer Tools
 customkeys-dev-inspector = DOM and Style Inspector
 customkeys-dev-webconsole = Web Console

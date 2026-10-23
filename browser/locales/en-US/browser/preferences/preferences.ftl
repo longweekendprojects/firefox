@@ -307,6 +307,10 @@ open-external-link-in-little-window =
 peek-links-on-shift-click =
     .label = Shift+click a link to preview it in Peek
 
+split-pane-shortcuts-override-sites =
+    .label = Use ⌘⇧I, J, K and L to move between split panes, even on sites that use those keys
+    .description = When off, a site that uses these keys gets them first. ⌃⌘⇧ with the same letters always moves between panes.
+
 show-tabs-in-taskbar =
     .label = Show tab previews in the Windows taskbar
     .accesskey = k

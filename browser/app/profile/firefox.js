@@ -2868,6 +2868,9 @@ pref("browser.tabs.splitview.trigger.delay_ms", 15000);
 // Number of distinct Split Views created, observed by the splitViewUsed
 // ASRouter trigger.
 pref("browser.tabs.splitview.trigger.createCount", 0);
+// On macOS, Cmd+Shift+I/J/K/L move focus between split view panes. When
+// false, a page that uses the same keys gets them first.
+pref("browser.tabs.splitview.paneShortcutsOverrideSites", false);
 
 // Whether SVG favicons should be safely re-encoded using the moz-remote-image:// protocol.
 pref("browser.tabs.remoteSVGIconDecoding", true);

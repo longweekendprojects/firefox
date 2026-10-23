@@ -390,12 +390,23 @@
 
     <key id="key_addTabSplitView" command="Browser:AddTabSplitView"/>
     <key id="key_separateTabSplitView" command="Browser:SeparateTabSplitView"/>
+#ifdef XP_MACOSX
+    <key id="key_splitPaneUp" key="I" modifiers="accel,control" command="Browser:SplitPaneUp" reserved="true"/>
+    <key id="key_splitPaneLeft" key="J" modifiers="accel,control" command="Browser:SplitPaneLeft" reserved="true"/>
+    <key id="key_splitPaneDown" key="K" modifiers="accel,control" command="Browser:SplitPaneDown" reserved="true"/>
+    <key id="key_splitPaneRight" key="L" modifiers="accel,control" command="Browser:SplitPaneRight" reserved="true"/>
+    <key id="key_focusPaneUpAlways" key="I" modifiers="accel,control,shift" command="Browser:FocusPaneUp" reserved="true"/>
+    <key id="key_focusPaneLeftAlways" key="J" modifiers="accel,control,shift" command="Browser:FocusPaneLeft" reserved="true"/>
+    <key id="key_focusPaneDownAlways" key="K" modifiers="accel,control,shift" command="Browser:FocusPaneDown" reserved="true"/>
+    <key id="key_focusPaneRightAlways" key="L" modifiers="accel,control,shift" command="Browser:FocusPaneRight" reserved="true"/>
+#else
     <key id="key_splitPaneRight" key="D" modifiers="accel,alt,shift" command="Browser:SplitPaneRight"/>
     <key id="key_splitPaneDown" key="S" modifiers="accel,alt,shift" command="Browser:SplitPaneDown"/>
     <key id="key_focusPaneRight" keycode="VK_RIGHT" modifiers="accel,alt,shift" command="Browser:FocusPaneRight"/>
     <key id="key_focusPaneDown" keycode="VK_DOWN" modifiers="accel,alt,shift" command="Browser:FocusPaneDown"/>
     <key id="key_focusPaneLeft" keycode="VK_LEFT" modifiers="accel,alt,shift" command="Browser:FocusPaneLeft"/>
     <key id="key_focusPaneUp" keycode="VK_UP" modifiers="accel,alt,shift" command="Browser:FocusPaneUp"/>
+#endif
     <key id="key_duplicateTab" command="Browser:DuplicateTab"/>
 #ifdef XP_MACOSX
     <key id="key_copyPageLink" key="C" modifiers="accel,shift" command="Browser:CopyPageLink"/>
@@ -447,3 +458,11 @@
          internal="true"/>
 #endif
   </keyset>
+#ifdef XP_MACOSX
+  <keyset id="paneFocusKeyset">
+    <key id="key_focusPaneUp" key="I" modifiers="accel,shift" command="Browser:FocusPaneUp"/>
+    <key id="key_focusPaneLeft" key="J" modifiers="accel,shift" command="Browser:FocusPaneLeft"/>
+    <key id="key_focusPaneDown" key="K" modifiers="accel,shift" command="Browser:FocusPaneDown"/>
+    <key id="key_focusPaneRight" key="L" modifiers="accel,shift" command="Browser:FocusPaneRight"/>
+  </keyset>
+#endif

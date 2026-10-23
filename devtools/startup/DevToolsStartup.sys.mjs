@@ -123,7 +123,8 @@ ChromeUtils.defineLazyGetter(lazy, "KeyShortcuts", function () {
     {
       id: "browserConsole",
       shortcut: getLocalizedKeyShortcut("devtools-commandkey-browser-console"),
-      modifiers: "accel,shift",
+      // Cmd+Shift+J moves focus between split view panes on macOS.
+      modifiers: isMac ? "accel,alt,shift" : "accel,shift",
     },
     // Toggle the Responsive Design Mode
     {

@@ -49,7 +49,15 @@ async function testMessages() {
   globalThis.console = globalThis.nativeConsole;
 
   info("wait for the browser console to open with ctrl-shift-j");
-  EventUtils.synthesizeKey("j", { accelKey: true, shiftKey: true }, window);
+  EventUtils.synthesizeKey(
+    "j",
+    {
+      accelKey: true,
+      shiftKey: true,
+      altKey: AppConstants.platform == "macosx",
+    },
+    window
+  );
 
   hud = await opened;
   ok(hud, "browser console opened");
