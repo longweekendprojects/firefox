@@ -141,11 +141,14 @@ export class UrlbarProviderRecentSearches extends UrlbarProvider {
     );
     results.sort((a, b) => b.lastUsed - a.lastUsed);
 
-    if (
-      !queryContext.isSearchbarSAP &&
-      results.length > lazy.UrlbarPrefs.get("recentsearches.maxResults")
-    ) {
-      results.length = lazy.UrlbarPrefs.get("recentsearches.maxResults");
+    if (!queryContext.isSearchbarSAP) {
+      // The floating command bar shows two, under the recent tabs.
+      let max = queryContext.isCommandBar
+        ? 2
+        : lazy.UrlbarPrefs.get("recentsearches.maxResults");
+      if (results.length > max) {
+        results.length = max;
+      }
     }
 
     for (let result of results) {

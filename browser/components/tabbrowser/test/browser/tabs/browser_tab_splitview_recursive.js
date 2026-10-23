@@ -1050,3 +1050,77 @@ add_task(async function test_collapsed_sidebar_folds_large_splits() {
   }
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(
+  async function test_empty_command_bar_lists_recent_tabs_and_searches() {
+    const { FormHistory } = ChromeUtils.importESModule(
+      "resource://gre/modules/FormHistory.sys.mjs"
+    );
+    const { UrlbarTestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/UrlbarTestUtils.sys.mjs"
+    );
+    const { UrlbarShared } = ChromeUtils.importESModule(
+      "chrome://browser/content/urlbar/UrlbarShared.mjs"
+    );
+    const { SearchService } = ChromeUtils.importESModule(
+      "moz-src:///toolkit/components/search/SearchService.sys.mjs"
+    );
+    UrlbarTestUtils.init(this);
+    const engine = await SearchService.getDefault();
+    const now = Date.now() * 1000;
+    await FormHistory.update(
+      ["one", "two", "three"].map((value, i) => ({
+        op: "add",
+        fieldname: "searchbar-history",
+        value: `recent ${value}`,
+        source: engine.name,
+        firstUsed: now - (3 - i) * 1000,
+        lastUsed: now - (3 - i) * 1000,
+      }))
+    );
+    const tabs = [];
+    for (const path of ["a", "b", "c", "d"]) {
+      const tab = BrowserTestUtils.addTab(gBrowser, `${PAGE}?${path}`);
+      await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+      await BrowserTestUtils.switchTab(gBrowser, tab);
+      tabs.push(tab);
+    }
+
+    EventUtils.synthesizeKey("t", { accelKey: true });
+    await TestUtils.waitForCondition(() => commandBarOpen());
+    await UrlbarTestUtils.promiseSearchComplete(window);
+    const results = [];
+    for (let i = 0; i < UrlbarTestUtils.getResultCount(window); i++) {
+      results.push(await UrlbarTestUtils.getDetailsOfResultAt(window, i));
+    }
+    Assert.deepEqual(
+      results.slice(0, 3).map(r => r.url),
+      [`${PAGE}?c`, `${PAGE}?b`, `${PAGE}?a`],
+      "The three most recent other tabs come first, newest first"
+    );
+    Assert.ok(
+      results
+        .slice(0, 3)
+        .every(r => r.type == UrlbarShared.RESULT_TYPE.TAB_SWITCH),
+      "They switch to the tab"
+    );
+    Assert.deepEqual(
+      results.slice(3).map(r => r.searchParams?.suggestion),
+      ["recent three", "recent two"],
+      "Then the two most recent searches, and nothing else"
+    );
+
+    EventUtils.synthesizeKey("KEY_ArrowDown");
+    EventUtils.synthesizeKey("KEY_Enter");
+    await TestUtils.waitForCondition(
+      () => gBrowser.selectedTab == tabs[2],
+      "Arrow down and Enter switch to the most recent tab"
+    );
+    await TestUtils.waitForCondition(() => !commandBarOpen());
+
+    for (const tab of tabs) {
+      BrowserTestUtils.removeTab(tab);
+    }
+    await FormHistory.update({ op: "remove", fieldname: "searchbar-history" });
+  }
+);

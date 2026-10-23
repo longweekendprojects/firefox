@@ -90,6 +90,10 @@ if (lazy) {
 const logger = () => UrlbarShared.getLogger({ prefix: "Input" });
 
 const UNLIMITED_MAX_RESULTS = 99;
+// Rows the floating command bar shows while typing.
+const COMMAND_BAR_MAX_RESULTS = 6;
+// Recent tabs the empty command bar lists, followed by up to two searches.
+const COMMAND_BAR_RECENT_TABS = 3;
 
 // `nsILoadInfo.SchemelessInputTypeSchemeful` and `SchemelessInputTypeSchemeless`,
 // which a content realm has no `Ci` to read them from.
@@ -5737,8 +5741,18 @@ ${
       this.searchMode?.source != UrlbarShared.RESULT_SOURCE.ACTIONS
         ? UrlbarPrefs.get("maxRichResults")
         : UNLIMITED_MAX_RESULTS;
+    // The floating command bar keeps its list short: recent tabs and
+    // searches when empty, and the best few matches while typing.
+    let isCommandBar = this.hasAttribute("commandbar");
+    if (isCommandBar) {
+      maxResults = Math.min(
+        maxResults,
+        searchString ? COMMAND_BAR_MAX_RESULTS : COMMAND_BAR_RECENT_TABS + 2
+      );
+    }
     let options = {
       allowAutofill,
+      isCommandBar,
       isPrivate: this.isPrivate,
       sapName: this.sapName,
       maxResults,

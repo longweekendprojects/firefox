@@ -80,6 +80,7 @@ export class UrlbarProviderTopSites extends UrlbarProvider {
    */
   async isActive(queryContext) {
     return (
+      !queryContext.isCommandBar &&
       !queryContext.restrictSource &&
       !queryContext.searchString &&
       !queryContext.restrictInSearchMode()

@@ -94,6 +94,7 @@ export class UrlbarQueryContext {
     const optionalProperties = [
       ["currentPage", v => typeof v == "string" && !!v.length],
       ["excludeSponsoredResults", v => typeof v == "boolean", false],
+      ["isCommandBar", v => typeof v == "boolean", false],
       ["prohibitRemoteResults", v => typeof v == "boolean", false],
       ["providers", v => Array.isArray(v) && !!v.length],
       ["searchMode", v => v && typeof v == "object"],

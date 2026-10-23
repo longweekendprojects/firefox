@@ -145,6 +145,12 @@ var localProviderModules = [
     supportedSAPs: ["urlbar"],
   },
   {
+    name: "UrlbarProviderRecentTabs",
+    module:
+      "moz-src:///browser/components/urlbar/UrlbarProviderRecentTabs.sys.mjs",
+    supportedSAPs: ["urlbar"],
+  },
+  {
     name: "UrlbarProviderRecentSearches",
     module:
       "moz-src:///browser/components/urlbar/UrlbarProviderRecentSearches.sys.mjs",

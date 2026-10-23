@@ -44,6 +44,7 @@ MOZ_SRC_FILES += [
     "UrlbarProviderQuickSuggest.sys.mjs",
     "UrlbarProviderQuickSuggestContextualOptIn.sys.mjs",
     "UrlbarProviderRecentSearches.sys.mjs",
+    "UrlbarProviderRecentTabs.sys.mjs",
     "UrlbarProviderRemoteTabs.sys.mjs",
     "UrlbarProviderRestrictKeywords.sys.mjs",
     "UrlbarProviderRestrictKeywordsAutofill.sys.mjs",
