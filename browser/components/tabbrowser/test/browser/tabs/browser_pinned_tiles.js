@@ -40,11 +40,18 @@ add_setup(async function () {
 });
 
 add_task(function test_auto_columns() {
+  const counts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13];
   Assert.deepEqual(
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13].map(autoColumns),
+    counts.map(n => autoColumns(n, 220)),
     [1, 2, 3, 4, 3, 3, 4, 4, 3, 4, 4, 4],
-    "Rows of up to four, spread evenly"
+    "A narrow grid fits rows of up to four, spread evenly"
   );
+  Assert.deepEqual(
+    counts.map(n => autoColumns(n, 340)),
+    [1, 2, 3, 4, 5, 6, 4, 4, 5, 5, 6, 5],
+    "A wider grid fits rows of up to six"
+  );
+  Assert.equal(autoColumns(5, 100), 2, "A very narrow grid fits two");
 });
 
 add_task(async function test_tiles_grid() {
@@ -58,8 +65,9 @@ add_task(async function test_tiles_grid() {
 
   let layout = columnsShown();
   Assert.equal(layout.attr, "auto", "Pinned tabs show as tiles");
-  Assert.equal(layout.columns, 4, "Eleven tiles fill rows of four");
-  Assert.equal(layout.rows, 3, "in three rows");
+  let expected = autoColumns(11, window.gPinnedTiles.gridWidth());
+  Assert.equal(layout.columns, expected, "Eleven tiles fill the rows");
+  Assert.equal(layout.rows, Math.ceil(11 / expected), "with enough rows");
   let container = gBrowser.pinnedTabsContainer;
   let wrapper = container.shadowRoot.querySelector("[part=items-wrapper]");
   Assert.greaterOrEqual(
@@ -90,12 +98,6 @@ add_task(async function test_tiles_grid() {
   let small = pinned[0].getBoundingClientRect();
   Assert.less(small.height, tile.height, "Small icon tiles are smaller");
   Assert.greater(columnsShown().columns, 4, "More small icons fit per row");
-  Assert.ok(
-    BrowserTestUtils.isVisible(
-      document.getElementById("pinned-tiles-menu-button")
-    ),
-    "The layout button stays for small icons"
-  );
 
   Services.prefs.setIntPref(PREF, -2);
   await settle();
@@ -134,58 +136,54 @@ add_task(async function test_context_menu_sets_layout() {
   BrowserTestUtils.removeTab(tab);
 });
 
-add_task(async function test_layout_button_and_hide_sidebar() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.visibility", "always-show"]],
-  });
-  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  gBrowser.pinTab(tab);
-  await settle();
-  let button = document.getElementById("pinned-tiles-menu-button");
+add_task(async function test_auto_layout_follows_sidebar_width() {
   Assert.ok(
-    BrowserTestUtils.isVisible(button),
-    "A layout button shows under the tiles"
+    !document.getElementById("pinned-tiles-menu-button"),
+    "No layout button sits under the tiles"
+  );
+  let pinned = [];
+  for (let i = 0; i < 12; i++) {
+    let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+    gBrowser.pinTab(tab);
+    pinned.push(tab);
+  }
+  let state = SidebarController._state;
+  let oldWidth = state.expandedLauncherWidth;
+
+  state.expandedLauncherWidth = 240;
+  await settle();
+  await settle();
+  let narrow = columnsShown().columns;
+
+  state.expandedLauncherWidth = 420;
+  await settle();
+  await TestUtils.waitForCondition(
+    () => columnsShown().columns > narrow,
+    "A wider sidebar fits more tiles in each row"
+  );
+  Assert.equal(
+    columnsShown().columns,
+    autoColumns(12, window.gPinnedTiles.gridWidth()),
+    "The columns match the new width"
   );
 
-  let shown = BrowserTestUtils.waitForEvent(
-    document,
-    "popupshown",
-    false,
-    e => e.target.id == "pinned-tiles-menu"
+  state.expandedLauncherWidth = 240;
+  await TestUtils.waitForCondition(
+    () => columnsShown().columns == narrow,
+    "Narrowing the sidebar goes back to fewer tiles per row"
   );
-  button.doCommand();
-  let menu = (await shown).target;
-  let hidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
-  menu.activateItem(menu.querySelector("menuitem[value='2']"));
-  await hidden;
-  Assert.equal(Services.prefs.getIntPref(PREF), 2, "The menu sets the layout");
 
-  shown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
-  button.doCommand();
-  await shown;
-  hidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
-  menu.activateItem(document.getElementById("pinned-tiles-hide-sidebar"));
-  await hidden;
-  await TestUtils.waitForCondition(
-    () => SidebarController.sidebarContainer.hidden,
-    "Hide Sidebar hides the whole sidebar"
-  );
-  await TestUtils.waitForCondition(
-    () =>
-      !SidebarController._state.launcherVisible &&
-      !SidebarController.sidebarContainer.hasAttribute(
-        "sidebar-ongoing-animations"
-      )
-  );
-  await SidebarController.handleToolbarButtonClick();
-  await TestUtils.waitForCondition(
-    () => !SidebarController.sidebarContainer.hidden,
-    "The sidebar button shows it again"
-  );
+  Services.prefs.setIntPref(PREF, 3);
+  state.expandedLauncherWidth = 420;
+  await settle();
+  await settle();
+  Assert.equal(columnsShown().columns, 3, "A fixed layout ignores the width");
 
   Services.prefs.setIntPref(PREF, 0);
-  BrowserTestUtils.removeTab(tab);
-  await SpecialPowers.popPrefEnv();
+  state.expandedLauncherWidth = oldWidth;
+  for (let tab of pinned) {
+    BrowserTestUtils.removeTab(tab);
+  }
 });
 
 add_task(async function test_new_tab_button_at_top() {

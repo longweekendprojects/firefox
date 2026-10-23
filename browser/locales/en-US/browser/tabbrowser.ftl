@@ -375,12 +375,6 @@ tab-context-pinned-layout-columns =
     .label = { $columns } Across
 tab-context-pinned-layout-icons =
     .label = Small Icons
-# A small arrow button under the pinned tabs that opens a menu of layouts.
-pinned-tiles-menu-button =
-    .tooltiptext = Pinned tab layout
-    .aria-label = Pinned tab layout
-pinned-tiles-hide-sidebar =
-    .label = Hide Sidebar
 
 ## Peek: a link previewed in a card over the current page.
 

@@ -3744,43 +3744,6 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   display: none;
 }
 
-/* A thin row under the tiles with a small button for the layout menu. */
-#pinned-tiles-bar {
-  display: none;
-  justify-content: flex-end;
-  padding-inline: calc(var(--tab-inner-inline-margin) + 2px);
-  margin-block: 2px 4px;
-
-  #tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[tile-layout] ~ &:not([hidden]) {
-    display: flex;
-  }
-}
-
-#pinned-tiles-menu-button {
-  appearance: none;
-  margin: 0;
-  padding: 0 4px;
-  border-radius: var(--border-radius-small);
-  list-style-image: url("chrome://global/skin/icons/arrow-down-12.svg");
-  -moz-context-properties: fill;
-  fill: currentColor;
-  opacity: 0.55;
-
-  > .toolbarbutton-icon {
-    width: 12px;
-    height: 12px;
-  }
-
-  > .toolbarbutton-text {
-    display: none;
-  }
-
-  &:hover {
-    opacity: 1;
-    background-color: var(--button-background-color-ghost-hover);
-  }
-}
-
 /* The New Tab button above the other tabs, under the pinned tabs, as in Arc.
    The button after the tabs is not shown, so the two never swap places when
    the tab list overflows. */

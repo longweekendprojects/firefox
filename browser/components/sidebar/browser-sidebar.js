@@ -2972,6 +2972,7 @@ var SidebarController = {
     const maxWidth = Math.round(window.innerWidth * 0.75);
     splitter.setPointerCapture(e.pointerId);
     splitter.setAttribute("state", "dragging");
+    this.sidebarMain.toggleAttribute("customWidth", true);
     let width = startWidth;
     const onMove = moveEvent => {
       const delta = moveEvent.clientX - startX;
