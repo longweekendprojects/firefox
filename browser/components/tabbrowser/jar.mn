@@ -17,6 +17,7 @@ browser.jar:
    content/browser/tabbrowser/peek.css                    (content/peek.css)
    content/browser/tabbrowser/peek.mjs                    (content/peek.mjs)
    content/browser/tabbrowser/pinned-tiles.mjs            (content/pinned-tiles.mjs)
+   content/browser/tabbrowser/pinned-url-dialog.css       (content/pinned-url-dialog.css)
    content/browser/tabbrowser/spaces.css                  (content/spaces.css)
    content/browser/tabbrowser/newtab-in-list.css          (content/newtab-in-list.css)
    content/browser/tabbrowser/spaces.mjs                  (content/spaces.mjs)

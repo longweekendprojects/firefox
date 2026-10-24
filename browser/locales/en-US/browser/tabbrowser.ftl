@@ -376,6 +376,23 @@ tab-context-pinned-layout-columns =
 tab-context-pinned-layout-icons =
     .label = Small Icons
 
+## Edit Pinned Page, in the tab context menu of a pinned tab. A pinned tab
+## goes back to its pinned address when it is closed.
+
+tab-context-edit-pinned-page =
+    .label = Edit Pinned Page
+    .accesskey = g
+tab-context-replace-pinned-url =
+    .label = Replace Pinned URL with Current
+tab-context-edit-pinned-url =
+    .label = Edit…
+pinned-url-dialog-title = Edit Pinned URL
+pinned-url-dialog-description = This is what opens first when you click this tab or its icon.
+pinned-url-dialog-input =
+    .aria-label = Pinned URL
+pinned-url-dialog-cancel = Cancel
+pinned-url-dialog-save = Save
+
 ## Peek: a link previewed in a card over the current page.
 
 peek-back =

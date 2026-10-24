@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser, BrowserCommands */
+/* global gBrowser, BrowserCommands, MozXULElement, TabContextMenu */
 
 /**
  * Pinned tiles: in the expanded vertical tab strip, pinned tabs show as a
@@ -190,6 +190,7 @@ function ensureListButton() {
  * @param {MozTabbrowserTab} contextTab
  */
 export function updateTabContextMenu(contextTab) {
+  updateEditPinnedPageMenu(contextTab);
   let layoutMenu = document.getElementById("context_pinnedTabLayout");
   if (!layoutMenu) {
     return;
@@ -211,4 +212,158 @@ export function updateTabContextMenu(contextTab) {
 /** Sets the layout from a menu item's value. */
 export function setColumns(value) {
   Services.prefs.setIntPref(COLUMNS_PREF, Number(value));
+}
+
+const DIALOG_STYLESHEET =
+  "chrome://browser/content/tabbrowser/pinned-url-dialog.css";
+
+/**
+ * The URL a pinned tab shows now, or null when it has none worth pinning.
+ *
+ * @param {MozTabbrowserTab} tab
+ * @returns {string|null}
+ */
+function currentURLOf(tab) {
+  let spec = tab.linkedBrowser.currentURI?.spec;
+  return spec && spec != "about:blank" ? spec : null;
+}
+
+function updateEditPinnedPageMenu(contextTab) {
+  let menu = document.getElementById("context_editPinnedPage");
+  if (!menu) {
+    return;
+  }
+  menu.hidden = !contextTab.pinned || gBrowser.multiSelectedTabsCount > 0;
+  if (menu.hidden) {
+    return;
+  }
+  let replace = document.getElementById("context_replacePinnedURL");
+  let current = currentURLOf(contextTab);
+  replace.disabled =
+    !current || current == contextTab.getAttribute("pinned-url");
+  if (!menu._pinnedURLListener) {
+    menu._pinnedURLListener = event => {
+      let tab = TabContextMenu.contextTab;
+      if (event.target.id == "context_replacePinnedURL") {
+        gBrowser.setPinnedURL(tab, currentURLOf(tab));
+      } else if (event.target.id == "context_editPinnedURL") {
+        openPinnedURLDialog(tab);
+      }
+    };
+    menu.addEventListener("command", menu._pinnedURLListener);
+  }
+}
+
+let dialog = null;
+
+function getDialog() {
+  if (dialog) {
+    return dialog;
+  }
+  window.windowUtils.loadSheetUsingURIString(
+    DIALOG_STYLESHEET,
+    window.windowUtils.AUTHOR_SHEET
+  );
+  MozXULElement.insertFTLIfNeeded("browser/tabbrowser.ftl");
+  let fragment = MozXULElement.parseXULToFragment(`
+    <panel id="pinned-url-panel" role="dialog" noautofocus="true"
+           aria-labelledby="pinned-url-title"
+           aria-describedby="pinned-url-description">
+      <html:form id="pinned-url-form">
+        <html:img id="pinned-url-icon" alt=""/>
+        <html:h1 id="pinned-url-title" data-l10n-id="pinned-url-dialog-title"/>
+        <html:p id="pinned-url-description"
+                data-l10n-id="pinned-url-dialog-description"/>
+        <html:input id="pinned-url-input" type="text" spellcheck="false"
+                    data-l10n-id="pinned-url-dialog-input"/>
+        <html:moz-button-group>
+          <html:moz-button id="pinned-url-cancel">
+            <html:span data-l10n-id="pinned-url-dialog-cancel"/>
+            <html:kbd>esc</html:kbd>
+          </html:moz-button>
+          <html:moz-button id="pinned-url-save" type="primary">
+            <html:span data-l10n-id="pinned-url-dialog-save"/>
+            <html:kbd>↵</html:kbd>
+          </html:moz-button>
+        </html:moz-button-group>
+      </html:form>
+    </panel>`);
+  dialog = fragment.firstElementChild;
+  document.getElementById("mainPopupSet").append(dialog);
+  let input = dialog.querySelector("#pinned-url-input");
+  let save = dialog.querySelector("#pinned-url-save");
+  let parse = () => {
+    let text = input.value.trim();
+    if (!text) {
+      return null;
+    }
+    try {
+      return Services.uriFixup.getFixupURIInfo(
+        text,
+        Services.uriFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS
+      ).preferredURI?.spec;
+    } catch {
+      return null;
+    }
+  };
+  let commit = () => {
+    let url = parse();
+    if (!url || !dialog._tab?.pinned) {
+      return;
+    }
+    gBrowser.setPinnedURL(dialog._tab, url);
+    dialog.hidePopup();
+  };
+  input.addEventListener("input", () => {
+    save.disabled = !parse();
+  });
+  dialog.querySelector("#pinned-url-form").addEventListener("submit", event => {
+    event.preventDefault();
+    commit();
+  });
+  input.addEventListener("keydown", event => {
+    if (event.key == "Enter") {
+      event.preventDefault();
+      commit();
+    }
+  });
+  save.addEventListener("click", commit);
+  dialog
+    .querySelector("#pinned-url-cancel")
+    .addEventListener("click", () => dialog.hidePopup());
+  dialog.addEventListener("popupshown", () => {
+    input.focus();
+    input.select();
+  });
+  dialog.addEventListener("popuphidden", () => {
+    dialog._tab = null;
+  });
+  return dialog;
+}
+
+/**
+ * Opens a dialog centered over the window that edits the address a pinned
+ * tab resets to.
+ *
+ * @param {MozTabbrowserTab} tab
+ */
+export function openPinnedURLDialog(tab) {
+  if (!tab?.pinned) {
+    return;
+  }
+  let popup = getDialog();
+  popup._tab = tab;
+  let input = popup.querySelector("#pinned-url-input");
+  input.value = tab.getAttribute("pinned-url") || currentURLOf(tab) || "";
+  popup.querySelector("#pinned-url-save").disabled = !input.value;
+  let icon = popup.querySelector("#pinned-url-icon");
+  let image = gBrowser.getIcon(tab);
+  icon.hidden = !image;
+  if (image) {
+    icon.src = image;
+  }
+  let width = 400;
+  let x = window.mozInnerScreenX + (window.innerWidth - width) / 2;
+  let y = window.mozInnerScreenY + window.innerHeight / 4;
+  popup.openPopupAtScreen(Math.round(x), Math.round(y), false);
 }

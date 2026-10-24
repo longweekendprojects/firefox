@@ -1322,6 +1322,23 @@ export class Tabbrowser {
   }
 
   /**
+   * Changes the address a pinned tab resets to. An unloaded pinned tab is
+   * pointed at the new address right away.
+   *
+   * @param {MozTabbrowserTab} aTab
+   * @param {string} aURL
+   */
+  setPinnedURL(aTab, aURL) {
+    if (!aTab.pinned || !aURL) {
+      return;
+    }
+    aTab.setAttribute("pinned-url", aURL);
+    if (!aTab.linkedPanel) {
+      this.resetPinnedTab(aTab);
+    }
+  }
+
+  /**
    * Unloads a pinned tab and points it back at the address it was pinned
    * with, so selecting it again loads that address. The current page's
    * history is dropped.

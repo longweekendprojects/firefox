@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#pinned-url-panel {
+  --panel-padding: 0;
+  --panel-border-radius: 14px;
+  --panel-shadow-margin: 24px;
+}
+
+#pinned-url-form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-medium);
+  width: var(--size-layout-large);
+  padding: var(--space-xxlarge);
+  margin: 0;
+}
+
+#pinned-url-icon {
+  width: var(--tab-pinned-expanded-background-width);
+  height: var(--tab-pinned-expanded-background-width);
+  margin-block-end: var(--space-small);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+#pinned-url-title {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-weight: var(--font-weight-semibold);
+}
+
+#pinned-url-description {
+  margin: 0;
+  color: var(--text-color-deemphasized);
+}
+
+#pinned-url-input {
+  box-sizing: border-box;
+  width: 100%;
+  margin-block: var(--space-small);
+  padding: var(--space-medium);
+  border-radius: var(--border-radius-medium);
+}
+
+#pinned-url-panel moz-button-group {
+  align-self: stretch;
+}
+
+#pinned-url-panel kbd {
+  margin-inline-start: var(--space-small);
+  padding: 0 var(--space-xsmall);
+  border-radius: var(--border-radius-small);
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
+  font-family: inherit;
+  font-size: var(--font-size-small);
+}
