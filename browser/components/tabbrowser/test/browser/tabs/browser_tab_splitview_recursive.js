@@ -1239,6 +1239,18 @@ add_task(async function test_split_pinned_tab() {
     () => !pinned.linkedPanel || pinned.hasAttribute("pending"),
     "The pinned tab that stays behind does not load its page"
   );
+  const tabCount = gBrowser.tabs.length;
+  await TabStateFlusher.flush(browser);
+  for (let i = 0; i < 20; i++) {
+    await TestUtils.waitForTick();
+  }
+  Assert.ok(pinned.pinned, "The pinned tab stays pinned once restored");
+  Assert.equal(
+    gBrowser.pinnedTabCount,
+    pinnedBefore,
+    "The pinned tabs still keep their count"
+  );
+  Assert.equal(gBrowser.tabs.length, tabCount, "No other tab appears");
   for (const t of [...splitview.tabs, pinned]) {
     BrowserTestUtils.removeTab(t);
   }

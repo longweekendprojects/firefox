@@ -1280,20 +1280,44 @@ export class Tabbrowser {
     if (!aTab?.pinned) {
       return aTab;
     }
-    let pinnedURL = aTab.getAttribute("pinned-url");
-    let replacement = this.duplicateTab(aTab, false, {
+    let url =
+      aTab.getAttribute("pinned-url") || aTab.linkedBrowser.currentURI.spec;
+    // The state is read now, while the tab is still pinned. Duplicating the
+    // tab instead restores it later from its unpinned state.
+    let state = JSON.parse(lazy.SessionStore.getTabState(aTab));
+    try {
+      let principal = Services.scriptSecurityManager.createContentPrincipal(
+        Services.io.newURI(url),
+        { userContextId: aTab.userContextId }
+      );
+      state.entries = [
+        {
+          url,
+          triggeringPrincipal_base64:
+            lazy.E10SUtils.serializePrincipal(principal),
+        },
+      ];
+      state.index = 1;
+    } catch {}
+    state.pinned = true;
+    delete state.scroll;
+    delete state.formdata;
+    delete state.userTypedValue;
+    let replacement = this.addTrustedTab("about:blank", {
+      createLazyBrowser: true,
       inBackground: true,
+      pinned: true,
+      skipAnimation: true,
       tabIndex: aTab._tPos + 1,
+      userContextId: aTab.userContextId,
     });
-    if (!replacement.pinned) {
-      this.pinTab(replacement);
-    }
-    if (pinnedURL) {
-      replacement.setAttribute("pinned-url", pinnedURL);
+    lazy.SessionStore.setTabState(replacement, state);
+    replacement.setAttribute("pinned-url", url);
+    if (aTab.hasAttribute("space")) {
+      replacement.setAttribute("space", aTab.getAttribute("space"));
     }
     this.moveTabAfter(replacement, aTab);
     this.unpinTab(aTab);
-    this.resetPinnedTab(replacement);
     return aTab;
   }
 
