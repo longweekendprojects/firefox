@@ -118,3 +118,21 @@ add_task(async function test_owner_still_wins_over_mru() {
   BrowserTestUtils.removeTab(mruTab);
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_mru_is_the_default() {
+  const tabs = [1, 2, 3, 4].map(() =>
+    BrowserTestUtils.addTab(gBrowser, "about:blank")
+  );
+  await selectAndYield(tabs[0]);
+  await selectAndYield(tabs[3]);
+  await selectAndYield(tabs[1]);
+  await selectAndYield(tabs[2]);
+
+  BrowserTestUtils.removeTab(tabs[2]);
+  is(gBrowser.selectedTab, tabs[1], "closing selects the last focused tab");
+  BrowserTestUtils.removeTab(tabs[1]);
+  is(gBrowser.selectedTab, tabs[3], "then the one focused before it");
+  BrowserTestUtils.removeTab(tabs[3]);
+  is(gBrowser.selectedTab, tabs[0], "and so on down the stack");
+  BrowserTestUtils.removeTab(tabs[0]);
+});

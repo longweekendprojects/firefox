@@ -91,12 +91,7 @@ var BrowserCommands = {
       return;
     }
 
-    let newTab = gBrowser.addTrustedTab("about:opentabs");
-    gBrowser.addTabSplitView([gBrowser.selectedTab, newTab], {
-      insertBefore: gBrowser.selectedTab,
-      trigger: "keyboard_shortcut",
-    });
-    gBrowser.selectedTab = newTab;
+    this.splitPane("right");
   },
 
   separateTabSplitView() {
@@ -107,8 +102,9 @@ var BrowserCommands = {
    * Splits the selected pane, opening a new tab in `direction`.
    *
    * @param {"left"|"right"|"up"|"down"} direction
+   * @param {string} [trigger] The split view telemetry trigger.
    */
-  splitPane(direction) {
+  splitPane(direction, trigger = "keyboard_shortcut") {
     const tab = gBrowser.detachPinnedTabForSplit(gBrowser.selectedTab);
     if (!tab || tab.hidden) {
       return;
@@ -126,7 +122,7 @@ var BrowserCommands = {
     } else {
       gBrowser.addTabSplitView([tab, newTab], {
         insertBefore: tab,
-        trigger: "keyboard_shortcut",
+        trigger,
         direction,
       });
     }

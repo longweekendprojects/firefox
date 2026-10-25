@@ -1,4 +1,7 @@
 add_task(async function test() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.selectMRUOnClose", false]],
+  });
   const tabs = [gBrowser.selectedTab];
   for (let i = 0; i < 6; ++i) {
     tabs.push(BrowserTestUtils.addTab(gBrowser));

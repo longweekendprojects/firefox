@@ -1397,25 +1397,16 @@ var TabContextMenu = {
       tabsToAdd.unshift(removed);
     }
 
-    let newTab = null;
-    let trigger;
     if (this.contextTabs.length < 2) {
-      // Open new tab to split with context tab
-      newTab = gBrowser.addTrustedTab("about:opentabs");
-      tabsToAdd = [this.contextTabs[0], newTab];
-      trigger = "menu_add";
-    } else {
-      trigger = "menu_open";
+      gBrowser.selectedTab = this.contextTabs[0];
+      BrowserCommands.splitPane("right", "menu_add");
+      return;
     }
 
     gBrowser.addTabSplitView(tabsToAdd, {
       insertBefore,
-      trigger,
+      trigger: "menu_open",
     });
-
-    if (newTab) {
-      gBrowser.selectedTab = newTab;
-    }
   },
 
   unsplitTabs() {

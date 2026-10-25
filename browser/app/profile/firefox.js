@@ -1148,7 +1148,7 @@ pref("browser.tabs.selectOwnerOnClose", true);
 // When the active tab is closed and no successor/owner directs the next
 // selection, switch to the most-recently-used tab instead of the adjacent
 // tab. Tabs are ordered by their lastAccessed timestamp.
-pref("browser.tabs.selectMRUOnClose", false);
+pref("browser.tabs.selectMRUOnClose", true);
 
 // This should match Chromium's audio indicator delay.
 pref("browser.tabs.delayHidingAudioPlayingIconMS", 3000);

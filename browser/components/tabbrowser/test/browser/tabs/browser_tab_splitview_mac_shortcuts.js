@@ -146,6 +146,82 @@ add_task(async function test_cmd_shift_letters_move_between_panes() {
   }
 });
 
+function commandBarOver(tab) {
+  if (!gURLBar.matches(":popover-open") || !gURLBar.focused) {
+    return false;
+  }
+  const bar = gURLBar.getBoundingClientRect();
+  const pane = document.getElementById(tab.linkedPanel).getBoundingClientRect();
+  return (
+    bar.width > 0 &&
+    bar.left >= pane.left &&
+    bar.right <= pane.right &&
+    bar.top >= pane.top &&
+    bar.bottom <= pane.bottom
+  );
+}
+
+add_task(async function test_split_opens_command_bar_in_new_pane() {
+  const tab = BrowserTestUtils.addTab(gBrowser, PAGE);
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  await SimpleTest.promiseFocus(window);
+  tab.linkedBrowser.focus();
+
+  EventUtils.synthesizeKey("l", { accelKey: true, ctrlKey: true });
+  await TestUtils.waitForCondition(() => tab.splitview, "Ctrl+Cmd+L splits");
+  const splitview = tab.splitview;
+  const first = gBrowser.selectedTab;
+  await TestUtils.waitForCondition(
+    () => commandBarOver(first),
+    "the command bar opens over the first new pane"
+  );
+  EventUtils.sendString("typed");
+  is(gURLBar.value, "typed", "typing goes into the command bar");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !gURLBar.matches(":popover-open"));
+
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  tab.linkedBrowser.focus();
+  EventUtils.synthesizeKey("k", { accelKey: true, ctrlKey: true });
+  await TestUtils.waitForCondition(
+    () => splitview.tabs.length == 3,
+    "Ctrl+Cmd+K splits again"
+  );
+  const second = gBrowser.selectedTab;
+  await TestUtils.waitForCondition(
+    () => commandBarOver(second),
+    "the command bar opens over the second new pane"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !gURLBar.matches(":popover-open"));
+
+  for (const t of [...splitview.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
+add_task(async function test_add_split_view_opens_command_bar() {
+  const tab = BrowserTestUtils.addTab(gBrowser, PAGE);
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+
+  BrowserCommands.addTabSplitView();
+  await TestUtils.waitForCondition(() => tab.splitview, "the tab splits");
+  const pane = gBrowser.selectedTab;
+  Assert.notEqual(pane, tab, "the new pane is selected");
+  await TestUtils.waitForCondition(
+    () => commandBarOver(pane),
+    "Add Split View opens the command bar over the new pane"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !gURLBar.matches(":popover-open"));
+
+  for (const t of [...tab.splitview.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
 add_task(async function test_shortcuts_are_listed_in_about_keyboard() {
   await BrowserTestUtils.withNewTab("about:keyboard", async browser => {
     await SpecialPowers.spawn(browser, [], async () => {
