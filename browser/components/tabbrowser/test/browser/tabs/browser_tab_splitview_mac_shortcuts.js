@@ -1,8 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// macOS split view shortcuts: Ctrl+Cmd+I/J/K/L split, Cmd+Shift+I/J/K/L and
-// Ctrl+Cmd+Shift+I/J/K/L move between panes.
+// macOS split view shortcuts: Cmd+Shift+I/J/K/L and Ctrl+Cmd+Shift+I/J/K/L
+// split, Ctrl+Cmd+I/J/K/L move between panes.
 
 const PAGE = "https://example.com/";
 const OVERRIDE_PREF = "browser.tabs.splitview.paneShortcutsOverrideSites";
@@ -45,7 +45,7 @@ async function settle() {
   }
 }
 
-add_task(async function test_ctrl_cmd_letters_split_from_a_text_field() {
+add_task(async function test_cmd_shift_letters_split_from_a_text_field() {
   const tab = await addTabWithTextField();
   await focusTextField(tab);
 
@@ -55,8 +55,8 @@ add_task(async function test_ctrl_cmd_letters_split_from_a_text_field() {
   Assert.ok(!tab.splitview, "Cmd+Right in a text field does not split");
   is(gBrowser.tabs.length, before, "Cmd+Right opens no tab");
 
-  EventUtils.synthesizeKey("l", { accelKey: true, ctrlKey: true });
-  await TestUtils.waitForCondition(() => tab.splitview, "Ctrl+Cmd+L splits");
+  EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
+  await TestUtils.waitForCondition(() => tab.splitview, "Cmd+Shift+L splits");
   const splitview = tab.splitview;
   const pane = splitview.tabs.find(t => t != tab);
   const a = document.getElementById(tab.linkedPanel).getBoundingClientRect();
@@ -65,10 +65,10 @@ add_task(async function test_ctrl_cmd_letters_split_from_a_text_field() {
 
   EventUtils.synthesizeKey("KEY_Escape");
   await focusTextField(tab);
-  EventUtils.synthesizeKey("k", { accelKey: true, ctrlKey: true });
+  EventUtils.synthesizeKey("K", { accelKey: true, shiftKey: true });
   await TestUtils.waitForCondition(
     () => splitview.tabs.length == 3,
-    "Ctrl+Cmd+K splits from a text field"
+    "Cmd+Shift+K splits from a text field"
   );
   const below = gBrowser.selectedTab;
   const c = document.getElementById(below.linkedPanel).getBoundingClientRect();
@@ -80,7 +80,7 @@ add_task(async function test_ctrl_cmd_letters_split_from_a_text_field() {
   }
 });
 
-add_task(async function test_cmd_shift_letters_move_between_panes() {
+add_task(async function test_site_keys_and_moving_between_panes() {
   const left = await addTabWithTextField();
   const right = await addTabWithTextField();
   const splitview = gBrowser.addTabSplitView([left, right]);
@@ -100,46 +100,54 @@ add_task(async function test_cmd_shift_letters_move_between_panes() {
   await focusTextField(left);
   EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
   await settle();
-  is(gBrowser.selectedTab, left, "a site that uses Cmd+Shift+L keeps it");
+  is(splitview.tabs.length, 2, "a site that uses Cmd+Shift+L keeps it");
 
+  EventUtils.synthesizeKey("l", { accelKey: true, ctrlKey: true });
+  await TestUtils.waitForCondition(
+    () => gBrowser.selectedTab == right,
+    "Ctrl+Cmd+L moves to the right pane from a text field"
+  );
+  await focusTextField(right);
+  EventUtils.synthesizeKey("j", { accelKey: true, ctrlKey: true });
+  await TestUtils.waitForCondition(
+    () => gBrowser.selectedTab == left,
+    "Ctrl+Cmd+J moves to the left pane"
+  );
+
+  await focusTextField(left);
   EventUtils.synthesizeKey("L", {
     accelKey: true,
     ctrlKey: true,
     shiftKey: true,
   });
   await TestUtils.waitForCondition(
-    () => gBrowser.selectedTab == right,
-    "Ctrl+Cmd+Shift+L always moves to the right pane"
+    () => splitview.tabs.length == 3,
+    "Ctrl+Cmd+Shift+L always splits"
   );
-
-  await focusTextField(right);
-  EventUtils.synthesizeKey("J", { accelKey: true, shiftKey: true });
-  await TestUtils.waitForCondition(
-    () => gBrowser.selectedTab == left,
-    "Cmd+Shift+J moves to the left pane when the site does not use it"
-  );
+  EventUtils.synthesizeKey("KEY_Escape");
 
   await SpecialPowers.pushPrefEnv({ set: [[OVERRIDE_PREF, true]] });
   is(
-    document.getElementById("key_focusPaneRight").getAttribute("reserved"),
+    document.getElementById("key_splitPaneRight").getAttribute("reserved"),
     "true",
     "the setting reserves Cmd+Shift+L for the browser"
   );
   await focusTextField(left);
   EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
   await TestUtils.waitForCondition(
-    () => gBrowser.selectedTab == right,
+    () => splitview.tabs.length == 4,
     "with the setting on, Cmd+Shift+L wins over the site"
   );
+  EventUtils.synthesizeKey("KEY_Escape");
   await SpecialPowers.popPrefEnv();
   ok(
-    !document.getElementById("key_focusPaneRight").hasAttribute("reserved"),
+    !document.getElementById("key_splitPaneRight").hasAttribute("reserved"),
     "turning the setting off gives sites the keys first again"
   );
   await focusTextField(left);
   EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
   await settle();
-  is(gBrowser.selectedTab, left, "the site keeps Cmd+Shift+L again");
+  is(splitview.tabs.length, 4, "the site keeps Cmd+Shift+L again");
 
   for (const t of [...splitview.tabs]) {
     BrowserTestUtils.removeTab(t);
@@ -168,8 +176,8 @@ add_task(async function test_split_opens_command_bar_in_new_pane() {
   await SimpleTest.promiseFocus(window);
   tab.linkedBrowser.focus();
 
-  EventUtils.synthesizeKey("l", { accelKey: true, ctrlKey: true });
-  await TestUtils.waitForCondition(() => tab.splitview, "Ctrl+Cmd+L splits");
+  EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
+  await TestUtils.waitForCondition(() => tab.splitview, "Cmd+Shift+L splits");
   const splitview = tab.splitview;
   const first = gBrowser.selectedTab;
   await TestUtils.waitForCondition(
@@ -183,10 +191,10 @@ add_task(async function test_split_opens_command_bar_in_new_pane() {
 
   await BrowserTestUtils.switchTab(gBrowser, tab);
   tab.linkedBrowser.focus();
-  EventUtils.synthesizeKey("k", { accelKey: true, ctrlKey: true });
+  EventUtils.synthesizeKey("K", { accelKey: true, shiftKey: true });
   await TestUtils.waitForCondition(
     () => splitview.tabs.length == 3,
-    "Ctrl+Cmd+K splits again"
+    "Cmd+Shift+K splits again"
   );
   const second = gBrowser.selectedTab;
   await TestUtils.waitForCondition(
@@ -233,7 +241,7 @@ add_task(async function test_shortcuts_are_listed_in_about_keyboard() {
         "key_splitPaneUp",
         "key_splitPaneRight",
         "key_focusPaneLeft",
-        "key_focusPaneDownAlways",
+        "key_splitPaneDownAlways",
       ]) {
         Assert.ok(
           content.document.querySelector(`.key[data-id="${id}"]`),

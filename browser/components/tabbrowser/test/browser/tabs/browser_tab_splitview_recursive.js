@@ -1331,3 +1331,44 @@ add_task(async function test_new_tab_button_keeps_the_tab_gap() {
   BrowserTestUtils.removeTab(extra);
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_swipe_navigates_pane_under_pointer() {
+  const first = await addLoadedTab();
+  const second = await addLoadedTab();
+  const next = "https://example.org/";
+  BrowserTestUtils.startLoadingURIString(second.linkedBrowser, next);
+  await BrowserTestUtils.browserLoaded(second.linkedBrowser, false, next);
+  const splitview = gBrowser.addTabSplitView([first, second]);
+  gBrowser.selectedTab = first;
+  await TestUtils.waitForCondition(() => splitview.hasActiveTab);
+  await TestUtils.waitForCondition(() => second.linkedBrowser.canGoBack);
+
+  const box = second.linkedBrowser.getBoundingClientRect();
+  const x = box.left + box.width / 2;
+  const y = box.top + box.height / 2;
+  const { DIRECTION_LEFT } = SimpleGestureEvent;
+  window.windowUtils.sendSimpleGestureEvent(
+    "MozSwipeGestureMayStart",
+    x,
+    y,
+    DIRECTION_LEFT,
+    0,
+    0
+  );
+  is(gBrowser.selectedTab, second, "a swipe selects the pane under it");
+  window.windowUtils.sendSimpleGestureEvent(
+    "MozSwipeGesture",
+    x,
+    y,
+    DIRECTION_LEFT,
+    0,
+    0
+  );
+  await TestUtils.waitForCondition(
+    () => second.linkedBrowser.currentURI.spec == PAGE,
+    "the swiped pane goes back"
+  );
+  is(first.linkedBrowser.currentURI.spec, PAGE, "the other pane stays put");
+  splitview.close();
+  await TestUtils.waitForCondition(() => !splitview.isConnected);
+});

@@ -451,7 +451,7 @@ document.addEventListener(
 
     const PANE_KEYS_PREF = "browser.tabs.splitview.paneShortcutsOverrideSites";
     const updatePaneKeys = () => {
-      const keyset = document.getElementById("paneFocusKeyset");
+      const keyset = document.getElementById("paneSplitKeyset");
       if (!keyset) {
         return;
       }

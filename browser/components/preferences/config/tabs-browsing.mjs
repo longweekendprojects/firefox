@@ -737,7 +737,7 @@ SettingGroupManager.registerGroups({
           },
           {
             id: "paneShortcutsOverrideSites",
-            l10nId: "split-pane-shortcuts-override-sites",
+            l10nId: "split-pane-split-keys-override-sites",
           },
           {
             id: "warnOpenMany",

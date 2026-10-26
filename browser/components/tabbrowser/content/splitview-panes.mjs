@@ -144,6 +144,7 @@ const handler = {
         onCommand(event);
         break;
       case "TabSelect":
+        markSelected();
         anchorActions();
         break;
       case "mousedown":
@@ -267,6 +268,7 @@ export function render(wrapper) {
     style.height = height + "px";
   }
   layoutSplitters(layout, splitters);
+  markSelected();
   anchorActions();
   if (CommandBar.isOpen() || gURLBar.focused) {
     CommandBar.show();
@@ -611,6 +613,12 @@ function toolbarSlot() {
   return { left: left + GAP, right: right - GAP, origin: bar.left };
 }
 
+function markSelected() {
+  for (const [tab, header] of headers) {
+    header.toggleAttribute("selected", tab.selected);
+  }
+}
+
 function headerFor(tab) {
   return headers.get(tab);
 }
@@ -629,6 +637,7 @@ function createHeader(tab) {
   header.className = "split-pane-header";
   header.setAttribute("panel", tab.linkedPanel);
   header.setAttribute("role", "toolbar");
+  header.toggleAttribute("selected", tab.selected);
   header._tab = tab;
 
   const input = document.createElementNS(HTML_NS, "input");

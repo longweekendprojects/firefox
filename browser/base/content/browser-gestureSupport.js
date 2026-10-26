@@ -78,6 +78,7 @@ var gGestureSupport = {
 
     switch (aEvent.type) {
       case "MozSwipeGestureMayStart":
+        this._selectSplitPaneUnderPointer(aEvent);
         if (this._shouldDoSwipeGesture(aEvent)) {
           aEvent.preventDefault();
         }
@@ -214,6 +215,36 @@ var gGestureSupport = {
    * @return true if we're willing to start a swipe for this event, false
    *         otherwise.
    */
+  /**
+   * In a split view, a swipe navigates the pane under the pointer, so that
+   * pane is selected before the swipe starts.
+   *
+   * @param aEvent
+   *        The MozSwipeGestureMayStart event
+   */
+  _selectSplitPaneUnderPointer(aEvent) {
+    const splitview = gBrowser.selectedTab.splitview;
+    if (!splitview) {
+      return;
+    }
+    const pane = splitview.tabs.find(tab => {
+      if (tab.selected) {
+        return false;
+      }
+      const rect = tab.linkedBrowser.getBoundingClientRect();
+      return (
+        rect.width &&
+        aEvent.clientX >= rect.left &&
+        aEvent.clientX < rect.right &&
+        aEvent.clientY >= rect.top &&
+        aEvent.clientY < rect.bottom
+      );
+    });
+    if (pane) {
+      gBrowser.selectedTab = pane;
+    }
+  },
+
   _shouldDoSwipeGesture: function GS__shouldDoSwipeGesture(aEvent) {
     const leftCommand = this._getCommand(aEvent, ["swipe", "left"]);
     const rightCommand = this._getCommand(aEvent, ["swipe", "right"]);

@@ -127,8 +127,8 @@ export class CustomKeysParent extends JSWindowActorParent {
       );
       add(
         cat,
-        `key_focusPane${direction}Always`,
-        `customkeys-view-focus-pane-${l10n}`
+        `key_splitPane${direction}Always`,
+        `customkeys-view-split-pane-${l10n}`
       );
     }
     const editCat = topWin.document.getElementById("edit-menu").label;

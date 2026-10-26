@@ -59,12 +59,13 @@
   color: var(--toolbar-text-color);
   background-color: var(--toolbar-background-color);
 
-  /* Same size and spacing as the window's own toolbar buttons. */
   toolbarbutton {
     appearance: none;
-    margin-inline: var(--toolbarbutton-padding-outer);
-    padding: var(--toolbarbutton-padding-inner);
-    border-radius: var(--toolbarbutton-border-radius);
+    margin-inline: 1px;
+    padding: 5px;
+    /* Squarer corners, like the sidebar's tab rows. */
+    border-radius: 6px;
+    transition: opacity 150ms ease;
     -moz-context-properties: fill, fill-opacity;
     fill: currentColor;
 
@@ -85,6 +86,12 @@
     &[disabled] {
       opacity: 0.4;
     }
+  }
+
+  /* Only the selected pane shows all its buttons; the others keep the close
+     button and show the rest on hover. */
+  &:not([selected], :hover, :focus-within) toolbarbutton:not(.split-pane-close) {
+    opacity: 0;
   }
 
   > .split-pane-back:-moz-locale-dir(rtl),
@@ -141,13 +148,13 @@
 
 /* A narrow pane bar keeps its navigation buttons and address; extension
    buttons go first, then the extensions button. */
-@container (max-width: 420px) {
+@container (max-width: 360px) {
   .split-pane-action {
     display: none;
   }
 }
 
-@container (max-width: 290px) {
+@container (max-width: 250px) {
   .split-pane-extensions {
     display: none;
   }

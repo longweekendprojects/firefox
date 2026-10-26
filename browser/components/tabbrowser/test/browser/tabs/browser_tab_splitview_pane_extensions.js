@@ -93,29 +93,53 @@ function closeSplit(tabs) {
   gBrowser.removeTabs(tabs);
 }
 
-add_task(async function test_pane_buttons_match_toolbar_spacing() {
+add_task(async function test_pane_button_spacing_and_fading() {
   const rect = el => el.getBoundingClientRect();
-  const back = document.getElementById("back-button");
-  const forward = document.getElementById("forward-button");
-  const stockSize = rect(back.querySelector(".toolbarbutton-icon")).width;
-  const stockPitch = rect(forward).left - rect(back).left;
-
   const tabs = await makeSplit();
+  await TestUtils.waitForCondition(
+    () => paneHeader(tabs[0]).hasAttribute("selected"),
+    "the selected pane's bar is marked"
+  );
   for (const tab of tabs) {
     const header = paneHeader(tab);
-    const paneBack = header.querySelector(".split-pane-back");
-    const paneForward = header.querySelector(".split-pane-forward");
+    const back = header.querySelector(".split-pane-back");
+    const forward = header.querySelector(".split-pane-forward");
+    Assert.equal(rect(back).width, 26, "Pane buttons are 26px wide");
     Assert.equal(
-      rect(paneBack).width,
-      stockSize,
-      "Pane buttons are as large as toolbar buttons"
+      rect(forward).left - rect(back).left,
+      28,
+      "Pane buttons are 28px apart"
     );
     Assert.equal(
-      rect(paneForward).left - rect(paneBack).left,
-      stockPitch,
-      "Pane buttons are spaced like toolbar buttons"
+      getComputedStyle(back).borderRadius,
+      "6px",
+      "Pane buttons have the sidebar tab row's squarer corners"
     );
   }
+  const opacity = el => getComputedStyle(el).opacity;
+  const [selected, other] = tabs.map(paneHeader);
+  ok(!other.hasAttribute("selected"), "the other pane's bar is not marked");
+  await Promise.all(
+    [selected, other]
+      .flatMap(h => h.getAnimations({ subtree: true }))
+      .map(a => a.finished)
+  );
+  await TestUtils.waitForCondition(
+    () =>
+      opacity(selected.querySelector(".split-pane-reload")) == "1" &&
+      opacity(other.querySelector(".split-pane-reload")) == "0" &&
+      opacity(other.querySelector(".split-pane-extensions")) == "0",
+    "only the selected pane shows its buttons"
+  );
+  is(
+    opacity(other.querySelector(".split-pane-close")),
+    "1",
+    "the close button shows on every pane"
+  );
+
+  gBrowser.selectedTab = tabs[1];
+  await TestUtils.waitForCondition(() => other.hasAttribute("selected"));
+  ok(!selected.hasAttribute("selected"), "selection moves between bars");
   closeSplit(tabs);
 });
 
