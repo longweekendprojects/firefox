@@ -9291,10 +9291,14 @@ export class Tabbrowser {
       return;
     }
 
-    // Accel+Z outside a text field undoes the last tab action: it closes a
-    // tab opened after the last close, or else reopens what was closed last.
+    // Accel+Z outside a text field undoes the last tab action: it takes a
+    // tab dropped to split back out of the split, closes a tab opened after
+    // the last close, or else reopens what was closed last.
     // The key press would otherwise do nothing there.
-    if (this.#isUndoCloseKey(aEvent) && this.#undoOpenTab()) {
+    if (
+      this.#isUndoCloseKey(aEvent) &&
+      (this.#undoSplitDrop() || this.#undoOpenTab())
+    ) {
       aEvent.preventDefault();
       return;
     }
@@ -9551,9 +9555,7 @@ export class Tabbrowser {
    * @returns {boolean} Whether a tab closed.
    */
   #undoOpenTab() {
-    let entry = this.#openedTabs.findLast(
-      ({ tab }) => tab.isConnected && !tab.closing && !tab.hidden
-    );
+    let entry = this.#lastOpenedEntry();
     if (
       !entry ||
       this.visibleTabs.length < 2 ||
@@ -9564,6 +9566,94 @@ export class Tabbrowser {
     this.#forgetOpenedTab(entry.tab);
     // An undone open is not a close that Accel+Z should undo again.
     this.removeTab(entry.tab, { skipSessionStore: true });
+    return true;
+  }
+
+  #lastOpenedEntry() {
+    return this.#openedTabs.findLast(
+      ({ tab }) => tab.isConnected && !tab.closing && !tab.hidden
+    );
+  }
+
+  /**
+   * Tabs dropped onto another tab or a split view to split them, oldest
+   * first, with where each was before the drop, so Accel+Z can put it back.
+   *
+   * @type {{tab: MozTabbrowserTab, splitview: MozTabSplitViewWrapper, parent: Element, before: ?Element, selectedTab: MozTabbrowserTab, time: number}[]}
+   */
+  #splitDrops = [];
+  #pendingSplitDrop = null;
+
+  /**
+   * Remembers where `tab` is before a drop splits it with another tab, so
+   * Accel+Z can undo the split. Call before the split, then
+   * `splitDropDone` after it.
+   *
+   * @param {MozTabbrowserTab} tab
+   */
+  splitDropStarting(tab) {
+    this.#pendingSplitDrop = tab.splitview
+      ? null
+      : {
+          tab,
+          parent: tab.parentNode,
+          before: tab.nextElementSibling,
+          selectedTab: this.selectedTab,
+        };
+  }
+
+  /** @param {MozTabbrowserTab} tab The tab that the drop split. */
+  splitDropDone(tab) {
+    let drop = this.#pendingSplitDrop;
+    this.#pendingSplitDrop = null;
+    if (drop?.tab != tab || !tab.splitview) {
+      return;
+    }
+    drop.splitview = tab.splitview;
+    drop.time = Date.now();
+    this.#splitDrops.push(drop);
+    if (this.#splitDrops.length > 20) {
+      this.#splitDrops.shift();
+    }
+  }
+
+  /**
+   * Takes the tab of the last split drop out of its split view and back to
+   * where it was, if that drop is newer than the last tab open or close.
+   *
+   * @returns {boolean} Whether a drop was undone.
+   */
+  #undoSplitDrop() {
+    let drop = this.#splitDrops.at(-1);
+    while (
+      drop &&
+      (drop.tab.closing ||
+        drop.tab.splitview != drop.splitview ||
+        !drop.parent.isConnected)
+    ) {
+      this.#splitDrops.pop();
+      drop = this.#splitDrops.at(-1);
+    }
+    if (
+      !drop ||
+      drop.tab.hidden ||
+      drop.time <= (this.#lastOpenedEntry()?.time ?? 0) ||
+      drop.time <= this.#lastClosedActionTime()
+    ) {
+      return false;
+    }
+    this.#splitDrops.pop();
+    let { tab, parent, before, selectedTab } = drop;
+    if (before && drop.splitview.contains(before)) {
+      before = drop.splitview;
+    }
+    if (before?.parentNode != parent) {
+      before = null;
+    }
+    this.#handleTabMove(tab, () => parent.insertBefore(tab, before));
+    if (selectedTab.isConnected && !selectedTab.closing) {
+      this.selectedTab = selectedTab;
+    }
     return true;
   }
 

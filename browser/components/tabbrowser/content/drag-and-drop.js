@@ -1316,6 +1316,7 @@
       if (!plan) {
         return;
       }
+      gBrowser.splitDropStarting(tab);
       if (isSplitViewWrapper(target)) {
         target.splitPane(plan.anchor, plan.direction, tab);
       } else {
@@ -1326,6 +1327,7 @@
         });
       }
       gBrowser.selectedTab = tab;
+      gBrowser.splitDropDone(tab);
     }
 
     _clearDragOverGroupingTimer() {

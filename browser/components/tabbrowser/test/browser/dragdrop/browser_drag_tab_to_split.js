@@ -136,3 +136,45 @@ add_task(async function test_split_favored_over_reordering() {
     }
   }
 });
+
+function pressUndo() {
+  gBrowser.selectedBrowser.focus();
+  EventUtils.synthesizeKey("z", { accelKey: true });
+}
+
+add_task(async function test_undo_split_drop() {
+  let tab1 = await addTab("data:text/html,one");
+  let tab2 = await addTab("data:text/html,two");
+  let tab3 = await addTab("data:text/html,three");
+  let tab4 = await addTab("data:text/html,four");
+  let order = [...gBrowser.tabs];
+  try {
+    await dragOntoForSplit(tab1, tab2, "left");
+    let splitview = tab1.splitview;
+    Assert.ok(splitview, "Dropping a tab on a tab splits them");
+    await dragOntoForSplit(tab3, splitview, "right");
+    Assert.equal(splitview.tabs.length, 3, "The third tab joins the split");
+
+    pressUndo();
+    await TestUtils.waitForCondition(
+      () => !tab3.splitview && splitview.tabs.length == 2,
+      "Accel+Z takes the last dropped tab out of the split"
+    );
+    Assert.equal(splitview.tabs.length, 2, "The first split stays");
+    Assert.ok(tab4.isConnected, "No tab closes");
+
+    pressUndo();
+    await TestUtils.waitForCondition(
+      () => !tab1.splitview && !tab2.splitview,
+      "Accel+Z again unsplits the first drop"
+    );
+    Assert.deepEqual(
+      [...gBrowser.tabs],
+      order,
+      "Every tab is back where it was before the drops"
+    );
+    Assert.equal(gBrowser.selectedTab, tab1, "The dragged tab stays selected");
+  } finally {
+    gBrowser.removeTabs([tab1, tab2, tab3, tab4]);
+  }
+});
