@@ -2740,7 +2740,13 @@ var gUnifiedExtensions = {
 
   // `aEvent` and `reason` are optional. If `reason` is specified, it should be
   // a valid argument to gUnifiedExtensions.recordButtonTelemetry().
-  async togglePanel(aEvent, reason) {
+  // `anchor` is the button the panel opens from, such as the extensions
+  // button of a split view pane.
+  async togglePanel(
+    aEvent,
+    reason,
+    anchor = window.SplitPaneActions?.extensionsAnchor() ?? this._button
+  ) {
     if (!CustomizationHandler.isCustomizing()) {
       if (aEvent) {
         if (
@@ -2788,7 +2794,7 @@ var gUnifiedExtensions = {
         this._listView.addEventListener("ViewHiding", this);
       }
 
-      if (this._button.open) {
+      if (this.isPanelOpen()) {
         PanelMultiView.hidePopup(panel);
         this._button.open = false;
       } else {
@@ -2800,8 +2806,10 @@ var gUnifiedExtensions = {
 
         panel.hidden = false;
         this.recordButtonTelemetry(reason || "extensions_panel_showing");
-        this.ensureButtonShownBeforeAttachingPanel(panel);
-        PanelMultiView.openPopup(panel, this._button, {
+        if (anchor === this._button) {
+          this.ensureButtonShownBeforeAttachingPanel(panel);
+        }
+        PanelMultiView.openPopup(panel, anchor, {
           position: "bottomright topright",
           triggerEvent: aEvent,
         });
@@ -2835,7 +2843,7 @@ var gUnifiedExtensions = {
    * (browserAction) panel anchored to the extensions button.
    */
   isPanelOpen() {
-    return this._button?.open ?? false;
+    return !!this._button?.open || this._panel?.state == "open";
   },
 
   updateContextMenu(menu, event) {
@@ -2961,15 +2969,23 @@ var gUnifiedExtensions = {
   },
 
   _getExtensionId(menu) {
-    const { triggerNode } = menu;
-    return triggerNode
-      .closest(".unified-extensions-item")
-      ?.querySelector("toolbarbutton")?.dataset.extensionid;
+    return this._getTriggerItem(menu)?.querySelector("toolbarbutton")?.dataset
+      .extensionid;
   },
 
   _getWidgetId(menu) {
+    return this._getTriggerItem(menu)?.id;
+  },
+
+  // A split view pane bar shows a stand-in button that names its widget.
+  _getTriggerItem(menu) {
     const { triggerNode } = menu;
-    return triggerNode.closest(".unified-extensions-item")?.id;
+    const item = triggerNode.closest(".unified-extensions-item");
+    if (item) {
+      return item;
+    }
+    const widgetId = triggerNode.closest("[data-widget-id]")?.dataset.widgetId;
+    return widgetId ? document.getElementById(widgetId) : null;
   },
 
   async onPinToToolbarChange(menu, event) {
@@ -3004,7 +3020,17 @@ var gUnifiedExtensions = {
     let newArea = shouldPinToToolbar
       ? CustomizableUI.AREA_NAVBAR
       : CustomizableUI.AREA_ADDONS;
-    let newPosition = shouldPinToToolbar ? undefined : 0;
+    let newPosition = 0;
+    if (shouldPinToToolbar) {
+      // Pinned extensions sit just before the extensions button.
+      const placement = CustomizableUI.getPlacementOfWidget(
+        "unified-extensions-button"
+      );
+      newPosition =
+        placement?.area == CustomizableUI.AREA_NAVBAR
+          ? placement.position
+          : undefined;
+    }
 
     CustomizableUI.addWidgetToArea(widgetId, newArea, newPosition);
     // addWidgetToArea() will trigger onWidgetAdded or onWidgetMoved as needed,

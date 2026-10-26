@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global gBrowser, gURLBar, isBlankPageURL, BrowserUtils,
-   updateBookmarkToolbarVisibility */
+/* global gBrowser, gURLBar, gUnifiedExtensions, isBlankPageURL, BrowserUtils,
+   CustomizableUI, updateBookmarkToolbarVisibility */
 
 /**
  * Renders the active split view as a recursive layout of panes.
  *
  * Loaded into a browser window on its first split view. Browser panels stay
  * direct children of tabpanels; this module only positions them, adds a small
- * header (Back, Forward, Reload, address, Close) to each visible pane, and
- * draws one splitter per split. While panes are shown, the window's own
+ * header (Back, Forward, Reload, address, extension buttons, Close) to each
+ * visible pane, and draws one splitter per split. While panes are shown, the window's own
  * navigation controls are hidden, because each pane has its own. Panes along
  * the top edge show their header in the toolbar row, in the space those
  * controls leave, so the window keeps a single row of controls. Everything it
@@ -68,6 +68,9 @@ const HIDDEN_NAV_IDS = new Set([
   "home-button",
   "urlbar-container",
 ]);
+const EXTENSIONS_BUTTON = "unified-extensions-button";
+// Marks a toolbar extension widget whose popups open from a pane bar.
+const ANCHOR_MARK = "split-pane-anchor";
 
 /** The split view wrapper currently rendered in this window, if any. */
 let current = null;
@@ -82,6 +85,36 @@ let sheetLoaded = false;
 let drag = null;
 /** A press on a pane bar that may become a pane drag. */
 let grab = null;
+/** Watches the window's extensions button, which each pane bar mirrors. */
+let extensionsButtonObserver = null;
+
+/**
+ * Called by browser action code when an action changes, and by the
+ * extensions panel to find the button it opens from.
+ */
+const actionsHook = {
+  update(widgetId, tab) {
+    for (const [paneTab, header] of headers) {
+      if (!tab || paneTab === tab) {
+        updateActions(header, widgetId);
+      }
+    }
+  },
+  extensionsAnchor() {
+    const button = headers
+      .get(gBrowser.selectedTab)
+      ?.querySelector(".split-pane-extensions");
+    return button?.checkVisibility() ? button : null;
+  },
+};
+
+const customizeListener = {
+  onWidgetAdded: scheduleRender,
+  onWidgetRemoved: scheduleRender,
+  onWidgetMoved: scheduleRender,
+  onWidgetAfterCreation: scheduleRender,
+  onWidgetDestroyed: scheduleRender,
+};
 
 const progressListener = {
   onLocationChange(browser, webProgress) {
@@ -103,13 +136,22 @@ const handler = {
       case "command":
         onCommand(event);
         break;
+      case "TabSelect":
+        anchorActions();
+        break;
       case "mousedown":
         onHeaderMouseDown(event);
         break;
       case "contextmenu": {
         // A pane bar has the split view menu, which can separate the pane.
         const header = event.target.closest?.(".split-pane-header");
-        if (header) {
+        if (event.target.classList?.contains("split-pane-action")) {
+          event.preventDefault();
+          event.stopPropagation();
+          document
+            .getElementById("unified-extensions-context-menu")
+            .openPopupAtScreen(event.screenX, event.screenY, true, event);
+        } else if (header) {
           event.preventDefault();
           event.stopPropagation();
           gBrowser.openSplitViewMenu(null, { paneTab: header._tab, event });
@@ -176,6 +218,7 @@ export function render(wrapper) {
   const { leaves, splitters } = M.computeLayout(layout, area, GAP);
   const slot = toolbarSlot();
   const panels = slot && gBrowser.tabpanels.getBoundingClientRect();
+  const actionIds = toolbarActionIds();
   for (const { id: tab, x, y, width, height } of leaves) {
     const panel = document.getElementById(tab.linkedPanel);
     if (!panel) {
@@ -189,6 +232,7 @@ export function render(wrapper) {
       panel.prepend(header);
       updateHeader(tab);
     }
+    fillActions(header, actionIds);
     // A top-edge pane shows its header in the toolbar row, over its own
     // columns and clear of the toolbar's remaining buttons.
     let start = 0;
@@ -215,6 +259,7 @@ export function render(wrapper) {
     style.height = height + "px";
   }
   layoutSplitters(layout, splitters);
+  anchorActions();
   if (CommandBar.isOpen() || gURLBar.focused) {
     CommandBar.show();
   }
@@ -315,6 +360,18 @@ function attach() {
   // it shows as a command bar over the selected pane.
   gURLBar.inputField.addEventListener("focus", CommandBar.show);
 
+  // Each pane bar shows the toolbar's extension buttons for its own tab.
+  window.SplitPaneActions = actionsHook;
+  CustomizableUI.addListener(customizeListener);
+  gBrowser.tabContainer.addEventListener("TabSelect", handler);
+  const extensionsButton = document.getElementById(EXTENSIONS_BUTTON);
+  if (extensionsButton) {
+    extensionsButtonObserver = new MutationObserver(scheduleRender);
+    extensionsButtonObserver.observe(extensionsButton, {
+      attributeFilter: ["hidden", "attention"],
+    });
+  }
+
   resizeObserver = new ResizeObserver(scheduleRender);
   resizeObserver.observe(tabpanels);
   if (navbar) {
@@ -342,6 +399,17 @@ function teardown() {
   drag = null;
   gBrowser.removeTabsProgressListener(progressListener);
   gURLBar.inputField.removeEventListener("focus", CommandBar.show);
+  delete window.SplitPaneActions;
+  CustomizableUI.removeListener(customizeListener);
+  gBrowser.tabContainer.removeEventListener("TabSelect", handler);
+  extensionsButtonObserver?.disconnect();
+  extensionsButtonObserver = null;
+  for (const node of document.querySelectorAll(`[${ANCHOR_MARK}]`)) {
+    if (node.getAttribute("cui-anchorid") == node.getAttribute(ANCHOR_MARK)) {
+      node.removeAttribute("cui-anchorid");
+    }
+    node.removeAttribute(ANCHOR_MARK);
+  }
   CommandBar.hide();
   const tabpanels = gBrowser.tabpanels;
   for (const type of PANEL_EVENTS) {
@@ -512,6 +580,7 @@ function createHeader(tab) {
       "tab-splitview-pane-reload"
     ),
     input,
+    createActionsBox(),
     createButton(
       "split-pane-menu",
       "chrome://global/skin/icons/more.svg",
@@ -547,6 +616,129 @@ function updateHeader(tab) {
     .querySelector(".split-pane-forward")
     .toggleAttribute("disabled", !canGoForward);
   header.querySelector(".split-pane-url").value = displayURL(tab);
+  updateActions(header);
+}
+
+/** Widget ids of the extension buttons in the toolbar, in toolbar order. */
+function toolbarActionIds() {
+  return CustomizableUI.getWidgetIdsInArea(CustomizableUI.AREA_NAVBAR).filter(
+    id =>
+      document.getElementById(id)?.classList.contains("unified-extensions-item")
+  );
+}
+
+function createActionsBox() {
+  const box = document.createXULElement("hbox");
+  box.className = "split-pane-actions";
+  const extensions = createButton(
+    "split-pane-extensions",
+    "chrome://mozapps/skin/extensions/extension.svg",
+    "tab-splitview-pane-extensions"
+  );
+  box.append(extensions);
+  return box;
+}
+
+/**
+ * Gives `header` one button per toolbar extension button, in toolbar order,
+ * before its extensions button.
+ *
+ * @param {Element} header
+ * @param {string[]} ids Widget ids from `toolbarActionIds`.
+ */
+function fillActions(header, ids) {
+  const box = header.querySelector(".split-pane-actions");
+  const extensions = box.querySelector(".split-pane-extensions");
+  const real = document.getElementById(EXTENSIONS_BUTTON);
+  extensions.hidden = !real || real.hidden;
+  extensions.toggleAttribute("attention", !!real?.hasAttribute("attention"));
+  const key = ids.join(" ");
+  if (box._ids === key) {
+    return;
+  }
+  box._ids = key;
+  for (const button of box.querySelectorAll(".split-pane-action")) {
+    button.remove();
+  }
+  for (const id of ids) {
+    const button = document.createXULElement("toolbarbutton");
+    button.className = "split-pane-action tabbable";
+    button.id = `${header.getAttribute("panel")}-${id}`;
+    button.dataset.widgetId = id;
+    button.setAttribute("badged", "true");
+    button.setAttribute("constrain-size", "true");
+    extensions.before(button);
+  }
+  updateActions(header);
+}
+
+/**
+ * Draws the state of the extension buttons of `header` for its tab.
+ *
+ * @param {Element} header
+ * @param {string} [widgetId] Only this extension's button.
+ */
+function updateActions(header, widgetId) {
+  for (const button of header.querySelectorAll(".split-pane-action")) {
+    if (!widgetId || button.dataset.widgetId == widgetId) {
+      browserActionFor(button.dataset.widgetId)?.updatePaneButton(
+        button,
+        header._tab
+      );
+    }
+  }
+}
+
+function browserActionFor(widgetId) {
+  const id = document
+    .getElementById(widgetId)
+    ?.getAttribute("data-extensionid");
+  const policy = id && WebExtensionPolicy.getByID(id);
+  return policy ? gUnifiedExtensions.browserActionFor(policy) : null;
+}
+
+/**
+ * Opens extension popups from the selected pane's bar, since the toolbar's
+ * own extension buttons are hidden while panes show. This also covers popups
+ * an extension or its keyboard shortcut opens.
+ */
+function anchorActions() {
+  const header = headers.get(gBrowser.selectedTab);
+  for (const id of toolbarActionIds()) {
+    const node = document.getElementById(id);
+    if (node.getAttribute("overflowedItem") == "true") {
+      continue;
+    }
+    const button = header?.querySelector(
+      `.split-pane-action[data-widget-id="${CSS.escape(id)}"]`
+    );
+    const anchorId = button?.checkVisibility() ? button.id : null;
+    if (anchorId) {
+      node.setAttribute("cui-anchorid", anchorId);
+      node.setAttribute(ANCHOR_MARK, anchorId);
+    } else if (node.hasAttribute(ANCHOR_MARK)) {
+      if (node.getAttribute("cui-anchorid") == node.getAttribute(ANCHOR_MARK)) {
+        node.removeAttribute("cui-anchorid");
+      }
+      node.removeAttribute(ANCHOR_MARK);
+    }
+  }
+}
+
+/** Runs the extension button `button` stands for, for its pane. */
+function runAction(button, tab) {
+  const real = document
+    .getElementById(button.dataset.widgetId)
+    ?.querySelector(".unified-extensions-item-action-button");
+  if (!real) {
+    return;
+  }
+  // Selecting the pane anchors the extension's popup to `button`.
+  gBrowser.selectedTab = tab;
+  anchorActions();
+  real.dispatchEvent(
+    new CustomEvent("command", { bubbles: true, cancelable: true })
+  );
 }
 
 /**
@@ -586,6 +778,11 @@ function onCommand(event) {
   } else if (classes.contains("split-pane-menu")) {
     gBrowser.selectedTab = tab;
     gBrowser.openSplitViewMenu(event.target, { paneTab: tab });
+  } else if (classes.contains("split-pane-action")) {
+    runAction(event.target, tab);
+  } else if (classes.contains("split-pane-extensions")) {
+    gBrowser.selectedTab = tab;
+    gUnifiedExtensions.togglePanel(event, undefined, event.target);
   }
 }
 

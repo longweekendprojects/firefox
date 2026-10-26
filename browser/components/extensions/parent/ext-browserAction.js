@@ -58,15 +58,22 @@ class BrowserAction extends BrowserActionBase {
   }
 
   updateOnChange(target) {
+    const id = this.buttonDelegate.id;
     if (target) {
       if (ChromeUtils.getClassName(target) == "Window") {
         this.buttonDelegate.updateWindow(target);
-      } else if (target.selected) {
-        this.buttonDelegate.updateWindow(target.documentGlobal);
+        target.SplitPaneActions?.update(id);
+      } else {
+        if (target.selected) {
+          this.buttonDelegate.updateWindow(target.documentGlobal);
+        }
+        // Split view panes show this action for their own tab.
+        target.documentGlobal.SplitPaneActions?.update(id, target);
       }
     } else {
       for (let window of windowTracker.browserWindows()) {
         this.buttonDelegate.updateWindow(window);
+        window.SplitPaneActions?.update(id);
       }
     }
   }
@@ -931,6 +938,36 @@ this.browserAction = class extends ExtensionAPIPersistent {
     } else {
       node.documentGlobal.requestAnimationFrame(callback);
     }
+  }
+
+  /**
+   * Draws this action's state for `tab` on `button`, a badged toolbarbutton
+   * that stands in for the widget in a split view pane bar.
+   *
+   * @param {Element} button
+   * @param {Element} tab
+   */
+  updatePaneButton(button, tab) {
+    const tabData = this.action.getContextData(tab);
+    const title = tabData.title || this.extension.name;
+    button.setAttribute("tooltiptext", title);
+    button.setAttribute("aria-label", title);
+    if (tabData.badgeText) {
+      button.setAttribute("badge", tabData.badgeText);
+    } else {
+      button.removeAttribute("badge");
+    }
+    button.toggleAttribute("disabled", !tabData.enabled);
+    const serializeColor = ([r, g, b, a]) =>
+      `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+    button.setAttribute(
+      "badgeStyle",
+      [
+        `background-color: ${serializeColor(tabData.badgeBackgroundColor)}`,
+        `color: ${serializeColor(this.action.getTextColor(tabData))}`,
+      ].join("; ")
+    );
+    button.setAttribute("style", this.iconData.get(tabData.icon));
   }
 
   getIconData(icons) {

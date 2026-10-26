@@ -379,6 +379,10 @@ browser-layout-vertical-tabs2 =
     .title = Tabs on the side, in the sidebar
     .description = Tabs on the side, in the sidebar
 
+compact-toolbar =
+    .label = Hide the account, new tab, and list all tabs buttons
+    .description = Extension buttons move to the right end of the toolbar, next to the menu button.
+
 page-navigation-group =
     .label = Page navigation
 

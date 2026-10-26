@@ -11,6 +11,8 @@ const XPCOMUtils = ChromeUtils.importESModule(
 
 const lazy = XPCOMUtils.declareLazy({
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+  CustomizableUI:
+    "moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs",
   ContextualIdentityService:
     "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs",
   LinkPreview: "moz-src:///browser/components/genai/LinkPreview.sys.mjs",
@@ -581,6 +583,84 @@ Preferences.addSetting({
   set: value => value === "true",
 });
 
+// Rarely used toolbar buttons that the compact toolbar hides.
+const COMPACT_HIDDEN_BUTTONS = [
+  "fxa-toolbar-menu-button",
+  "new-tab-button",
+  "alltabs-button",
+];
+const EXTENSIONS_BUTTON = "unified-extensions-button";
+
+function navbarIds() {
+  const { CustomizableUI } = lazy;
+  return CustomizableUI.getWidgetIdsInArea(CustomizableUI.AREA_NAVBAR);
+}
+
+function isExtensionWidget(id) {
+  return id.endsWith("-browser-action");
+}
+
+/**
+ * Hides the rarely used toolbar buttons and puts the extensions button last,
+ * next to the menu button, with the pinned extension buttons before it. Off,
+ * the hidden buttons come back before the extension buttons.
+ *
+ * @param {boolean} compact
+ */
+function setCompactToolbar(compact) {
+  const { CustomizableUI } = lazy;
+  const navbar = CustomizableUI.AREA_NAVBAR;
+  if (!compact) {
+    const ids = navbarIds();
+    let position = ids.findIndex(
+      id => isExtensionWidget(id) || id == EXTENSIONS_BUTTON
+    );
+    if (position < 0) {
+      position = ids.length;
+    }
+    for (const id of COMPACT_HIDDEN_BUTTONS) {
+      if (!navbarIds().includes(id)) {
+        CustomizableUI.addWidgetToArea(id, navbar, position++);
+      }
+    }
+    return;
+  }
+  for (const id of COMPACT_HIDDEN_BUTTONS) {
+    if (navbarIds().includes(id)) {
+      CustomizableUI.removeWidgetFromArea(id);
+    }
+  }
+  const extensions = navbarIds().filter(isExtensionWidget);
+  for (const id of [...extensions, EXTENSIONS_BUTTON]) {
+    if (navbarIds().includes(id)) {
+      CustomizableUI.moveWidgetWithinArea(id, navbarIds().length);
+    }
+  }
+}
+
+Preferences.addSetting({
+  id: "compactToolbar",
+  deps: ["browserLayoutRadioGroup"],
+  visible: ({ browserLayoutRadioGroup }) =>
+    browserLayoutRadioGroup.value === "true",
+  setup(emitChange) {
+    const listener = {
+      onWidgetAdded: emitChange,
+      onWidgetRemoved: emitChange,
+    };
+    lazy.CustomizableUI.addListener(listener);
+    return () => lazy.CustomizableUI.removeListener(listener);
+  },
+  get() {
+    const ids = navbarIds();
+    return !COMPACT_HIDDEN_BUTTONS.some(id => ids.includes(id));
+  },
+  set(value) {
+    setCompactToolbar(value);
+    return value;
+  },
+});
+
 SettingGroupManager.registerGroups({
   browserLayout: {
     subcategory: "layout",
@@ -613,6 +693,10 @@ SettingGroupManager.registerGroups({
             },
           },
         ],
+      },
+      {
+        id: "compactToolbar",
+        l10nId: "compact-toolbar",
       },
     ],
   },

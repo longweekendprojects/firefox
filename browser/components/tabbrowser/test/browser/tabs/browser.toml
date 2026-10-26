@@ -696,6 +696,8 @@ run-if = [
   "os == 'mac'",
 ]
 
+["browser_tab_splitview_pane_extensions.js"]
+
 ["browser_tab_splitview_recursive.js"]
 
 ["browser_tab_splitview_recursive_lifecycle.js"]

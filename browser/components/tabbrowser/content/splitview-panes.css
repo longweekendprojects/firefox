@@ -21,6 +21,12 @@
   }
 }
 
+/* Each pane bar has its own extension buttons, so the toolbar's are hidden.
+   Their popups open from the selected pane's bar instead. */
+:root[splitpanes] #nav-bar-customization-target > :is(.unified-extensions-item, #unified-extensions-button) {
+  display: none;
+}
+
 /* Each pane has its own navigation controls, so the window's own controls
    would not say which pane they act on. Hidden, not removed, so the toolbar
    keeps its layout and focus can never land in them. */
@@ -42,6 +48,7 @@
 .split-pane-header {
   display: flex;
   align-items: center;
+  container-type: inline-size;
   gap: var(--space-xsmall);
   min-height: 36px;
   padding-block: var(--space-xsmall);
@@ -49,16 +56,21 @@
   color: var(--toolbar-text-color);
   background-color: var(--toolbar-background-color);
 
-  > toolbarbutton {
+  toolbarbutton {
     appearance: none;
     padding: var(--space-xsmall);
     border-radius: var(--border-radius-medium);
     -moz-context-properties: fill, fill-opacity;
     fill: currentColor;
 
-    > .toolbarbutton-icon {
-      width: 16px;
-      height: 16px;
+    > .toolbarbutton-icon,
+    > .toolbarbutton-badge-stack > .toolbarbutton-icon {
+      width: var(--size-item-small);
+      height: var(--size-item-small);
+    }
+
+    &[open] {
+      background-color: var(--button-background-color-ghost-active);
     }
 
     &:not([disabled]):hover {
@@ -98,6 +110,42 @@
   &:focus-visible {
     outline: var(--focus-outline);
     outline-offset: -1px;
+  }
+}
+
+.split-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xsmall);
+  min-width: 0;
+}
+
+.split-pane-action {
+  list-style-image: var(--webextension-toolbar-image, inherit);
+
+  toolbar[brighttext] & {
+    list-style-image: var(--webextension-toolbar-image-dark, inherit);
+  }
+}
+
+.split-pane-extensions[attention] {
+  background-image: radial-gradient(circle, var(--color-accent-attention), var(--color-accent-attention) 2px, transparent 2px);
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+}
+
+/* A narrow pane bar keeps its navigation buttons and address; extension
+   buttons go first, then the extensions button. */
+@container (max-width: 320px) {
+  .split-pane-action {
+    display: none;
+  }
+}
+
+@container (max-width: 220px) {
+  .split-pane-extensions {
+    display: none;
   }
 }
 
@@ -169,7 +217,7 @@
     opacity: var(--opacity-deemphasized);
   }
 
-  > toolbarbutton:not([dragging] > *) {
+  toolbarbutton:not([dragging] *) {
     cursor: default;
   }
 }
@@ -205,8 +253,8 @@
 
   &::before {
     content: "";
-    width: 20px;
-    height: 20px;
+    width: var(--icon-size-medium);
+    height: var(--icon-size-medium);
     background: url("chrome://global/skin/icons/swap-horizontal-20.svg") center / contain no-repeat;
     -moz-context-properties: fill;
     fill: currentColor;
