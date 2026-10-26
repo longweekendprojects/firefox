@@ -27,4 +27,6 @@ support-files = [
 
 ["browser_move_unpinned_not_overflowing.js"]
 
+["browser_pinned_list.js"]
+
 ["browser_stale_drag_session.js"]

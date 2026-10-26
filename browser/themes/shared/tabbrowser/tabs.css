@@ -3818,6 +3818,13 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+/* Pinned list items sit before the New Tab row, which sits before the other
+   tabs. Their order among the tabs stays the same. */
+#tabbrowser-arrowscrollbox > :is(.tabbrowser-tab, tab-split-view-wrapper)[pinned-list],
+#tabbrowser-arrowscrollbox > tab-group[pinned-list] > * {
+  order: -2;
+}
+
 /* An unpinned tab dragged over the pinned tiles follows the pointer as a
    tile, and the tiles move aside to show where it will be pinned. */
 .tabbrowser-tab[pinpreview] {
@@ -3906,7 +3913,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 
   /* The first tab sits one tab gap under the New Tab row. */
-  #tabbrowser-arrowscrollbox .tabbrowser-tab:nth-child(1 of :not([hidden], [pinned])) {
+  #tabbrowser-arrowscrollbox .tabbrowser-tab:is(:nth-child(1 of :not([hidden], [pinned])), :nth-child(1 of :not([hidden], [pinned], [pinned-list]))) {
     padding-block-start: var(--tab-padding-block-start);
   }
 

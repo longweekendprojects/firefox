@@ -877,6 +877,9 @@
       let unpinnedChildren = Array.from(this.arrowScrollbox.children);
       // remove arrowScrollbox periphery element.
       unpinnedChildren.pop();
+      unpinnedChildren = unpinnedChildren.filter(
+        node => node.id != "tabs-list-newtab-button"
+      );
 
       // explode tab groups and split view wrappers
       // Iterate backwards over the array to preserve indices while we modify

@@ -937,8 +937,9 @@ function readSpaceList() {
 }
 
 /**
- * Builds the session data of one Arc space's tabs: favorites and pinned tabs
- * first, then pinned folders as tab groups, then open tabs and split views.
+ * Builds the session data of one Arc space's tabs: favorites as pinned tiles,
+ * then the space's pinned tabs and pinned folders, as tab groups, in the
+ * pinned list, then open tabs and split views.
  *
  * @param {object} arcSpace A space from parseArcSidebar.
  * @param {object[]} favorites The favorites of the space's profile.
@@ -976,9 +977,19 @@ function addSpaceTabs(arcSpace, favorites, space, icons, out) {
     return data;
   };
 
-  let loosePinned = arcSpace.pinned.filter(node => node.type != "folder");
-  for (let node of tabsIn([...favorites, ...loosePinned])) {
+  let listTab = (node, extra) => {
+    let data = tabData(node, extra);
+    data.attributes["pinned-list"] = "true";
+    data.attributes["pinned-url"] = node.url;
+    return data;
+  };
+
+  for (let node of tabsIn(favorites)) {
     out.tabs.push(pinnedTab(node));
+  }
+  let loosePinned = arcSpace.pinned.filter(node => node.type != "folder");
+  for (let node of tabsIn(loosePinned)) {
+    out.tabs.push(listTab(node));
   }
   for (let folder of arcSpace.pinned.filter(node => node.type == "folder")) {
     let folderTabs = [...tabsIn(folder.children)];
@@ -992,7 +1003,7 @@ function addSpaceTabs(arcSpace, favorites, space, icons, out) {
       color: GROUP_COLOR_FOR_CONTAINER_COLOR[space.color] ?? "gray",
       collapsed: true,
     });
-    out.tabs.push(...folderTabs.map(tab => tabData(tab, { groupId })));
+    out.tabs.push(...folderTabs.map(tab => listTab(tab, { groupId })));
   }
   for (let node of arcSpace.unpinned) {
     let nodeTabs = [...tabsIn([node])];

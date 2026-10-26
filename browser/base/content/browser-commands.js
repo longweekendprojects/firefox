@@ -454,10 +454,15 @@ var BrowserCommands = {
     if (
       event &&
       (event.ctrlKey || event.metaKey || event.altKey) &&
-      gBrowser.selectedTab.pinned
+      (gBrowser.selectedTab.pinned ||
+        (gBrowser.selectedTab.hasAttribute("pinned-list") &&
+          !gBrowser.selectedTab.splitview))
     ) {
       let pinnedTab = gBrowser.selectedTab;
-      let unpinned = gBrowser.visibleTabs.find(tab => !tab.pinned);
+      let unpinned =
+        gBrowser.visibleTabs.find(
+          tab => !tab.pinned && !tab.hasAttribute("pinned-list")
+        ) ?? gBrowser.visibleTabs.find(tab => !tab.pinned && tab != pinnedTab);
       if (unpinned) {
         gBrowser.selectedTab = unpinned;
       }

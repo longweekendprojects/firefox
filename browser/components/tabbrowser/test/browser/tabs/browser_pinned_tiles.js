@@ -193,9 +193,7 @@ add_task(async function test_new_tab_button_at_top() {
   let pinnedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
   gBrowser.pinTab(pinnedTab);
   await settle();
-  let button = gBrowser.tabContainer.arrowScrollbox.scrollbox.querySelector(
-    "#tabs-list-newtab-button"
-  );
+  let button = document.getElementById("tabs-list-newtab-button");
   Assert.ok(BrowserTestUtils.isVisible(button), "New Tab shows above the tabs");
   let firstTab = gBrowser.visibleTabs.find(t => !t.pinned);
   Assert.lessOrEqual(
@@ -349,8 +347,8 @@ add_task(async function test_line_under_tiles_is_centered() {
     .getElementById("vertical-pinned-tabs-splitter")
     .getBoundingClientRect();
   let lineY = line.top + line.height / 2;
-  let button = gBrowser.tabContainer.arrowScrollbox.scrollbox
-    .querySelector("#tabs-list-newtab-button")
+  let button = document
+    .getElementById("tabs-list-newtab-button")
     .getBoundingClientRect();
   let above = lineY - tile.bottom;
   let below = button.top - lineY;

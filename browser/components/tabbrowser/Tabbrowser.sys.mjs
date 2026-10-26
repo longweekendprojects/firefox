@@ -1329,7 +1329,7 @@ export class Tabbrowser {
    * @param {string} aURL
    */
   setPinnedURL(aTab, aURL) {
-    if (!aTab.pinned || !aURL) {
+    if (!(aTab.pinned || aTab.hasAttribute("pinned-list")) || !aURL) {
       return;
     }
     aTab.setAttribute("pinned-url", aURL);
@@ -1346,7 +1346,7 @@ export class Tabbrowser {
    * @param {MozTabbrowserTab} aTab
    */
   async resetPinnedTab(aTab) {
-    if (!aTab.pinned) {
+    if (!aTab.pinned && !aTab.hasAttribute("pinned-list")) {
       return;
     }
     if (!aTab.hasAttribute("pinned-url")) {

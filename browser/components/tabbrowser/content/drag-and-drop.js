@@ -312,6 +312,7 @@
         movingTabs?.reverse();
       }
 
+      let pinnedListTarget = draggedTab?._dragData?.pinnedListTarget ?? null;
       let overPinnedDropIndicator =
         this._pinnedDropIndicator.hasAttribute("visible") &&
         this._pinnedDropIndicator.hasAttribute("interactive");
@@ -486,6 +487,11 @@
           }
         };
 
+        let pinnedURLs = new Map(
+          movingTabs
+            .filter(t => isTab(t) && t.pinned)
+            .map(t => [t, t.getAttribute("pinned-url")])
+        );
         if (shouldPin || shouldUnpin) {
           for (let item of movingTabs) {
             if (shouldPin && isTab(item)) {
@@ -538,12 +544,15 @@
           Promise.all(translationPromises).then(() => {
             this.finishAnimateTabMove();
             moveTabs();
+            window.gPinnedList?.applyDrop(movingTabs, pinnedListTarget);
           });
         } else {
           let { splitTarget, splitSide } = draggedTab._dragData;
           this.finishAnimateTabMove();
           if (splitTarget) {
+            let targetInList = window.gPinnedList?.isListItem(splitTarget);
             this.#splitOnDrop(draggedTab, splitTarget, splitSide);
+            window.gPinnedList?.applyDrop([draggedTab], targetInList ?? null);
           } else if (shouldCreateGroupOnDrop) {
             // This makes the tab group contents reflect the visual order of
             // the tabs right before dropping.
@@ -571,6 +580,15 @@
             }
           } else {
             moveTabs();
+            if (shouldUnpin) {
+              window.gPinnedList?.placeUnpinned(
+                movingTabs.filter(t => isTab(t)),
+                event.clientY,
+                pinnedURLs
+              );
+            } else {
+              window.gPinnedList?.applyDrop(movingTabs, pinnedListTarget);
+            }
             this._tabbrowserTabs._notifyBackgroundTab(movingTabs.at(-1));
           }
         }
@@ -2423,6 +2441,14 @@
       }
 
       dragData.translatePos = translate;
+      if (!isPinned && this._tabbrowserTabs.verticalMode) {
+        dragData.pinnedListTarget =
+          window.gPinnedList?.dragTarget(
+            draggedTab,
+            event.clientY,
+            shiftSize
+          ) ?? null;
+      }
 
       tabs = tabs.filter(t => !movingTabsSet.has(t) || t == draggedTab);
 
@@ -3243,6 +3269,7 @@
     }
 
     finishAnimateTabMove() {
+      window.gPinnedList?.endDrag();
       this.#endPinPreview({ clearHeights: true });
       this.#pinGeometry = null;
       if (!this.#isMovingTab()) {

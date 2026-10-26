@@ -531,6 +531,11 @@ var gBrowserInit = {
         { global: "current" }
       );
       window.gPinnedTiles.init();
+      window.gPinnedList = ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/pinned-list.mjs",
+        { global: "current" }
+      );
+      window.gPinnedList.init();
     }
     if (
       !document.documentElement.hasAttribute("little-window") &&

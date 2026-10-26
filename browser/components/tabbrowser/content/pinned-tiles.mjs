@@ -16,9 +16,8 @@
  *
  * With browser.tabs.vertical.newTabButtonAtTop, the vertical tab strip's New
  * Tab button sits above the other tabs, as in Arc. In the expanded sidebar it
- * is the first row of the scrolled tab list, so it scrolls with the tabs. It
- * lives in the tab list's shadow tree, so tab code that walks the list's
- * children never sees it.
+ * is a row of the scrolled tab list, so it scrolls with the tabs. It is
+ * placed before the other tabs with CSS, after the pinned list.
  */
 
 const COLUMNS_PREF = "browser.tabs.pinnedTiles.columns";
@@ -157,18 +156,20 @@ function ensureListButton() {
   if (listButton) {
     return;
   }
-  let scrollbox = gBrowser.tabContainer.arrowScrollbox.scrollbox;
-  let link = document.createElementNS("http://www.w3.org/1999/xhtml", "link");
-  link.rel = "stylesheet";
-  link.href = "chrome://browser/content/tabbrowser/newtab-in-list.css";
+  window.windowUtils.loadSheetUsingURIString(
+    "chrome://browser/content/tabbrowser/newtab-in-list.css",
+    window.windowUtils.AUTHOR_SHEET
+  );
   listButton = document.createXULElement("toolbarbutton");
   listButton.id = "tabs-list-newtab-button";
-  listButton.className = "toolbarbutton-1";
-  listButton.setAttribute("part", "list-newtab-button");
   listButton.addEventListener("command", event =>
     BrowserCommands.openTab({ event })
   );
-  scrollbox.prepend(link, listButton);
+  let list = gBrowser.tabContainer.arrowScrollbox;
+  list.insertBefore(
+    listButton,
+    document.getElementById("tabbrowser-arrowscrollbox-periphery")
+  );
   let source = document.getElementById("vertical-tabs-newtab-button");
   let copyLabel = () => {
     listButton.setAttribute("label", source.getAttribute("label") ?? "");
@@ -233,7 +234,9 @@ function updateEditPinnedPageMenu(contextTab) {
   if (!menu) {
     return;
   }
-  menu.hidden = !contextTab.pinned || gBrowser.multiSelectedTabsCount > 0;
+  menu.hidden =
+    !(contextTab.pinned || contextTab.hasAttribute("pinned-list")) ||
+    gBrowser.multiSelectedTabsCount > 0;
   if (menu.hidden) {
     return;
   }
@@ -308,7 +311,8 @@ function getDialog() {
   };
   let commit = () => {
     let url = parse();
-    if (!url || !dialog._tab?.pinned) {
+    let tab = dialog._tab;
+    if (!url || !(tab?.pinned || tab?.hasAttribute("pinned-list"))) {
       return;
     }
     gBrowser.setPinnedURL(dialog._tab, url);
@@ -348,7 +352,7 @@ function getDialog() {
  * @param {MozTabbrowserTab} tab
  */
 export function openPinnedURLDialog(tab) {
-  if (!tab?.pinned) {
+  if (!(tab?.pinned || tab?.hasAttribute("pinned-list"))) {
     return;
   }
   let popup = getDialog();

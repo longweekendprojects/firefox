@@ -252,16 +252,23 @@ add_task(async function test_import_everything_from_arc() {
   let pinned = personalTabs.filter(t => t.pinned);
   Assert.deepEqual(
     pinned.map(t => t.getAttribute("pinned-url")),
-    [
-      "https://example.com/fav1",
-      "https://example.org/fav2",
-      "https://example.com/pin1",
-    ],
-    "Favorites, then pinned tabs, are pinned with their addresses"
+    ["https://example.com/fav1", "https://example.org/fav2"],
+    "Favorites are pinned tiles with their addresses"
+  );
+  let listed = personalTabs.filter(t => t.hasAttribute("pinned-list"));
+  Assert.equal(
+    listed[0]?.getAttribute("pinned-url"),
+    "https://example.com/pin1",
+    "Pinned tabs go in the pinned list with their addresses"
   );
 
   let group = gBrowser.tabGroups.find(g => g.label == "Reading");
   Assert.ok(group?.collapsed, "A pinned folder is a collapsed tab group");
+  Assert.ok(
+    group.tabs.every(t => t.hasAttribute("pinned-list")),
+    "in the pinned list"
+  );
+  Assert.equal(listed.length, 3, "The list holds the pinned tab and folder");
   Assert.equal(group.tabs.length, 2, "Nested folders flatten into the group");
 
   let split = personalTabs.find(t => t.splitview)?.splitview;

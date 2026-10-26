@@ -5,14 +5,14 @@
 /* The label matches the tab labels, which have no font token. */
 /* stylelint-disable stylelint-plugin-mozilla/use-design-tokens */
 
-/* The New Tab row at the start of the scrolled vertical tab list. It sits
-   in the list's shadow tree, so it takes the tab strip's custom properties
-   but none of its rules. */
+/* The New Tab row in the scrolled vertical tab list. It comes after the
+   pinned list and before the other tabs, whatever its place among them. */
 #tabs-list-newtab-button {
   display: none;
 }
 
-:host([newtab-row]) #tabs-list-newtab-button {
+#tabbrowser-arrowscrollbox[newtab-row] > #tabs-list-newtab-button {
+  order: -1;
   appearance: none;
   display: flex;
   align-items: center;
@@ -62,7 +62,26 @@
   }
 }
 
-:host([newtab-row="collapsed"]) #tabs-list-newtab-button {
+#tabbrowser-arrowscrollbox[newtab-row] > #tabs-list-newtab-button[after-pinned-list] {
+  position: relative;
+  margin-block-start: 11px;
+
+  /* A faint line between the pinned list and the other tabs. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: -7px;
+    height: 1px;
+    background-image: var(--sidebar-fade-divider-image);
+    background-size: var(--sidebar-fade-divider-size);
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+}
+
+#tabbrowser-arrowscrollbox[newtab-row="collapsed"] > #tabs-list-newtab-button {
   justify-content: center;
   padding: 0;
 

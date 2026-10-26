@@ -16,6 +16,7 @@ browser.jar:
    content/browser/tabbrowser/opentabs-splitview.mjs      (content/opentabs-splitview.mjs)
    content/browser/tabbrowser/peek.css                    (content/peek.css)
    content/browser/tabbrowser/peek.mjs                    (content/peek.mjs)
+   content/browser/tabbrowser/pinned-list.mjs             (content/pinned-list.mjs)
    content/browser/tabbrowser/pinned-tiles.mjs            (content/pinned-tiles.mjs)
    content/browser/tabbrowser/pinned-url-dialog.css       (content/pinned-url-dialog.css)
    content/browser/tabbrowser/spaces.css                  (content/spaces.css)
