@@ -85,8 +85,12 @@ let sheetLoaded = false;
 let drag = null;
 /** A press on a pane bar that may become a pane drag. */
 let grab = null;
-/** Watches the window's extensions button, which each pane bar mirrors. */
-let extensionsButtonObserver = null;
+/**
+ * Watches the window's extensions and menu buttons, which each pane bar
+ * mirrors, and the end of sidebar animations, which move the panes without
+ * resizing them.
+ */
+let chromeObserver = null;
 
 /**
  * Called by browser action code when an action changes, and by the
@@ -364,18 +368,21 @@ function attach() {
   window.SplitPaneActions = actionsHook;
   CustomizableUI.addListener(customizeListener);
   gBrowser.tabContainer.addEventListener("TabSelect", handler);
+  chromeObserver = new MutationObserver(scheduleRender);
+  chromeObserver.observe(gBrowser.tabbox, {
+    attributeFilter: ["sidebar-ongoing-animations"],
+  });
   const extensionsButton = document.getElementById(EXTENSIONS_BUTTON);
   if (extensionsButton) {
-    extensionsButtonObserver = new MutationObserver(scheduleRender);
-    extensionsButtonObserver.observe(extensionsButton, {
+    chromeObserver.observe(extensionsButton, {
       attributeFilter: ["hidden", "attention"],
     });
-    const menuButton = document.getElementById("PanelUI-menu-button");
-    if (menuButton) {
-      extensionsButtonObserver.observe(menuButton, {
-        attributeFilter: ["badge-status"],
-      });
-    }
+  }
+  const menuButton = document.getElementById("PanelUI-menu-button");
+  if (menuButton) {
+    chromeObserver.observe(menuButton, {
+      attributeFilter: ["badge-status"],
+    });
   }
 
   resizeObserver = new ResizeObserver(scheduleRender);
@@ -408,8 +415,8 @@ function teardown() {
   delete window.SplitPaneActions;
   CustomizableUI.removeListener(customizeListener);
   gBrowser.tabContainer.removeEventListener("TabSelect", handler);
-  extensionsButtonObserver?.disconnect();
-  extensionsButtonObserver = null;
+  chromeObserver?.disconnect();
+  chromeObserver = null;
   for (const node of document.querySelectorAll(`[${ANCHOR_MARK}]`)) {
     if (node.getAttribute("cui-anchorid") == node.getAttribute(ANCHOR_MARK)) {
       node.removeAttribute("cui-anchorid");

@@ -287,6 +287,55 @@ add_task(async function test_toolbar_row_is_shared_by_panes() {
   );
 });
 
+add_task(async function test_toolbar_pane_bars_follow_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.animation.enabled", true],
+      ["sidebar.visibility", "hide-sidebar"],
+      ["sidebar.revealOnHover", true],
+    ],
+  });
+  await SidebarController.waitUntilStable();
+  const container = SidebarController.sidebarContainer;
+  if (container.hidden) {
+    await SidebarController.handleToolbarButtonClick();
+    await TestUtils.waitForCondition(() => !container.hidden);
+  }
+  const tabs = await makeSplit();
+  const aligned = () =>
+    tabs.every(tab => {
+      const header = paneHeader(tab).getBoundingClientRect();
+      const panel = document
+        .getElementById(tab.linkedPanel)
+        .getBoundingClientRect();
+      return Math.abs(header.right - panel.right) <= 2;
+    });
+  const settled = async () => {
+    await TestUtils.waitForTick();
+    await TestUtils.waitForCondition(
+      () => !SidebarController._ongoingAnimations.length,
+      "Sidebar animation ends"
+    );
+    await new Promise(r =>
+      requestAnimationFrame(() => requestAnimationFrame(r))
+    );
+  };
+  await TestUtils.waitForCondition(aligned, "Pane bars line up");
+
+  await SidebarController.handleToolbarButtonClick();
+  await TestUtils.waitForCondition(() => container.hidden, "Sidebar hides");
+  await settled();
+  ok(aligned(), "Pane bars line up with their panes after hiding");
+
+  await SidebarController.handleToolbarButtonClick();
+  await TestUtils.waitForCondition(() => !container.hidden, "Sidebar shows");
+  await settled();
+  ok(aligned(), "Pane bars line up with their panes after showing");
+
+  closeSplit(tabs);
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_pane_button_context_menu() {
   const extension = loadExtension();
   await extension.startup();
