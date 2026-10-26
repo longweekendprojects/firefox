@@ -3867,6 +3867,15 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+/* While the new tab command bar is open, the New Tab row shows as selected
+   instead of the tab underneath, which looks selected again if the bar
+   closes without opening a tab. */
+#tabbrowser-tabs[orient="vertical"][newtab-pending] .tabbrowser-tab > .tab-stack > .tab-background[selected]:not([multiselected]) {
+  background: var(--tab-background-color) !important;
+  outline-color: var(--tab-border-color);
+  box-shadow: none;
+}
+
 /* The name editor of a tab being renamed, over the tab's title. */
 #tab-rename-input {
   position: fixed;

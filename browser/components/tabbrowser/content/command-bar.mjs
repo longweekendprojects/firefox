@@ -78,6 +78,7 @@ export function showNewTab(event) {
   gURLBar.value = "";
   show();
   gURLBar.view.autoOpen({ event });
+  gBrowser.tabContainer.toggleAttribute("newtab-pending", true);
   return true;
 }
 
@@ -87,6 +88,7 @@ export function leaveNewTab() {
     return;
   }
   gURLBar.commandBarNewTab = false;
+  gBrowser.tabContainer.removeAttribute("newtab-pending");
   if (gBrowser.selectedTab == newTabOwner) {
     gURLBar.handleRevert();
   } else if (newTabOwner?.linkedBrowser) {

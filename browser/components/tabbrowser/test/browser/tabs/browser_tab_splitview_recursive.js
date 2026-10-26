@@ -462,6 +462,60 @@ add_task(async function test_new_tab_opens_command_bar() {
   BrowserTestUtils.removeTab(tab);
 });
 
+add_task(async function test_new_tab_command_bar_highlights_new_tab_row() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.verticalTabs", true],
+      ["browser.tabs.vertical.newTabButtonAtTop", true],
+    ],
+  });
+  if (!gBrowser.tabContainer.hasAttribute("expanded")) {
+    window.SidebarController._state.launcherExpanded = true;
+    await TestUtils.waitForCondition(() =>
+      gBrowser.tabContainer.hasAttribute("expanded")
+    );
+  }
+  const tab = await addLoadedTab();
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  const row = await TestUtils.waitForCondition(() =>
+    document.getElementById("tabs-list-newtab-button")
+  );
+  const background = el => getComputedStyle(el).backgroundColor;
+  const tabBackground = () => background(tab.querySelector(".tab-background"));
+  const selectedLook = tabBackground();
+  const rowLook = background(row);
+  Assert.notEqual(selectedLook, rowLook, "The row starts unselected");
+
+  EventUtils.synthesizeKey("t", { accelKey: true });
+  await TestUtils.waitForCondition(
+    () => commandBarOver(tab),
+    "Cmd+T opens the command bar"
+  );
+  Assert.ok(
+    gBrowser.tabContainer.hasAttribute("newtab-pending"),
+    "The tab strip shows a new tab is coming"
+  );
+  Assert.notEqual(background(row), rowLook, "The New Tab row is highlighted");
+  Assert.notEqual(
+    tabBackground(),
+    selectedLook,
+    "The tab underneath no longer looks selected"
+  );
+
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(() => !commandBarOpen(), "Escape closes it");
+  Assert.ok(
+    !gBrowser.tabContainer.hasAttribute("newtab-pending"),
+    "The highlight goes"
+  );
+  Assert.equal(gBrowser.selectedTab, tab, "The previous tab stays selected");
+  Assert.equal(tabBackground(), selectedLook, "and looks selected again");
+  Assert.equal(background(row), rowLook, "The New Tab row looks as before");
+
+  BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_new_tab_command_bar_centers_over_split() {
   const tabs = [await addLoadedTab(), await addLoadedTab()];
   await BrowserTestUtils.switchTab(gBrowser, tabs[0]);

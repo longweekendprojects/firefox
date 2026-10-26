@@ -62,6 +62,34 @@
   }
 }
 
+/* While the new tab command bar is open, the New Tab row shows as the
+   selected tab, since the bar opens a new tab. */
+#tabbrowser-tabs[newtab-pending] #tabbrowser-arrowscrollbox[newtab-row] > #tabs-list-newtab-button {
+  background-color: var(--tab-background-color-selected);
+  color: var(--tab-text-color-selected);
+  outline: var(--tab-border);
+  outline-color: var(--tab-border-color-selected);
+  outline-offset: var(--tab-outline-offset);
+  box-shadow: var(--tab-box-shadow-selected);
+
+  > .toolbarbutton-icon,
+  > .toolbarbutton-text {
+    opacity: 1;
+  }
+
+  @media -moz-pref("browser.nova.enabled") {
+    @media not ((prefers-contrast) or (-moz-native-theme)) {
+      :root[theme-in-app] & {
+        border: 1px solid transparent;
+        background:
+          var(--tab-border-color-accent) border-box border-area,
+          var(--tab-background-color-selected) padding-box;
+        color: var(--tab-text-color-selected);
+      }
+    }
+  }
+}
+
 #tabbrowser-arrowscrollbox[newtab-row] > #tabs-list-newtab-button[after-pinned-list] {
   position: relative;
   margin-block-start: 11px;
