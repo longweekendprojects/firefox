@@ -5620,19 +5620,22 @@ export class Tabbrowser {
 
     let allItems;
     let index;
+    let pinnedCount;
     if (typeof elementIndex == "number") {
       allItems = this.tabContainer.dragAndDropElements;
       index = elementIndex;
+      pinnedCount = this.tabContainer.visiblePinnedTabCount;
     } else {
       allItems = this.tabs;
       index = tabIndex;
+      pinnedCount = this.pinnedTabCount;
     }
     // Ensure index is within bounds.
     if (tab.pinned) {
       index = Math.max(index, 0);
-      index = Math.min(index, this.pinnedTabCount);
+      index = Math.min(index, pinnedCount);
     } else {
-      index = Math.max(index, this.pinnedTabCount);
+      index = Math.max(index, pinnedCount);
       index = Math.min(index, allItems.length);
     }
     let itemAfter =
@@ -6029,12 +6032,10 @@ export class Tabbrowser {
       selectedTabs = this.selectedTabs.filter(tab => !tab.pinned);
       this.removeTabs(selectedTabs, { metricsContext });
       this.clearMultiSelectedTabs();
-      if (
-        this.selectedTab.pinned &&
-        this.visibleTabs.length > this.pinnedTabCount
-      ) {
+      let firstUnpinned = this.visibleTabs.find(tab => !tab.pinned);
+      if (this.selectedTab.pinned && firstUnpinned) {
         // Select first unpinned tab if the selected tab is pinned.
-        this.tabContainer.selectedIndex = this.pinnedTabCount;
+        this.selectedTab = firstUnpinned;
       }
     } else {
       this.removeTabs(selectedTabs, { metricsContext });

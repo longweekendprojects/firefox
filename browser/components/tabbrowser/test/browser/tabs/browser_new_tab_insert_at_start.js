@@ -146,3 +146,43 @@ add_task(async function test_new_tab_paths_open_at_start() {
     BrowserTestUtils.removeTab(tab);
   }
 });
+
+add_task(async function test_new_tab_opens_at_top_with_hidden_pinned_tabs() {
+  const LIST_PREF = "browser.spaces.list";
+  Services.prefs.setStringPref(
+    LIST_PREF,
+    JSON.stringify([
+      { id: "a", name: "A", icon: "circle", color: "blue" },
+      { id: "b", name: "B", icon: "briefcase", color: "red" },
+    ])
+  );
+  let hiddenPins = [1, 2, 3].map(() =>
+    BrowserTestUtils.addTab(gBrowser, "about:blank", { pinned: true })
+  );
+  window.gSpaces.moveTabs(hiddenPins, "b");
+  window.gSpaces.switchTo("a");
+  let shownPin = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    pinned: true,
+  });
+  let tabs = [1, 2, 3, 4].map(() =>
+    BrowserTestUtils.addTab(gBrowser, "about:blank")
+  );
+  Assert.equal(
+    gBrowser.tabContainer.visiblePinnedTabCount,
+    1,
+    "Only 1 pinned tab is in the shown space"
+  );
+
+  let newTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  Assert.equal(
+    gBrowser.visibleTabs.indexOf(newTab),
+    1,
+    "New tab opens right after the shown pinned tab"
+  );
+
+  for (let tab of [newTab, ...tabs, shownPin, ...hiddenPins]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+  Services.prefs.clearUserPref(LIST_PREF);
+  Services.prefs.clearUserPref("browser.spaces.active");
+});
