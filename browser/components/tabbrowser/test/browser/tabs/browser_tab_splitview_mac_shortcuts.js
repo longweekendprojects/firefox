@@ -154,6 +154,44 @@ add_task(async function test_site_keys_and_moving_between_panes() {
   }
 });
 
+add_task(async function test_setting_wins_over_extension_shortcuts() {
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      commands: {
+        lock: {
+          suggested_key: { default: "Ctrl+Shift+L", mac: "Command+Shift+L" },
+        },
+      },
+    },
+    background() {
+      browser.commands.onCommand.addListener(name =>
+        browser.test.sendMessage(name)
+      );
+    },
+  });
+  await extension.startup();
+  await SpecialPowers.pushPrefEnv({ set: [[OVERRIDE_PREF, true]] });
+  let extensionCommands = 0;
+  extension.onMessage("lock", () => extensionCommands++);
+
+  const tab = await addTabWithTextField();
+  await focusTextField(tab);
+  EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
+  await TestUtils.waitForCondition(
+    () => tab.splitview,
+    "with the setting on, Cmd+Shift+L splits over an extension's shortcut"
+  );
+  await settle();
+  is(extensionCommands, 0, "the extension command does not run");
+
+  EventUtils.synthesizeKey("KEY_Escape");
+  for (const t of [...tab.splitview.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+  await extension.unload();
+  await SpecialPowers.popPrefEnv();
+});
+
 function commandBarOver(tab) {
   if (!gURLBar.matches(":popover-open") || !gURLBar.focused) {
     return false;

@@ -471,6 +471,15 @@ document.addEventListener(
       const parent = keyset.parentNode;
       keyset.remove();
       parent.append(keyset);
+      // Binding a keyset puts its keys after those of keysets bound earlier,
+      // so rebind extension keysets to keep the browser's keys ahead of them.
+      for (const extKeyset of document.querySelectorAll(
+        "keyset[id^='ext-keyset-id-']"
+      )) {
+        const extParent = extKeyset.parentNode;
+        extKeyset.remove();
+        extParent.append(extKeyset);
+      }
     };
     updatePaneKeys();
     Services.prefs.addObserver(PANE_KEYS_PREF, updatePaneKeys);
