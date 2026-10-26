@@ -53,17 +53,18 @@
   display: flex;
   align-items: center;
   container-type: inline-size;
-  gap: var(--space-xsmall);
   min-height: 36px;
   padding-block: var(--space-xsmall);
   padding-inline: var(--space-small);
   color: var(--toolbar-text-color);
   background-color: var(--toolbar-background-color);
 
+  /* Same size and spacing as the window's own toolbar buttons. */
   toolbarbutton {
     appearance: none;
-    padding: var(--space-xsmall);
-    border-radius: var(--border-radius-medium);
+    margin-inline: var(--toolbarbutton-padding-outer);
+    padding: var(--toolbarbutton-padding-inner);
+    border-radius: var(--toolbarbutton-border-radius);
     -moz-context-properties: fill, fill-opacity;
     fill: currentColor;
 
@@ -120,7 +121,6 @@
 .split-pane-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-xsmall);
   min-width: 0;
 }
 
@@ -141,13 +141,13 @@
 
 /* A narrow pane bar keeps its navigation buttons and address; extension
    buttons go first, then the extensions button. */
-@container (max-width: 320px) {
+@container (max-width: 420px) {
   .split-pane-action {
     display: none;
   }
 }
 
-@container (max-width: 220px) {
+@container (max-width: 290px) {
   .split-pane-extensions {
     display: none;
   }

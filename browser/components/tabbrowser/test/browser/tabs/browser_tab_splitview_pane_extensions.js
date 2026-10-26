@@ -93,6 +93,32 @@ function closeSplit(tabs) {
   gBrowser.removeTabs(tabs);
 }
 
+add_task(async function test_pane_buttons_match_toolbar_spacing() {
+  const rect = el => el.getBoundingClientRect();
+  const back = document.getElementById("back-button");
+  const forward = document.getElementById("forward-button");
+  const stockSize = rect(back.querySelector(".toolbarbutton-icon")).width;
+  const stockPitch = rect(forward).left - rect(back).left;
+
+  const tabs = await makeSplit();
+  for (const tab of tabs) {
+    const header = paneHeader(tab);
+    const paneBack = header.querySelector(".split-pane-back");
+    const paneForward = header.querySelector(".split-pane-forward");
+    Assert.equal(
+      rect(paneBack).width,
+      stockSize,
+      "Pane buttons are as large as toolbar buttons"
+    );
+    Assert.equal(
+      rect(paneForward).left - rect(paneBack).left,
+      stockPitch,
+      "Pane buttons are spaced like toolbar buttons"
+    );
+  }
+  closeSplit(tabs);
+});
+
 add_task(async function test_panes_show_extension_buttons() {
   const extension = loadExtension();
   await extension.startup();
