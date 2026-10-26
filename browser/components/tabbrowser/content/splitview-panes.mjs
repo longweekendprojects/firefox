@@ -91,6 +91,9 @@ let grab = null;
  * resizing them.
  */
 let chromeObserver = null;
+/** Pane bars shown in the toolbar row, with their pane's span, from the last render. */
+let toolbarLeaves = [];
+let followFrame = 0;
 
 /**
  * Called by browser action code when an action changes, and by the
@@ -223,6 +226,7 @@ export function render(wrapper) {
   const slot = toolbarSlot();
   const panels = slot && gBrowser.tabpanels.getBoundingClientRect();
   const actionIds = toolbarActionIds();
+  toolbarLeaves = [];
   for (const { id: tab, x, y, width, height } of leaves) {
     const panel = document.getElementById(tab.linkedPanel);
     if (!panel) {
@@ -242,10 +246,10 @@ export function render(wrapper) {
     let start = 0;
     let end = 0;
     if (slot && y <= area.y + 0.5) {
-      start = Math.max(panels.left + x, slot.left) - slot.origin;
-      end = Math.min(panels.left + x + width, slot.right) - slot.origin;
+      [start, end] = toolbarSpan(slot, panels.left, x, width);
     }
     if (end - start >= MIN_TOOLBAR_HEADER) {
+      toolbarLeaves.push({ header, x, width });
       if (header.parentNode !== toolbarBox) {
         toolbarBox.append(header);
       }
@@ -368,7 +372,17 @@ function attach() {
   window.SplitPaneActions = actionsHook;
   CustomizableUI.addListener(customizeListener);
   gBrowser.tabContainer.addEventListener("TabSelect", handler);
-  chromeObserver = new MutationObserver(scheduleRender);
+  chromeObserver = new MutationObserver(() => {
+    scheduleRender();
+    if (
+      !followFrame &&
+      gBrowser.tabbox.hasAttribute("sidebar-ongoing-animations")
+    ) {
+      followFrame = window.requestAnimationFrame(() =>
+        followSidebarAnimation(toolbarSlot())
+      );
+    }
+  });
   chromeObserver.observe(gBrowser.tabbox, {
     attributeFilter: ["sidebar-ongoing-animations"],
   });
@@ -399,6 +413,11 @@ function teardown() {
     window.cancelAnimationFrame(pendingFrame);
     pendingFrame = 0;
   }
+  if (followFrame) {
+    window.cancelAnimationFrame(followFrame);
+    followFrame = 0;
+  }
+  toolbarLeaves = [];
   grab?.header.removeAttribute("dragging");
   grab = null;
   splitterBox?.remove();
@@ -443,6 +462,47 @@ function scheduleRender() {
       render(current);
     }
   });
+}
+
+/**
+ * Span of a pane bar in the toolbar row, relative to the bar container, for a
+ * pane at `x` with `width` inside panels whose left edge is at `panelsLeft`.
+ */
+function toolbarSpan(slot, panelsLeft, x, width) {
+  return [
+    Math.max(panelsLeft + x, slot.left) - slot.origin,
+    Math.min(panelsLeft + x + width, slot.right) - slot.origin,
+  ];
+}
+
+/**
+ * Moves the toolbar row's pane bars with the panes on every frame of a
+ * sidebar slide. The slide moves the panels without resizing them, so only
+ * their left edge changes.
+ *
+ * @param {object} slot The toolbar slot, which the slide does not move.
+ */
+function followSidebarAnimation(slot) {
+  followFrame = 0;
+  if (
+    !current ||
+    !slot ||
+    !gBrowser.tabbox.hasAttribute("sidebar-ongoing-animations")
+  ) {
+    return;
+  }
+  const panelsLeft = gBrowser.tabpanels.getBoundingClientRect().left;
+  for (const { header, x, width } of toolbarLeaves) {
+    if (header.parentNode !== toolbarBox) {
+      continue;
+    }
+    const [start, end] = toolbarSpan(slot, panelsLeft, x, width);
+    header.style.left = start + "px";
+    header.style.width = Math.max(0, end - start) + "px";
+  }
+  followFrame = window.requestAnimationFrame(() =>
+    followSidebarAnimation(slot)
+  );
 }
 
 /** Area inside tabpanels available to panes. */

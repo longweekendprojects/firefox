@@ -320,17 +320,49 @@ add_task(async function test_toolbar_pane_bars_follow_sidebar() {
       requestAnimationFrame(() => requestAnimationFrame(r))
     );
   };
+  // The first pane's right edge stays inside the toolbar row, so its bar
+  // must follow it on every frame of the slide.
+  let sampling = false;
+  let drift = 0;
+  let frames = 0;
+  const sample = () => {
+    if (!sampling) {
+      return;
+    }
+    requestAnimationFrame(() =>
+      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+      setTimeout(() => {
+        if (SidebarController._ongoingAnimations.length) {
+          const header = paneHeader(tabs[0]).getBoundingClientRect();
+          const panel = document
+            .getElementById(tabs[0].linkedPanel)
+            .getBoundingClientRect();
+          drift = Math.max(drift, Math.abs(header.right - panel.right));
+          frames++;
+        }
+        sample();
+      }, 0)
+    );
+  };
+  const slide = async (expectHidden, label) => {
+    drift = 0;
+    frames = 0;
+    sampling = true;
+    sample();
+    await SidebarController.handleToolbarButtonClick();
+    await TestUtils.waitForCondition(
+      () => container.hidden == expectHidden,
+      `Sidebar ${label}`
+    );
+    await settled();
+    sampling = false;
+    Assert.greater(frames, 2, `Sampled the slide while the sidebar ${label}`);
+    Assert.lessOrEqual(drift, 2, `Pane bars follow the slide as it ${label}`);
+    ok(aligned(), `Pane bars line up with their panes after it ${label}`);
+  };
   await TestUtils.waitForCondition(aligned, "Pane bars line up");
-
-  await SidebarController.handleToolbarButtonClick();
-  await TestUtils.waitForCondition(() => container.hidden, "Sidebar hides");
-  await settled();
-  ok(aligned(), "Pane bars line up with their panes after hiding");
-
-  await SidebarController.handleToolbarButtonClick();
-  await TestUtils.waitForCondition(() => !container.hidden, "Sidebar shows");
-  await settled();
-  ok(aligned(), "Pane bars line up with their panes after showing");
+  await slide(true, "hides");
+  await slide(false, "shows");
 
   closeSplit(tabs);
   await SpecialPowers.popPrefEnv();
