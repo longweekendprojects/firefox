@@ -250,6 +250,79 @@ export function applyDrop(moved, list) {
   for (let element of moved) {
     setInList(element, list);
   }
+  if (list) {
+    window.gPinnedFold?.setFolded("list", false);
+  }
+  normalize();
+}
+
+/**
+ * The shown rows of the tab list in screen order, for a pinned tile dragged
+ * into it: pinned list items, the New Tab row, then the other items.
+ *
+ * @returns {{element: Element, kind: "list"|"row"|"other"}[]}
+ */
+export function dropSequence() {
+  let shown = units()
+    .map(element => ({ element, parts: partsOf(element) }))
+    .filter(item => item.parts.length);
+  let seq = shown
+    .filter(item => item.element.hasAttribute(ATTR))
+    .map(item => ({ ...item, kind: "list" }));
+  let row = newTabRow();
+  if (row) {
+    seq.push({ element: row, parts: [row], kind: "row" });
+  }
+  for (let item of shown) {
+    if (!item.element.hasAttribute(ATTR)) {
+      seq.push({ ...item, kind: "other" });
+    }
+  }
+  return seq;
+}
+
+/**
+ * The boxes a tab strip item shows as: the item itself, or the children of a
+ * tab group, which lays out as its children.
+ *
+ * @param {Element} unit
+ * @returns {Element[]}
+ */
+export function partsOf(unit) {
+  let parts = isGroup(unit) ? [...unit.children] : [unit];
+  return parts.filter(part => part.getBoundingClientRect().height);
+}
+
+/**
+ * Puts a just unpinned tile at slot `slot` of `seq`, from dropSequence: in
+ * the pinned list before the New Tab row, among the other tabs after it.
+ *
+ * @param {MozTabbrowserTab} tab
+ * @param {object[]} seq
+ * @param {number} slot
+ * @param {string|null} pinnedURL
+ */
+export function placeAtSlot(tab, seq, slot, pinnedURL) {
+  let item = seq[slot];
+  let previous = seq[slot - 1];
+  let list = item?.kind == "list" || item?.kind == "row";
+  if (list && pinnedURL) {
+    tab.setAttribute("pinned-url", pinnedURL);
+  }
+  setInList(tab, list);
+  if (item && item.kind != "row") {
+    gBrowser.moveTabBefore(tab, item.element);
+  } else if (previous && previous.kind != "row") {
+    gBrowser.moveTabAfter(tab, previous.element);
+  } else {
+    let firstOther = seq.find(s => s.kind == "other");
+    if (firstOther) {
+      gBrowser.moveTabBefore(tab, firstOther.element);
+    }
+  }
+  if (list) {
+    window.gPinnedFold?.setFolded("list", false);
+  }
   normalize();
 }
 

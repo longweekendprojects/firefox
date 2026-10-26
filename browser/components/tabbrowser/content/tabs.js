@@ -878,7 +878,9 @@
       // remove arrowScrollbox periphery element.
       unpinnedChildren.pop();
       unpinnedChildren = unpinnedChildren.filter(
-        node => node.id != "tabs-list-newtab-button"
+        node =>
+          node.id != "tabs-list-newtab-button" &&
+          !node.classList.contains("pinned-fold-anchor")
       );
 
       // explode tab groups and split view wrappers
@@ -1040,6 +1042,7 @@
 
       for (let child of [...pinnedChildren, ...unpinnedChildren]) {
         if (
+          child.hasAttribute("folded-away") ||
           !(
             (isTab(child) && child.visible) ||
             isTabGroup(child) ||

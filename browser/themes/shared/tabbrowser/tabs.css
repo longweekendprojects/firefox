@@ -3867,6 +3867,173 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+/* A pinned tile dragged into the tab list follows the pointer as a tab row,
+   and the rows move aside to show where it will land. */
+#unpin-drag-row {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: var(--tab-icon-end-margin);
+  box-sizing: border-box;
+  padding-inline: var(--tab-inline-padding);
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--toolbar-color);
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  background-color: light-dark(#fff, #2b2a33);
+  background-image: linear-gradient(var(--tab-background-color-selected), var(--tab-background-color-selected));
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-border-radius-tokens */
+  border-radius: 9px;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.25),
+    0 0 0 1px color-mix(in srgb, currentColor 12%, transparent);
+  transition:
+    width 160ms ease-out,
+    height 160ms ease-out;
+
+  > img {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+
+  > span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-font-size-tokens */
+    font-size: 1.2em;
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+    font-weight: 450;
+  }
+}
+
+#tabbrowser-arrowscrollbox[unpin-preview] > :is(.tabbrowser-tab, tab-split-view-wrapper, #tabs-list-newtab-button),
+#tabbrowser-arrowscrollbox[unpin-preview] > tab-group > * {
+  transition: transform 180ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Folded pinned sections. A folded pinned list keeps showing the item that
+   holds the selected tab. */
+#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[folded],
+#tabbrowser-arrowscrollbox > [folded-away] {
+  display: none !important;
+}
+
+/* The fold button sits at the end of the line under its section. It shows
+   while the pointer is over the tab strip, and always once folded. */
+.pinned-fold-anchor {
+  display: none;
+}
+
+#tabbrowser-tabs[orient="vertical"][expanded] .pinned-fold-anchor:not([hidden]) {
+  display: block;
+  position: relative;
+  height: 0;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tiles-fold-anchor {
+  /* Takes no room: the tab strip's row gap after it is cancelled. Centered on
+     the line drawn by the splitter just above. */
+  margin-block-end: calc(0px - var(--space-small));
+  --fold-line-offset: -2px;
+}
+
+#tabbrowser-arrowscrollbox > #pinned-list-fold-anchor {
+  order: -1;
+  /* Centered on the line drawn above the New Tab row. */
+  --fold-line-offset: calc(100% + 4px);
+
+  /* A folded list that shows no item keeps a little room, so its line sits
+     apart from the line under the tiles. */
+  &[empty-fold] {
+    height: 14px;
+  }
+}
+
+/* Folded tiles leave their line a little below the top of the tab strip. */
+#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[folded]:not([no-visible-pins]) ~ #vertical-pinned-tabs-splitter {
+  margin-block-start: 8px;
+}
+
+.pinned-fold-toggle {
+  appearance: none;
+  position: absolute;
+  inset-inline-end: calc(var(--tab-inner-inline-margin) + 4px);
+  inset-block-start: var(--fold-line-offset);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 16px;
+  margin: 0;
+  padding: 0 4px;
+  border: none;
+  border-radius: var(--border-radius-circle);
+  color: inherit;
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  background-color: light-dark(#f0f0f4, #2b2a33);
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent);
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-font-size-tokens */
+  font-size: 10px;
+
+  &:hover {
+    background-color: var(--tab-background-color-hover);
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: var(--focus-outline);
+    outline-offset: 1px;
+  }
+
+  &[folded] {
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  > .pinned-fold-icon {
+    width: 10px;
+    height: 10px;
+    content: url("chrome://global/skin/icons/arrow-up-12.svg");
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+
+  &[folded] > .pinned-fold-icon {
+    content: url("chrome://global/skin/icons/arrow-down-12.svg");
+  }
+
+  > .pinned-fold-count:empty {
+    display: none;
+  }
+}
+
+#tabbrowser-tabs:hover .pinned-fold-toggle {
+  opacity: 0.8;
+}
+
+.pinned-fold-anchor:hover > .pinned-fold-toggle {
+  opacity: 1;
+}
+
 #pinned-tabs-container[no-visible-pins],
 #pinned-tabs-container[no-visible-pins] + #vertical-pinned-tabs-splitter {
   display: none !important;

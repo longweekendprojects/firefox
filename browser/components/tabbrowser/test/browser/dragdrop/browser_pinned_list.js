@@ -309,3 +309,298 @@ add_task(async function test_split_drop_takes_the_target_section() {
     cleanUp(tabs);
   }
 });
+
+async function nextFrames() {
+  await new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  );
+}
+
+/**
+ * Drags `src` through `points` with events sent to whatever is under each
+ * point, as a real pointer would, then drops at the last point.
+ *
+ * @param {Element} src
+ * @param {{x: number, y: number}[]} points
+ * @param {Function} [whileDragging] Called before the drop.
+ */
+async function dragThrough(src, points, whileDragging) {
+  EventUtils.startDragSession(window, "move");
+  let [first] = points;
+  let [result, dataTransfer] = EventUtils.synthesizeDragOver(
+    src,
+    document.elementFromPoint(first.x, first.y),
+    null,
+    "move",
+    window,
+    window,
+    { clientX: first.x, clientY: first.y, dropEffect: "move" }
+  );
+  for (let { x, y } of points) {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    let target = document.elementFromPoint(x, y);
+    EventUtils.sendDragEvent(
+      EventUtils.createDragEventObject(
+        "dragover",
+        target,
+        window,
+        dataTransfer,
+        {
+          clientX: x,
+          clientY: y,
+        }
+      ),
+      target,
+      window
+    );
+  }
+  await whileDragging?.();
+  let last = points.at(-1);
+  EventUtils.synthesizeDropAfterDragOver(
+    result,
+    dataTransfer,
+    document.elementFromPoint(last.x, last.y),
+    window,
+    { clientX: last.x, clientY: last.y }
+  );
+  EventUtils._getDOMWindowUtils(window).dragSession.endDragSession(true, 0);
+  await dropDone();
+}
+
+function pathDown(from, toY) {
+  let points = [];
+  for (let y = from.y; y < toY; y += 6) {
+    points.push({ x: from.x, y });
+  }
+  points.push({ x: from.x, y: toY });
+  return points;
+}
+
+async function pinTiles(count) {
+  let tiles = [];
+  for (let i = 0; i < count; i++) {
+    let tile = await addTab(`https://example.org/?tile${i}`);
+    gBrowser.pinTab(tile);
+    testTabs.add(tile);
+    tiles.push(tile);
+  }
+  await TestUtils.waitForCondition(
+    () =>
+      gBrowser.pinnedTabsContainer.hasAttribute("tile-layout") &&
+      tiles[0].getBoundingClientRect().height > 40 &&
+      !gBrowser.tabContainer.hasAttribute("movingtab"),
+    "The pinned tabs show as tiles"
+  );
+  await nextFrames();
+  return tiles;
+}
+
+add_task(async function test_tile_dragged_under_the_tiles_joins_empty_list() {
+  let tabs = await openTabs(2);
+  let tiles = await pinTiles(3);
+  tabs.push(...tiles);
+  try {
+    let tile = tiles[1];
+    let rect = tile.getBoundingClientRect();
+    let pinnedBottom =
+      gBrowser.pinnedTabsContainer.getBoundingClientRect().bottom;
+    let row = rowRect();
+    Assert.greater(row.top, pinnedBottom + 6, "A gap sits above the row");
+    let dropY = pinnedBottom + 6;
+    let ghost;
+    let rowShift;
+    await dragThrough(
+      tile,
+      pathDown({ x: rect.left + rect.width / 2, y: rect.top + 10 }, dropY),
+      async () => {
+        await TestUtils.waitForCondition(
+          () => newTabRow().getBoundingClientRect().top > row.top + 10,
+          "The New Tab row moves down to open a gap in the list"
+        );
+        ghost = document.getElementById("unpin-drag-row");
+        rowShift = newTabRow().getBoundingClientRect().top - row.top;
+      }
+    );
+    Assert.ok(ghost, "The tile follows the pointer as a tab row");
+    Assert.greater(rowShift, 20, "The gap is a row tall");
+    Assert.ok(!document.getElementById("unpin-drag-row"), "The row ghost goes");
+    Assert.ok(!tile.pinned, "The tile is unpinned");
+    Assert.ok(tile.hasAttribute("pinned-list"), "and joins the list");
+    Assert.equal(
+      tile.getAttribute("pinned-url"),
+      "https://example.org/?tile1",
+      "It keeps its pinned address"
+    );
+    Assert.equal(unpinnedOrder()[0], tile, "It is the first unpinned tab");
+    Assert.ok(!newTabRow().style.transform, "The New Tab row is back");
+  } finally {
+    cleanUp(tabs);
+  }
+});
+
+add_task(async function test_tile_dragged_below_the_row_joins_other_tabs() {
+  let tabs = await openTabs(3);
+  let tiles = await pinTiles(2);
+  tabs.push(...tiles);
+  try {
+    gPinnedList.setInList(tabs[0], true);
+    gPinnedList.normalize();
+    await nextFrames();
+    let tile = tiles[0];
+    let rect = tile.getBoundingClientRect();
+    let target = tabs[2].getBoundingClientRect();
+    await dragThrough(
+      tile,
+      pathDown(
+        { x: rect.left + rect.width / 2, y: rect.top + 10 },
+        target.top + 4
+      )
+    );
+    Assert.ok(!tile.pinned, "The tile is unpinned");
+    Assert.ok(!tile.hasAttribute("pinned-list"), "outside the list");
+    Assert.ok(!tile.hasAttribute("pinned-url"), "without a pinned address");
+    Assert.deepEqual(
+      unpinnedOrder(),
+      [tabs[0], tabs[1], tile, tabs[2]],
+      "It lands where the gap showed, among the other tabs"
+    );
+  } finally {
+    cleanUp(tabs);
+  }
+});
+
+add_task(async function test_tile_dragged_back_up_stays_pinned() {
+  let tabs = await openTabs(1);
+  let tiles = await pinTiles(3);
+  tabs.push(...tiles);
+  try {
+    let tile = tiles[0];
+    let rect = tile.getBoundingClientRect();
+    let row = rowRect();
+    let points = pathDown(
+      { x: rect.left + rect.width / 2, y: rect.top + 10 },
+      row.top + 4
+    );
+    points.push(...points.slice(0, -1).reverse());
+    await dragThrough(tile, points);
+    Assert.ok(tile.pinned, "A tile dropped back on the tiles stays pinned");
+    Assert.ok(!document.getElementById("unpin-drag-row"), "No row ghost stays");
+    Assert.ok(
+      !gBrowser.tabContainer.arrowScrollbox.hasAttribute("unpin-preview"),
+      "The tab list leaves the preview"
+    );
+  } finally {
+    cleanUp(tabs);
+  }
+});
+
+function foldButton(section) {
+  return document.querySelector(`#pinned-${section}-fold`);
+}
+
+async function clickFold(section) {
+  let button = foldButton(section);
+  await TestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(button),
+    `The ${section} fold button shows`
+  );
+  button.click();
+}
+
+add_task(async function test_fold_tiles_and_list_independently() {
+  await SpecialPowers.pushPrefEnv({ set: [["ui.prefersReducedMotion", 1]] });
+  let tabs = await openTabs(3);
+  let tiles = await pinTiles(2);
+  tabs.push(...tiles);
+  let container = gBrowser.pinnedTabsContainer;
+  try {
+    gPinnedList.setInList(tabs[0], true);
+    gPinnedList.setInList(tabs[1], true);
+    gPinnedList.normalize();
+    gBrowser.selectedTab = tabs[2];
+    await nextFrames();
+
+    let layout = () =>
+      [newTabRow(), gBrowser.tabContainer.arrowScrollbox].map(
+        el => el.getBoundingClientRect().top
+      );
+    let withButtons = layout();
+    for (let anchor of document.querySelectorAll(".pinned-fold-anchor")) {
+      anchor.style.display = "none";
+    }
+    Assert.deepEqual(layout(), withButtons, "The fold buttons take no room");
+    for (let anchor of document.querySelectorAll(".pinned-fold-anchor")) {
+      anchor.style.display = "";
+    }
+
+    await clickFold("tiles");
+    await TestUtils.waitForCondition(
+      () => container.hasAttribute("folded"),
+      "The tiles fold"
+    );
+    Assert.ok(BrowserTestUtils.isHidden(container), "The tiles are hidden");
+    Assert.ok(
+      Services.prefs.getBoolPref("browser.tabs.pinnedTiles.folded"),
+      "The fold is saved"
+    );
+    Assert.ok(
+      BrowserTestUtils.isVisible(tabs[0]) &&
+        BrowserTestUtils.isVisible(tabs[1]),
+      "The list stays open"
+    );
+    let tilesButton = foldButton("tiles");
+    Assert.equal(
+      tilesButton.querySelector(".pinned-fold-count").textContent,
+      "2",
+      "The folded tiles show their count"
+    );
+    Assert.equal(tilesButton.getAttribute("aria-expanded"), "false");
+
+    await clickFold("list");
+    await TestUtils.waitForCondition(
+      () => tabs[0].hasAttribute("folded-away"),
+      "The list folds"
+    );
+    Assert.ok(
+      BrowserTestUtils.isHidden(tabs[0]) && BrowserTestUtils.isHidden(tabs[1]),
+      "The list tabs are hidden"
+    );
+    Assert.ok(
+      !gBrowser.tabContainer.dragAndDropElements.includes(tabs[0]),
+      "Hidden list tabs are left out of drag and drop"
+    );
+
+    gBrowser.selectedTab = tabs[1];
+    await TestUtils.waitForCondition(
+      () => BrowserTestUtils.isVisible(tabs[1]),
+      "The folded list shows the selected tab"
+    );
+    Assert.ok(BrowserTestUtils.isHidden(tabs[0]), "but not the others");
+
+    await clickFold("tiles");
+    await TestUtils.waitForCondition(
+      () => !container.hasAttribute("folded"),
+      "The tiles unfold"
+    );
+    Assert.ok(BrowserTestUtils.isVisible(tiles[0]), "The tiles show again");
+    Assert.ok(
+      BrowserTestUtils.isHidden(tabs[0]),
+      "The list stays folded on its own"
+    );
+
+    gPinnedList.applyDrop([tabs[2]], true);
+    await TestUtils.waitForCondition(
+      () => BrowserTestUtils.isVisible(tabs[0]),
+      "Dropping a tab into the folded list unfolds it"
+    );
+    Assert.ok(
+      !Services.prefs.getBoolPref("browser.tabs.pinnedList.folded"),
+      "The unfold is saved"
+    );
+  } finally {
+    Services.prefs.clearUserPref("browser.tabs.pinnedTiles.folded");
+    Services.prefs.clearUserPref("browser.tabs.pinnedList.folded");
+    cleanUp(tabs);
+    await SpecialPowers.popPrefEnv();
+  }
+});

@@ -382,6 +382,24 @@ tab-context-pinned-layout-columns =
 tab-context-pinned-layout-icons =
     .label = Small Icons
 
+## The button on the line under a pinned section of the vertical tab strip,
+## which folds or unfolds that section.
+## Variables:
+##   $count (Number): how many items the section holds.
+
+pinned-section-fold =
+    .title = Fold this section
+    .aria-label = Fold this section
+pinned-section-unfold =
+    .title = { $count ->
+        [one] Show { $count } pinned tab
+       *[other] Show { $count } pinned tabs
+    }
+    .aria-label = { $count ->
+        [one] Show { $count } pinned tab
+       *[other] Show { $count } pinned tabs
+    }
+
 ## Edit Pinned Page, in the tab context menu of a pinned tab. A pinned tab
 ## goes back to its pinned address when it is closed.
 

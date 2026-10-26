@@ -72,6 +72,7 @@
     #staleDragCheckTimer = null;
     #splitTimer = 0;
     #pinPreview = null;
+    #unpinPreview = null;
     #pinGeometry = null;
 
     constructor(tabbrowserTabs) {
@@ -178,7 +179,9 @@
           // Pinned tabs in expanded vertical mode are on a grid format and require
           // different logic to drag and drop.
           if (this._tabbrowserTabs.isContainerVerticalPinnedGrid(draggedTab)) {
-            this._animateExpandedPinnedTabMove(event);
+            if (!this.#updateUnpinPreview(event, draggedTab)) {
+              this._animateExpandedPinnedTabMove(event);
+            }
             return;
           }
           this._animateTabMove(event);
@@ -322,6 +325,11 @@
       event.stopPropagation();
       if (this.#pinPreview?.draggedTab == draggedTab && dropEffect == "move") {
         this.#dropIntoPinPreview();
+      } else if (
+        this.#unpinPreview?.draggedTab == draggedTab &&
+        dropEffect == "move"
+      ) {
+        this.#dropIntoUnpinPreview();
       } else if (draggedTab && dropEffect == "copy") {
         let duplicatedDraggedTab;
         let duplicatedTabs = [];
@@ -3019,8 +3027,187 @@
         tabs.verticalMode &&
         tabs.hasAttribute("expanded") &&
         container.hasAttribute("tile-layout") &&
-        !container.hasAttribute("no-visible-pins")
+        !container.hasAttribute("no-visible-pins") &&
+        !container.hasAttribute("folded")
       );
+    }
+
+    /**
+     * Below the pinned tiles, a dragged tile follows the pointer as a tab row
+     * and the rows of the tab list move aside to show where it will land: in
+     * the pinned list above the New Tab row, among the other tabs below it.
+     *
+     * @returns {boolean} true while the preview handles the drag.
+     */
+    #updateUnpinPreview(event, draggedTab) {
+      let preview = this.#unpinPreview;
+      if (
+        !preview &&
+        !(
+          window.gPinnedList &&
+          isTab(draggedTab) &&
+          draggedTab.pinned &&
+          draggedTab._dragData.movingTabs.length == 1
+        )
+      ) {
+        return false;
+      }
+      let bounds = ele => window.windowUtils.getBoundsWithoutFlushing(ele);
+      let pinned = bounds(this._tabbrowserTabs.pinnedTabsContainer);
+      let list = bounds(this._tabbrowserTabs.arrowScrollbox);
+      let { clientX: x, clientY: y } = event;
+      let inside =
+        y > pinned.bottom + (preview ? 0 : 4) &&
+        y <= list.bottom &&
+        x >= list.left &&
+        x <= list.right;
+      if (!inside) {
+        this.#endUnpinPreview();
+        return false;
+      }
+      preview ??= this.#startUnpinPreview(draggedTab);
+      preview.floating.style.transform = `translate(${preview.centerX}px, ${y}px) translate(-50%, -50%)`;
+      let slot = preview.seq.findIndex(item => item.center > y);
+      if (slot < 0) {
+        slot = preview.seq.length;
+      }
+      if (slot != preview.slot) {
+        preview.slot = slot;
+        preview.seq.forEach((item, i) => {
+          for (let part of item.parts) {
+            part.style.transform =
+              i >= slot ? `translateY(${preview.step}px)` : "";
+          }
+        });
+      }
+      return true;
+    }
+
+    #startUnpinPreview(draggedTab) {
+      let seq = window.gPinnedList.dropSequence();
+      for (let item of seq) {
+        let first = item.parts[0].getBoundingClientRect();
+        let last = item.parts.at(-1).getBoundingClientRect();
+        item.center = (first.top + last.bottom) / 2;
+      }
+      let row =
+        seq.find(item => item.kind == "row")?.element ??
+        seq.find(item => item.element.localName == "tab")?.element;
+      let rowRect = row?.getBoundingClientRect();
+      let step = rowRect?.height ?? draggedTab.getBoundingClientRect().height;
+      let rowIndex = seq.findIndex(item => item.element == row);
+      let next = seq[rowIndex + 1]?.parts[0].getBoundingClientRect();
+      step = next && rowRect ? next.top - rowRect.top : step + 5;
+
+      let tiles = this._tabbrowserTabs.pinnedTabsContainer;
+      for (let tile of tiles.querySelectorAll(".tabbrowser-tab")) {
+        tile.style.transform = "";
+      }
+      draggedTab.setAttribute("pinpreview", "");
+      this._tabbrowserTabs.arrowScrollbox.setAttribute("unpin-preview", "");
+
+      let from = draggedTab.getBoundingClientRect();
+      let list = this._tabbrowserTabs.arrowScrollbox.getBoundingClientRect();
+      let width = rowRect?.width ?? list.width;
+      let floating = document.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "div"
+      );
+      floating.id = "unpin-drag-row";
+      let icon = document.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "img"
+      );
+      icon.src =
+        draggedTab.getAttribute("image") ||
+        "chrome://global/skin/icons/defaultFavicon.svg";
+      let label = document.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "span"
+      );
+      label.textContent = draggedTab.label;
+      floating.append(icon, label);
+      floating.style.width = `${from.width}px`;
+      floating.style.height = `${from.height}px`;
+      document.body.append(floating);
+      if (gReduceMotion) {
+        floating.style.transition = "none";
+      }
+      floating.getBoundingClientRect();
+      floating.style.width = `${width}px`;
+      floating.style.height = `${rowRect?.height ?? from.height}px`;
+
+      let preview = {
+        draggedTab,
+        seq,
+        slot: -1,
+        step,
+        floating,
+        centerX: rowRect
+          ? rowRect.left + rowRect.width / 2
+          : list.left + list.width / 2,
+      };
+      this.#unpinPreview = preview;
+      return preview;
+    }
+
+    #endUnpinPreview({ instant = false } = {}) {
+      let preview = this.#unpinPreview;
+      if (!preview) {
+        return;
+      }
+      this.#unpinPreview = null;
+      for (let item of preview.seq) {
+        for (let part of item.parts) {
+          if (instant) {
+            part.style.transition = "none";
+          }
+          part.style.transform = "";
+        }
+      }
+      if (instant) {
+        window.requestAnimationFrame(() => {
+          for (let item of preview.seq) {
+            for (let part of item.parts) {
+              part.style.transition = "";
+            }
+          }
+        });
+      }
+      this._tabbrowserTabs.arrowScrollbox.removeAttribute("unpin-preview");
+      preview.draggedTab.removeAttribute("pinpreview");
+      preview.floating.remove();
+      let dragData = preview.draggedTab._dragData;
+      if (dragData) {
+        dragData.animDropElementIndex = null;
+        dragData.animLastScreenX = null;
+        dragData.animLastScreenY = null;
+      }
+    }
+
+    /** Unpins the dragged tile into the gap the preview shows. */
+    #dropIntoUnpinPreview() {
+      let { draggedTab, seq, slot, floating } = this.#unpinPreview;
+      let from = floating.getBoundingClientRect();
+      let pinnedURL =
+        draggedTab.getAttribute("pinned-url") ||
+        draggedTab.linkedBrowser.currentURI?.spec;
+      this.#endUnpinPreview({ instant: true });
+      this.finishAnimateTabMove();
+      gBrowser.unpinTab(draggedTab, {
+        metricsContext: gBrowser.TabMetrics.userTriggeredContext(
+          gBrowser.TabMetrics.METRIC_SOURCE.DRAG_AND_DROP
+        ),
+      });
+      window.gPinnedList.placeAtSlot(draggedTab, seq, slot, pinnedURL);
+      let to = draggedTab.getBoundingClientRect();
+      if (!gReduceMotion && to.height) {
+        let dy = from.top + from.height / 2 - (to.top + to.height / 2);
+        draggedTab.animate(
+          [{ transform: `translateY(${dy}px)` }, { transform: "none" }],
+          { duration: 180, easing: "ease-out" }
+        );
+      }
     }
 
     /**
@@ -3271,6 +3458,7 @@
     finishAnimateTabMove() {
       window.gPinnedList?.endDrag();
       this.#endPinPreview({ clearHeights: true });
+      this.#endUnpinPreview();
       this.#pinGeometry = null;
       if (!this.#isMovingTab()) {
         return;
