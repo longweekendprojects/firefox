@@ -2631,6 +2631,45 @@ export class Tabbrowser {
     return this.#setTabLabel(aTab, title, { isContentTitle, isURL });
   }
 
+  /**
+   * Gives a tab a name of its own, shown instead of its page title, or with
+   * an empty name goes back to the page title. The name is saved with the
+   * session.
+   *
+   * @param {MozTabbrowserTab} aTab
+   * @param {string} aName
+   */
+  setCustomTabLabel(aTab, aName) {
+    let name = aName?.trim().substring(0, TAB_LABEL_MAX_LENGTH) ?? "";
+    if (name == (aTab.getAttribute("custom-label") ?? "")) {
+      return;
+    }
+    if (name) {
+      aTab.setAttribute("custom-label", name);
+    } else {
+      aTab.removeAttribute("custom-label");
+    }
+    this.applyCustomTabLabel(aTab);
+    this._tabAttrModified(aTab, ["custom-label"]);
+  }
+
+  /**
+   * Shows a tab's custom name, or its page title when it has none.
+   *
+   * @param {MozTabbrowserTab} aTab
+   */
+  applyCustomTabLabel(aTab) {
+    let page = aTab._pageLabel;
+    if (page) {
+      this.#setTabLabel(aTab, page.label, page);
+    } else if (aTab.hasAttribute("custom-label")) {
+      let label = aTab.getAttribute("label");
+      this.#setTabLabel(aTab, label || aTab.getAttribute("custom-label"), {
+        isContentTitle: true,
+      });
+    }
+  }
+
   // While an auth prompt from a base domain different than the current sites is open, we do not want to show the tab title of the current site,
   // but of the origin that is requesting authentication.
   // This is to prevent possible auth spoofing scenarios.
@@ -2676,6 +2715,12 @@ export class Tabbrowser {
     }
 
     aTab._fullLabel = aLabel;
+    aTab._pageLabel = { label: aLabel, isContentTitle, isURL };
+    let customLabel = aTab.getAttribute("custom-label");
+    if (customLabel) {
+      aLabel = customLabel;
+      isContentTitle = true;
+    }
 
     if (!isContentTitle) {
       // Remove protocol and "www."

@@ -7,7 +7,8 @@
 /**
  * Folding the pinned sections of the expanded vertical tab strip. The pinned
  * tiles and the pinned list fold independently, each from a small button on
- * the line under it. A folded list still shows the item holding the selected
+ * the line under it. A folded section shows as one row with its name and
+ * count, which unfolds it when clicked. A folded list still shows the item holding the selected
  * tab. Fold state is kept in prefs, so it applies to every window and
  * survives restarts.
  */
@@ -101,12 +102,23 @@ function makeToggle(id, section) {
   button.id = id;
   button.className = "pinned-fold-toggle";
   button.hidden = true;
-  let icon = document.createElementNS("http://www.w3.org/1999/xhtml", "img");
+  let html = tag =>
+    document.createElementNS("http://www.w3.org/1999/xhtml", tag);
+  let sectionIcon = html("img");
+  sectionIcon.className = "pinned-fold-section-icon";
+  sectionIcon.src = `chrome://browser/content/tabbrowser/${
+    section == "tiles" ? "pinned-grid" : "pinned-rows"
+  }.svg`;
+  sectionIcon.alt = "";
+  let label = html("span");
+  label.className = "pinned-fold-label";
+  document.l10n.setAttributes(label, `pinned-section-${section}-label`);
+  let count = html("span");
+  count.className = "pinned-fold-count";
+  let icon = html("img");
   icon.className = "pinned-fold-icon";
   icon.alt = "";
-  let count = document.createElementNS("http://www.w3.org/1999/xhtml", "span");
-  count.className = "pinned-fold-count";
-  button.append(icon, count);
+  button.append(sectionIcon, label, count, icon);
   button.addEventListener("click", event => {
     event.stopPropagation();
     toggle(section);
@@ -207,35 +219,25 @@ export function update({ animate = false } = {}) {
     apply(arriving, false);
   }
   updateToggle(toggles.list, "list", active && !!units.length, units.length);
-  toggles.list.toggleAttribute(
-    "empty-fold",
-    listFolded &&
-      units.every(
-        unit =>
-          leaving.includes(unit) || (isAway(unit) && !arriving.includes(unit))
-      )
-  );
-}
-
-function isAway(unit) {
-  return unit.hasAttribute(AWAY_ATTR);
 }
 
 function updateToggle(anchor, section, visible, count) {
   let button = anchor.firstElementChild;
   let folded = isFolded(section);
   anchor.hidden = !visible;
+  anchor.toggleAttribute("folded", folded);
   button.hidden = !visible;
   button.toggleAttribute("folded", folded);
   button.setAttribute("aria-expanded", String(!folded));
-  button.querySelector(".pinned-fold-count").textContent = folded
-    ? String(count)
-    : "";
-  document.l10n.setAttributes(
-    button,
-    folded ? "pinned-section-unfold" : "pinned-section-fold",
-    { count }
-  );
+  let countLabel = button.querySelector(".pinned-fold-count");
+  if (countLabel.textContent != String(count)) {
+    countLabel.textContent = count;
+  }
+  let l10nId = folded ? "pinned-section-unfold" : "pinned-section-fold";
+  let l10n = document.l10n.getAttributes(button);
+  if (l10n.id != l10nId || l10n.args?.count != count) {
+    document.l10n.setAttributes(button, l10nId, { count });
+  }
 }
 
 /**

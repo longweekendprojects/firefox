@@ -936,6 +936,10 @@ var TabContextMenu = {
       this.contextTab.hasAttribute("customizemode");
     window.gSpaces?.updateTabContextMenu(this.contextTab);
     window.gPinnedTiles?.updateTabContextMenu(this.contextTab);
+    window.gTabRename?.updateTabContextMenu(
+      this.contextTab,
+      this.multiselected
+    );
 
     // Only one of "Duplicate Tab"/"Duplicate Tabs" should be visible.
     document.getElementById("context_duplicateTab").hidden = this.multiselected;

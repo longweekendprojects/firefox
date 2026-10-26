@@ -4,6 +4,7 @@
 
 // Tab attributes which are persisted & restored by SessionStore.
 const PERSISTED_ATTRIBUTES = [
+  "custom-label",
   "customizemode",
   "pinned-list",
   "pinned-url",
@@ -44,5 +45,6 @@ var TabAttributesInternal = {
         tab.setAttribute(name, data[name]);
       }
     }
+    tab.documentGlobal?.gBrowser?.applyCustomTabLabel?.(tab);
   },
 };

@@ -3867,6 +3867,28 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
+/* The name editor of a tab being renamed, over the tab's title. */
+#tab-rename-input {
+  position: fixed;
+  z-index: 2147483647;
+  transform: translateY(-50%);
+  box-sizing: border-box;
+  height: 26px;
+  margin: 0;
+  padding-inline: 6px;
+  border: 1px solid var(--focus-outline-color);
+  border-radius: var(--border-radius-small);
+  color: var(--toolbar-field-focus-color);
+  background-color: var(--toolbar-field-focus-background-color);
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-font-size-tokens */
+  font-size: 1.2em;
+  outline: none;
+}
+
+.tabbrowser-tab[renaming] .tab-label-container {
+  visibility: hidden;
+}
+
 /* A pinned tile dragged into the tab list follows the pointer as a tab row,
    and the rows move aside to show where it will land. */
 #unpin-drag-row {
@@ -3929,7 +3951,8 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 /* The fold button sits at the end of the line under its section. It shows
-   while the pointer is over the tab strip, and always once folded. */
+   while the pointer is over the tab strip. A folded section shows instead as
+   one row with its name and count, in the section's place. */
 .pinned-fold-anchor {
   display: none;
 }
@@ -3940,6 +3963,11 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   height: 0;
   flex-shrink: 0;
   z-index: 2;
+
+  &[folded] {
+    height: auto;
+    z-index: auto;
+  }
 }
 
 #tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tiles-fold-anchor {
@@ -3947,6 +3975,12 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
      the line drawn by the splitter just above. */
   margin-block-end: calc(0px - var(--space-small));
   --fold-line-offset: -2px;
+
+  /* Folded, the row takes the place of the tiles, above their line. */
+  &[folded] {
+    order: -1;
+    margin-block: 4px 0;
+  }
 }
 
 #tabbrowser-arrowscrollbox > #pinned-list-fold-anchor {
@@ -3954,16 +3988,10 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   /* Centered on the line drawn above the New Tab row. */
   --fold-line-offset: calc(100% + 4px);
 
-  /* A folded list that shows no item keeps a little room, so its line sits
-     apart from the line under the tiles. */
-  &[empty-fold] {
-    height: 14px;
+  /* Folded, the row comes before the list item still shown. */
+  &[folded] {
+    order: -3;
   }
-}
-
-/* Folded tiles leave their line a little below the top of the tab strip. */
-#tabbrowser-tabs[orient="vertical"][expanded] > #pinned-tabs-container[folded]:not([no-visible-pins]) ~ #vertical-pinned-tabs-splitter {
-  margin-block-start: 8px;
 }
 
 .pinned-fold-toggle {
@@ -4001,14 +4029,6 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     outline-offset: 1px;
   }
 
-  &[folded] {
-    opacity: 0.8;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-
   > .pinned-fold-icon {
     width: 10px;
     height: 10px;
@@ -4017,20 +4037,74 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     fill: currentColor;
   }
 
-  &[folded] > .pinned-fold-icon {
-    content: url("chrome://global/skin/icons/arrow-down-12.svg");
+  > .pinned-fold-section-icon,
+  > .pinned-fold-label,
+  > .pinned-fold-count {
+    display: none;
   }
 
-  > .pinned-fold-count:empty {
-    display: none;
+  /* A folded section: a row like a tab, with the section's icon, name and
+     count, and an arrow to unfold it. */
+  &[folded] {
+    position: static;
+    transform: none;
+    width: calc(100% - 2 * var(--tab-inner-inline-margin));
+    min-height: var(--tab-min-height);
+    margin-inline: var(--tab-inner-inline-margin);
+    padding-inline: calc(var(--tab-inline-padding) - var(--tab-inner-inline-margin));
+    gap: var(--tab-icon-end-margin);
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-border-radius-tokens */
+    border-radius: 9px;
+    background-color: transparent;
+    box-shadow: none;
+    opacity: 1;
+    font-size: inherit;
+    text-align: start;
+
+    &:hover {
+      background-color: var(--tab-background-color-hover);
+    }
+
+    > .pinned-fold-section-icon {
+      display: block;
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      -moz-context-properties: fill, fill-opacity;
+      fill: currentColor;
+      fill-opacity: 0.75;
+    }
+
+    > .pinned-fold-label {
+      display: block;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      /* stylelint-disable-next-line stylelint-plugin-mozilla/use-font-size-tokens */
+      font-size: 1.2em;
+      /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+      font-weight: 450;
+      opacity: 0.85;
+    }
+
+    > .pinned-fold-count {
+      display: block;
+      opacity: 0.55;
+    }
+
+    > .pinned-fold-icon {
+      content: url("chrome://global/skin/icons/arrow-down-12.svg");
+      opacity: 0.55;
+    }
   }
 }
 
-#tabbrowser-tabs:hover .pinned-fold-toggle {
+#tabbrowser-tabs:hover .pinned-fold-toggle:not([folded]) {
   opacity: 0.8;
 }
 
-.pinned-fold-anchor:hover > .pinned-fold-toggle {
+.pinned-fold-anchor:hover > .pinned-fold-toggle:not([folded]) {
   opacity: 1;
 }
 

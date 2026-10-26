@@ -387,6 +387,8 @@ tab-context-pinned-layout-icons =
 ## Variables:
 ##   $count (Number): how many items the section holds.
 
+pinned-section-tiles-label = Pinned Grid
+pinned-section-list-label = Pinned List
 pinned-section-fold =
     .title = Fold this section
     .aria-label = Fold this section
@@ -410,6 +412,11 @@ tab-context-replace-pinned-url =
     .label = Replace Pinned URL with Current
 tab-context-edit-pinned-url =
     .label = Edit…
+tab-context-rename-tab =
+    .label = Rename Tab…
+    .accesskey = m
+tab-rename-input =
+    .aria-label = Tab name
 pinned-url-dialog-title = Edit Pinned URL
 pinned-url-dialog-description = This is what opens first when you click this tab or its icon.
 pinned-url-dialog-input =

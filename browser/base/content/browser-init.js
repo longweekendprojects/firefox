@@ -541,6 +541,10 @@ var gBrowserInit = {
         { global: "current" }
       );
       window.gPinnedFold.init();
+      window.gTabRename = ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/tab-rename.mjs",
+        { global: "current" }
+      );
     }
     if (
       !document.documentElement.hasAttribute("little-window") &&

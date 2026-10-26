@@ -555,6 +555,27 @@ add_task(async function test_fold_tiles_and_list_independently() {
       "The folded tiles show their count"
     );
     Assert.equal(tilesButton.getAttribute("aria-expanded"), "false");
+    await TestUtils.waitForCondition(
+      () => tilesButton.querySelector(".pinned-fold-label").textContent,
+      "The folded tiles show their name"
+    );
+    Assert.equal(
+      tilesButton.querySelector(".pinned-fold-label").textContent,
+      "Pinned Grid"
+    );
+    let tilesRow = tilesButton.getBoundingClientRect();
+    Assert.greaterOrEqual(
+      tilesRow.height,
+      newTabRow().getBoundingClientRect().height - 1,
+      "The folded tiles show as a row as tall as a tab"
+    );
+    Assert.less(
+      tilesRow.bottom,
+      document
+        .getElementById("vertical-pinned-tabs-splitter")
+        .getBoundingClientRect().top,
+      "in the tiles' place, above their line"
+    );
 
     await clickFold("list");
     await TestUtils.waitForCondition(
@@ -569,11 +590,30 @@ add_task(async function test_fold_tiles_and_list_independently() {
       !gBrowser.tabContainer.dragAndDropElements.includes(tabs[0]),
       "Hidden list tabs are left out of drag and drop"
     );
+    let listButton = foldButton("list");
+    await TestUtils.waitForCondition(
+      () => listButton.querySelector(".pinned-fold-label").textContent
+    );
+    Assert.equal(
+      listButton.querySelector(".pinned-fold-label").textContent,
+      "Pinned List",
+      "The folded list shows as a named row"
+    );
+    Assert.less(
+      listButton.getBoundingClientRect().bottom,
+      newTabRow().getBoundingClientRect().top,
+      "above the New Tab row"
+    );
 
     gBrowser.selectedTab = tabs[1];
     await TestUtils.waitForCondition(
       () => BrowserTestUtils.isVisible(tabs[1]),
       "The folded list shows the selected tab"
+    );
+    Assert.less(
+      listButton.getBoundingClientRect().bottom,
+      tabs[1].getBoundingClientRect().top + 1,
+      "under the folded list's row"
     );
     Assert.ok(BrowserTestUtils.isHidden(tabs[0]), "but not the others");
 
