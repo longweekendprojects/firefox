@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* global gBrowser, gURLBar, gUnifiedExtensions, isBlankPageURL, BrowserUtils,
-   CustomizableUI, updateBookmarkToolbarVisibility */
+   CustomizableUI, PanelUI, updateBookmarkToolbarVisibility */
 
 /**
  * Renders the active split view as a recursive layout of panes.
  *
  * Loaded into a browser window on its first split view. Browser panels stay
  * direct children of tabpanels; this module only positions them, adds a small
- * header (Back, Forward, Reload, address, extension buttons, Close) to each
- * visible pane, and draws one splitter per split. While panes are shown, the window's own
+ * header (Back, Forward, Reload, address, extension buttons, menu, Close) to
+ * each visible pane, and draws one splitter per split. While panes are shown, the window's own
  * navigation controls are hidden, because each pane has its own. Panes along
  * the top edge show their header in the toolbar row, in the space those
  * controls leave, so the window keeps a single row of controls. Everything it
@@ -101,10 +101,10 @@ const actionsHook = {
     }
   },
   extensionsAnchor() {
-    const button = headers
-      .get(gBrowser.selectedTab)
-      ?.querySelector(".split-pane-extensions");
-    return button?.checkVisibility() ? button : null;
+    return selectedPaneButton(".split-pane-extensions");
+  },
+  menuAnchor() {
+    return selectedPaneButton(".split-pane-app-menu");
   },
 };
 
@@ -370,6 +370,12 @@ function attach() {
     extensionsButtonObserver.observe(extensionsButton, {
       attributeFilter: ["hidden", "attention"],
     });
+    const menuButton = document.getElementById("PanelUI-menu-button");
+    if (menuButton) {
+      extensionsButtonObserver.observe(menuButton, {
+        attributeFilter: ["badge-status"],
+      });
+    }
   }
 
   resizeObserver = new ResizeObserver(scheduleRender);
@@ -627,6 +633,11 @@ function toolbarActionIds() {
   );
 }
 
+function selectedPaneButton(selector) {
+  const button = headers.get(gBrowser.selectedTab)?.querySelector(selector);
+  return button?.checkVisibility() ? button : null;
+}
+
 function createActionsBox() {
   const box = document.createXULElement("hbox");
   box.className = "split-pane-actions";
@@ -635,7 +646,12 @@ function createActionsBox() {
     "chrome://mozapps/skin/extensions/extension.svg",
     "tab-splitview-pane-extensions"
   );
-  box.append(extensions);
+  const menu = createButton(
+    "split-pane-app-menu",
+    "chrome://browser/skin/menu.svg",
+    "tab-splitview-pane-app-menu"
+  );
+  box.append(extensions, menu);
   return box;
 }
 
@@ -652,6 +668,15 @@ function fillActions(header, ids) {
   const real = document.getElementById(EXTENSIONS_BUTTON);
   extensions.hidden = !real || real.hidden;
   extensions.toggleAttribute("attention", !!real?.hasAttribute("attention"));
+  // A pending update or account notice shows as a dot on the menu button.
+  box
+    .querySelector(".split-pane-app-menu")
+    .toggleAttribute(
+      "attention",
+      !!document
+        .getElementById("PanelUI-menu-button")
+        ?.hasAttribute("badge-status")
+    );
   const key = ids.join(" ");
   if (box._ids === key) {
     return;
@@ -783,6 +808,10 @@ function onCommand(event) {
   } else if (classes.contains("split-pane-extensions")) {
     gBrowser.selectedTab = tab;
     gUnifiedExtensions.togglePanel(event, undefined, event.target);
+  } else if (classes.contains("split-pane-app-menu")) {
+    // The main menu acts on the selected tab, and opens from its pane's bar.
+    gBrowser.selectedTab = tab;
+    PanelUI.toggle(event);
   }
 }
 

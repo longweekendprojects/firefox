@@ -723,10 +723,11 @@ add_task(async function test_top_pane_headers_share_the_toolbar_row() {
   const header = paneHeader(b).getBoundingClientRect();
   Assert.greaterOrEqual(header.top, bar.top - 1, "header within the row");
   Assert.lessOrEqual(header.bottom, bar.bottom + 1, "header within the row");
-  const menu = document
-    .getElementById("PanelUI-menu-button")
-    .getBoundingClientRect();
-  Assert.lessOrEqual(header.right, menu.left, "menu button stays clear");
+  Assert.ok(
+    BrowserTestUtils.isHidden(document.getElementById("PanelUI-button")),
+    "the pane bars have the menu button instead of the toolbar"
+  );
+  Assert.lessOrEqual(header.right, bar.right, "header stays in the row");
   Assert.greater(
     rect(a).h,
     rect(c).h,

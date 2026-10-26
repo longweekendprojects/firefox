@@ -33,8 +33,8 @@ function loadExtension({ popup = true } = {}) {
       "popup.html": `<!DOCTYPE html><meta charset="utf-8"><body>Popup</body>`,
     },
     background() {
-      browser.test.onMessage.addListener(async (msg, tabId, text) => {
-        await browser.browserAction.setBadgeText({ text, tabId });
+      browser.test.onMessage.addListener(async (msg, id, text) => {
+        await browser.browserAction.setBadgeText({ text, tabId: id });
         browser.test.sendMessage("badge-set");
       });
       browser.browserAction.onClicked.addListener(tab => {
@@ -237,6 +237,54 @@ add_task(async function test_pane_extensions_button_opens_panel() {
   closeSplit(tabs);
   await unpinned.unload();
   await extension.unload();
+});
+
+add_task(async function test_toolbar_row_is_shared_by_panes() {
+  const tabs = await makeSplit();
+  for (const id of ["PanelUI-button", "fxa-toolbar-menu-button"]) {
+    const node = document.getElementById(id);
+    ok(!node || BrowserTestUtils.isHidden(node), `${id} hides`);
+  }
+  const navbar = document.getElementById("nav-bar").getBoundingClientRect();
+  const panels = tabs.map(tab =>
+    document.getElementById(tab.linkedPanel).getBoundingClientRect()
+  );
+  const headers = tabs.map(tab => paneHeader(tab).getBoundingClientRect());
+  Assert.lessOrEqual(
+    navbar.right - headers[1].right,
+    8,
+    "The rightmost pane bar reaches the end of the toolbar row"
+  );
+  Assert.lessOrEqual(
+    Math.abs(headers[1].width - panels[1].width),
+    2,
+    "The rightmost pane bar is as wide as its pane"
+  );
+  Assert.lessOrEqual(
+    Math.abs(headers[0].width - headers[1].width),
+    2,
+    "Both pane bars are equally wide"
+  );
+
+  const menuButton = paneHeader(tabs[1]).querySelector(".split-pane-app-menu");
+  ok(BrowserTestUtils.isVisible(menuButton), "Each pane bar has a menu button");
+  const shown = BrowserTestUtils.waitForPopupEvent(PanelUI.panel, "shown");
+  EventUtils.synthesizeMouseAtCenter(menuButton, {});
+  await shown;
+  is(gBrowser.selectedTab, tabs[1], "The pane of the menu button is selected");
+  ok(
+    menuButton.contains(PanelUI.panel.anchorNode),
+    "The menu opens from the pane's button"
+  );
+  const hidden = BrowserTestUtils.waitForPopupEvent(PanelUI.panel, "hidden");
+  EventUtils.synthesizeMouseAtCenter(menuButton, {});
+  await hidden;
+
+  closeSplit(tabs);
+  await TestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(document.getElementById("PanelUI-button")),
+    "The toolbar menu button comes back"
+  );
 });
 
 add_task(async function test_pane_button_context_menu() {

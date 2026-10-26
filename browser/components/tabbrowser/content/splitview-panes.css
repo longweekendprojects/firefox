@@ -21,10 +21,14 @@
   }
 }
 
-/* Each pane bar has its own extension buttons, so the toolbar's are hidden.
-   Their popups open from the selected pane's bar instead. */
-:root[splitpanes] #nav-bar-customization-target > :is(.unified-extensions-item, #unified-extensions-button) {
-  display: none;
+/* Each pane bar has its own extension buttons and menu button, so the
+   toolbar keeps nothing after the address bar and the top pane bars share the
+   whole row. Popups open from the selected pane's bar instead. */
+:root[splitpanes] #nav-bar {
+  #urlbar-container ~ *,
+  > :is(#nav-bar-overflow-button, #PanelUI-button) {
+    display: none;
+  }
 }
 
 /* Each pane has its own navigation controls, so the window's own controls
@@ -128,7 +132,7 @@
   }
 }
 
-.split-pane-extensions[attention] {
+:is(.split-pane-extensions, .split-pane-app-menu)[attention] {
   background-image: radial-gradient(circle, var(--color-accent-attention), var(--color-accent-attention) 2px, transparent 2px);
   background-size: 6px 6px;
   background-repeat: no-repeat;

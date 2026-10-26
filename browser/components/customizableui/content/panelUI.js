@@ -373,7 +373,7 @@ const PanelUI = {
         domEvent = aEvent;
       }
 
-      let anchor = this._getPanelAnchor(this.menuButton);
+      let anchor = this._getPanelAnchor(this._menuAnchorButton());
       await PanelMultiView.openPopup(this.panel, anchor, {
         triggerEvent: domEvent,
       });
@@ -1118,7 +1118,7 @@ const PanelUI = {
       notification.options.beforeShowDoorhanger(document);
     }
 
-    let anchor = this._getPanelAnchor(this.menuButton);
+    let anchor = this._getPanelAnchor(this._menuAnchorButton());
 
     // Insert Fluent files when needed before notification is opened
     MozXULElement.insertFTLIfNeeded("branding/brand.ftl");
@@ -1390,6 +1390,12 @@ const PanelUI = {
 
   _getBadgeStatus(notification) {
     return notification.id;
+  },
+
+  // While split view panes show, the menu button is hidden and each pane bar
+  // has its own.
+  _menuAnchorButton() {
+    return window.SplitPaneActions?.menuAnchor() ?? this.menuButton;
   },
 
   _getPanelAnchor(candidate) {
