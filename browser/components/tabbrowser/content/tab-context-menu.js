@@ -923,11 +923,12 @@ var TabContextMenu = {
       !this.contextTabs[0].group &&
       (this.contextTabs[0] === visibleOrCollapsedTabs[0] ||
         this.contextTabs[0] ===
-          visibleOrCollapsedTabs[gBrowser.pinnedTabCount]);
+          visibleOrCollapsedTabs[gBrowser.tabContainer.visiblePinnedTabCount]);
     let splitAtStart =
       isSplit &&
       (firstInSplit === visibleOrCollapsedTabs[0] ||
-        firstInSplit === visibleOrCollapsedTabs[gBrowser.pinnedTabCount]);
+        firstInSplit ===
+          visibleOrCollapsedTabs[gBrowser.tabContainer.visiblePinnedTabCount]);
     contextMoveTabToStart.disabled =
       (isFirstTab || splitAtStart) && allSelectedTabsAdjacent;
 

@@ -244,9 +244,9 @@
         let newIndex = this._getDropIndex(event);
         if (
           (isSplitViewWrapper(draggedTab) || isTabGroupLabel(draggedTab)) &&
-          newIndex < gBrowser.pinnedTabCount
+          newIndex < this._tabbrowserTabs.visiblePinnedTabCount
         ) {
-          newIndex = gBrowser.pinnedTabCount;
+          newIndex = this._tabbrowserTabs.visiblePinnedTabCount;
         }
         let children = this._tabbrowserTabs.dragAndDropElements;
         if (newIndex == children.length) {
@@ -349,7 +349,7 @@
         let newTranslateX = oldTranslateX - translateOffsetX;
         let newTranslateY = oldTranslateY - translateOffsetY;
         let isPinned = draggedTab.pinned;
-        let numPinned = gBrowser.pinnedTabCount;
+        let numPinned = this._tabbrowserTabs.visiblePinnedTabCount;
         let tabs = this._tabbrowserTabs.dragAndDropElements.slice(
           isPinned ? 0 : numPinned,
           isPinned ? numPinned : undefined
@@ -583,10 +583,11 @@
         }
       } else if (isTabGroupLabel(draggedTab)) {
         const dropIndex = this._getDropIndex(event);
-        const droppedIntoPinnedArea = dropIndex < gBrowser.pinnedTabCount;
+        const droppedIntoPinnedArea =
+          dropIndex < this._tabbrowserTabs.visiblePinnedTabCount;
         gBrowser.adoptTabGroup(draggedTab.group, {
           elementIndex: droppedIntoPinnedArea
-            ? gBrowser.pinnedTabCount
+            ? this._tabbrowserTabs.visiblePinnedTabCount
             : dropIndex,
         });
       } else if (draggedTab) {
@@ -611,10 +612,11 @@
             selectedTab = tab;
             indexForSelectedTab = newIndex;
           } else if (isSplitViewWrapper(tab)) {
-            const droppedIntoPinnedArea = dropIndex < gBrowser.pinnedTabCount;
+            const droppedIntoPinnedArea =
+              dropIndex < this._tabbrowserTabs.visiblePinnedTabCount;
             const newSplitView = gBrowser.adoptSplitView(tab, {
               elementIndex: droppedIntoPinnedArea
-                ? gBrowser.pinnedTabCount
+                ? this._tabbrowserTabs.visiblePinnedTabCount
                 : newIndex,
               selectTab: true,
             });
@@ -664,10 +666,14 @@
           }
           if (unpinnedSplitViews.length) {
             let firstUnpinnedSplitView =
-              this._tabbrowserTabs.dragAndDropElements[gBrowser.pinnedTabCount];
+              this._tabbrowserTabs.dragAndDropElements[
+                this._tabbrowserTabs.visiblePinnedTabCount
+              ];
             let lastUnpinnedSplitView =
               this._tabbrowserTabs.dragAndDropElements[
-                gBrowser.pinnedTabCount + unpinnedSplitViews.length - 1
+                this._tabbrowserTabs.visiblePinnedTabCount +
+                  unpinnedSplitViews.length -
+                  1
               ];
             gBrowser.addRangeToMultiSelectedTabs(
               firstUnpinnedSplitView.tabs.at(0),
@@ -1373,7 +1379,7 @@
         // Set this before adjusting dragged tab's position
         let pinnedTabs = this._tabbrowserTabs.visibleTabs.slice(
           0,
-          gBrowser.pinnedTabCount
+          this._tabbrowserTabs.visiblePinnedTabCount
         );
         let tabsPerRow = 0;
         let position = RTL_UI
@@ -2115,7 +2121,7 @@
 
       let tabs = this._tabbrowserTabs.visibleTabs.slice(
         0,
-        gBrowser.pinnedTabCount
+        this._tabbrowserTabs.visiblePinnedTabCount
       );
 
       dragData.animLastScreenY = screenY;
@@ -2322,7 +2328,7 @@
       this.#clearPinnedDropIndicatorTimer();
 
       let isPinned = draggedTab.pinned;
-      let numPinned = gBrowser.pinnedTabCount;
+      let numPinned = this._tabbrowserTabs.visiblePinnedTabCount;
       let dragAndDropElements = this._tabbrowserTabs.dragAndDropElements;
       let tabs = dragAndDropElements.slice(
         isPinned ? 0 : numPinned,

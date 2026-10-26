@@ -951,6 +951,16 @@
     #visibleTabs;
 
     /**
+     * The number of pinned tabs at the start of `visibleTabs`, and of
+     * `dragAndDropElements`. Unlike `gBrowser.pinnedTabCount`, this leaves out
+     * hidden pinned tabs, such as the pinned tabs of other spaces.
+     */
+    get visiblePinnedTabCount() {
+      let count = this.visibleTabs.findIndex(tab => !tab.pinned);
+      return count == -1 ? this.visibleTabs.length : count;
+    }
+
+    /**
      * @returns {boolean} true if the keyboard focus is on the active tab
      */
     get tablistHasFocus() {
@@ -1360,7 +1370,7 @@
           // See bug 2007766, we need to find the first tab that isn't
           // inside a split view, because those can be narrower than the threshold.
           let tab = this.visibleTabs
-            .slice(gBrowser.pinnedTabCount)
+            .slice(this.visiblePinnedTabCount)
             .find(t => !t.splitview);
           if (tab && rect(tab).width <= this._tabClipWidth) {
             this.setAttribute("closebuttons", "activetab");
@@ -1401,7 +1411,7 @@
       }
 
       let tabs = this.visibleTabs;
-      let numPinned = gBrowser.pinnedTabCount;
+      let numPinned = this.visiblePinnedTabCount;
 
       if (tabs.length <= numPinned) {
         // There are no unpinned tabs left.

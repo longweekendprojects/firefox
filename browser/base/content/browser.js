@@ -3974,7 +3974,9 @@ function WindowIsClosing(event) {
   let shouldWarnForTabs =
     Services.prefs.getBoolPref("browser.tabs.warnOnClose") &&
     (isLastWindowNonMac
-      ? gBrowser.visibleTabs.length - gBrowser.pinnedTabCount >= 2
+      ? gBrowser.visibleTabs.length -
+          gBrowser.tabContainer.visiblePinnedTabCount >=
+        2
       : gBrowser.openTabs.length > 1);
 
   const { ASRouter } = ChromeUtils.importESModule(

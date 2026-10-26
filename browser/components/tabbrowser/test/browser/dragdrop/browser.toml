@@ -17,6 +17,8 @@ support-files = [
 
 ["browser_drag_tab_to_split.js"]
 
+["browser_drag_with_hidden_pinned_tabs.js"]
+
 ["browser_drag_to_pin.js"]
 
 ["browser_drop_link_splitview_unselected.js"]
