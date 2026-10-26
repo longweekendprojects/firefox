@@ -88,9 +88,9 @@
     }
   }
 
-  /* Only the selected pane shows all its buttons; the others keep the close
-     button and show the rest on hover. */
-  &:not([selected], :hover, :focus-within) toolbarbutton:not(.split-pane-close) {
+  /* Only the selected pane shows its extension and menu buttons; the others
+     show them on hover. Navigation and close buttons always show. */
+  &:not([selected], :hover, :focus-within) toolbarbutton:not(.split-pane-back, .split-pane-forward, .split-pane-reload, .split-pane-close) {
     opacity: 0;
   }
 

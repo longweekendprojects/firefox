@@ -127,14 +127,21 @@ add_task(async function test_pane_button_spacing_and_fading() {
   await TestUtils.waitForCondition(
     () =>
       opacity(selected.querySelector(".split-pane-reload")) == "1" &&
-      opacity(other.querySelector(".split-pane-reload")) == "0" &&
+      opacity(other.querySelector(".split-pane-menu")) == "0" &&
       opacity(other.querySelector(".split-pane-extensions")) == "0",
     "only the selected pane shows its buttons"
   );
-  is(
-    opacity(other.querySelector(".split-pane-close")),
-    "1",
-    "the close button shows on every pane"
+  for (let button of ["reload", "close"]) {
+    is(
+      opacity(other.querySelector(`.split-pane-${button}`)),
+      "1",
+      `the ${button} button shows on every pane`
+    );
+  }
+  Assert.notEqual(
+    opacity(other.querySelector(".split-pane-back")),
+    "0",
+    "the back button shows on every pane"
   );
 
   gBrowser.selectedTab = tabs[1];
