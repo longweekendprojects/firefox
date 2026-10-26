@@ -522,3 +522,93 @@ add_task(async function test_drag_reorders_spaces() {
   );
   setSpaces(TWO_SPACES);
 });
+
+add_task(async function test_switch_back_returns_to_last_tab() {
+  setSpaces(TWO_SPACES);
+  let a1 = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL1);
+  let a2 = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL2);
+  gBrowser.selectedTab = a1;
+  let opened = BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "TabOpen");
+  gSpaces.switchTo("b");
+  await opened;
+  let b1 = gBrowser.selectedTab;
+  let b2 = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL1 + "&b2");
+  let b3 = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL2 + "&b3");
+  let b4 = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL2 + "&b4");
+  gBrowser.selectedTab = b2;
+
+  gSpaces.switchTo("a");
+  Assert.equal(gBrowser.selectedTab, a1, "A returns to its last tab");
+  gSpaces.switchTo("b");
+  Assert.equal(gBrowser.selectedTab, b2, "B returns to its last tab");
+
+  gBrowser.addTabSplitView([b3, b4]);
+  gBrowser.selectedTab = b4;
+  gSpaces.switchTo("a");
+  gSpaces.switchTo("b");
+  Assert.equal(gBrowser.selectedTab, b4, "B returns to its last split pane");
+
+  gBrowser.pinTab(b2);
+  gBrowser.selectedTab = b2;
+  gSpaces.switchTo("a");
+  gSpaces.switchTo("b");
+  Assert.equal(gBrowser.selectedTab, b2, "B returns to its last pinned tab");
+
+  gURLBar.focus();
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.spaces.cmdNumberSwitchesSpaces", true]],
+  });
+  EventUtils.synthesizeKey("1", { accelKey: true });
+  Assert.equal(gSpaces.getActiveId(), "a", "Cmd+1 from the address bar");
+  Assert.equal(gBrowser.selectedTab, a1, "A returns to its last tab");
+  gURLBar.focus();
+  EventUtils.synthesizeKey("2", { accelKey: true });
+  Assert.equal(gBrowser.selectedTab, b2, "B returns to its last tab");
+  await SpecialPowers.popPrefEnv();
+
+  for (let tab of [a1, a2, b1, b2, b3, b4]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+  setSpaces(TWO_SPACES);
+});
+
+add_task(async function test_restored_space_returns_to_last_used_tab() {
+  setSpaces(TWO_SPACES);
+  let win = await BrowserTestUtils.openNewBrowserWindow();
+  let entry = url => ({
+    url,
+    triggeringPrincipal_base64: E10SUtils.SERIALIZED_SYSTEMPRINCIPAL,
+  });
+  let inB = (url, lastAccessed) => ({
+    entries: [entry(url)],
+    hidden: true,
+    extData: { hiddenBy: "spaces" },
+    attributes: { space: "b" },
+    lastAccessed,
+  });
+  let now = Date.now();
+  let state = {
+    windows: [
+      {
+        tabs: [
+          { entries: [entry(URL2)], attributes: { space: "a" } },
+          inB(URL1 + "&b1", now - 30000),
+          inB(URL1 + "&b2", now - 10000),
+          inB(URL1 + "&b3", now - 20000),
+        ],
+        selected: 1,
+      },
+    ],
+  };
+  let restored = BrowserTestUtils.waitForEvent(win, "SSWindowRestored");
+  SessionStore.setWindowState(win, JSON.stringify(state), true);
+  await restored;
+  win.gSpaces.switchTo("b");
+  Assert.equal(
+    win.gBrowser.selectedTab,
+    win.gBrowser.tabs[2],
+    "A restored space opens its most recently used tab"
+  );
+  await BrowserTestUtils.closeWindow(win);
+  Services.prefs.clearUserPref(LIST_PREF);
+});
