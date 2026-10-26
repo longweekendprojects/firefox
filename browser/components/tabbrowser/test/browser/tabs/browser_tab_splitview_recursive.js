@@ -548,6 +548,13 @@ add_task(async function test_accel_shift_c_copies_pane_address() {
       : document.getElementById("Browser:CopyPageLink").doCommand();
   await SimpleTest.promiseClipboardChange(url, copy);
   Assert.ok(true, "The selected pane's address is copied");
+  Assert.ok(
+    !Services.clipboard.hasDataMatchingFlavors(
+      ["text/html", "text/x-moz-url"],
+      Services.clipboard.kGlobalClipboard
+    ),
+    "Only the plain address is copied, without the page title"
+  );
   gBrowser.removeTab(tab1);
   gBrowser.removeTab(tab2);
 });

@@ -144,12 +144,13 @@ var BrowserCommands = {
     if (!uri) {
       return;
     }
-    BrowserUtils.copyLinks([
-      {
-        url: gURLBar.makeURIReadable(uri).displaySpec,
-        title: browser.contentTitle,
-      },
-    ]);
+    Cc["@mozilla.org/widget/clipboardhelper;1"]
+      .getService(Ci.nsIClipboardHelper)
+      .copyString(
+        gURLBar.makeURIReadable(uri).displaySpec,
+        null,
+        PrivateBrowsingUtils.isWindowPrivate(window)
+      );
     const anchor = [
       document.querySelector(
         `.split-pane-header[panel="${gBrowser.selectedTab.linkedPanel}"] .split-pane-url`
