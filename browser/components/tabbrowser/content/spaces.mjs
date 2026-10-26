@@ -30,6 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const LIST_PREF = "browser.spaces.list";
 const ACTIVE_PREF = "browser.spaces.active";
+const CMD_NUMBER_PREF = "browser.spaces.cmdNumberSwitchesSpaces";
 const HIDDEN_BY = "spaces";
 const STYLESHEET = "chrome://browser/content/tabbrowser/spaces.css";
 
@@ -185,25 +186,39 @@ function onWheel(event) {
   }
 }
 
+/**
+ * Ctrl+1 to Ctrl+9 switch spaces. With browser.spaces.cmdNumberSwitchesSpaces,
+ * Cmd+1 to Cmd+9 switch spaces instead, and Ctrl+1 to Ctrl+9 select tabs, once
+ * there is more than one space.
+ */
 function onKeyDown(event) {
   if (
     !event.isTrusted ||
     event.defaultPrevented ||
-    !event.ctrlKey ||
-    event.metaKey ||
+    event.ctrlKey == event.metaKey ||
     event.altKey ||
     event.shiftKey ||
     !/^Digit[1-9]$/.test(event.code)
   ) {
     return;
   }
-  let space = spaces[Number(event.code.at(-1)) - 1];
-  if (!space) {
+  let number = Number(event.code.at(-1));
+  // With a single space, Cmd+number keeps selecting tabs.
+  let cmdForSpaces =
+    spaces.length > 1 && Services.prefs.getBoolPref(CMD_NUMBER_PREF, false);
+  if (event.metaKey && !cmdForSpaces) {
     return;
   }
   event.preventDefault();
   event.stopPropagation();
-  switchTo(space.id);
+  if (event.ctrlKey && cmdForSpaces) {
+    gBrowser.selectTabAtIndex(number == 9 ? -1 : number - 1, { event });
+    return;
+  }
+  let space = spaces[number - 1];
+  if (space) {
+    switchTo(space.id);
+  }
 }
 
 function onTabClose(event) {

@@ -54,6 +54,7 @@ Preferences.addAll([
   { id: "browser.peek.enabled", type: "bool" },
   { id: "browser.littlewindow.externalLinks", type: "bool" },
   { id: "browser.tabs.splitview.paneShortcutsOverrideSites", type: "bool" },
+  { id: "browser.spaces.cmdNumberSwitchesSpaces", type: "bool" },
   { id: "browser.tabs.warnOnClose", type: "bool" },
   { id: "browser.warnOnQuitShortcut", type: "bool" },
   { id: "browser.tabs.warnOnOpen", type: "bool" },
@@ -187,6 +188,11 @@ Preferences.addSetting({
 Preferences.addSetting({
   id: "paneShortcutsOverrideSites",
   pref: "browser.tabs.splitview.paneShortcutsOverrideSites",
+  visible: () => lazy.AppConstants.platform == "macosx",
+});
+Preferences.addSetting({
+  id: "cmdNumberSwitchesSpaces",
+  pref: "browser.spaces.cmdNumberSwitchesSpaces",
   visible: () => lazy.AppConstants.platform == "macosx",
 });
 Preferences.addSetting({
@@ -738,6 +744,10 @@ SettingGroupManager.registerGroups({
           {
             id: "paneShortcutsOverrideSites",
             l10nId: "split-pane-split-keys-override-sites",
+          },
+          {
+            id: "cmdNumberSwitchesSpaces",
+            l10nId: "spaces-cmd-number-switches-spaces",
           },
           {
             id: "warnOpenMany",

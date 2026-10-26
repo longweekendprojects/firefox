@@ -385,6 +385,26 @@ add_task(async function test_swipe_keys_and_tint() {
     Assert.equal(gSpaces.getActiveId(), "b", "Ctrl+2 shows the second space");
     EventUtils.synthesizeKey("1", { ctrlKey: true });
     Assert.equal(gSpaces.getActiveId(), "a", "Ctrl+1 shows the first space");
+
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.spaces.cmdNumberSwitchesSpaces", true]],
+    });
+    pageA.linkedBrowser.focus();
+    let selected = gBrowser.selectedTab;
+    EventUtils.synthesizeKey("2", { accelKey: true });
+    Assert.equal(gSpaces.getActiveId(), "b", "Cmd+2 shows the second space");
+    EventUtils.synthesizeKey("1", { accelKey: true });
+    Assert.equal(gSpaces.getActiveId(), "a", "Cmd+1 shows the first space");
+    Assert.equal(gBrowser.selectedTab, selected, "Cmd+1 does not select a tab");
+    let visible = gBrowser.visibleTabs;
+    EventUtils.synthesizeKey("1", { ctrlKey: true });
+    Assert.equal(
+      gBrowser.selectedTab,
+      visible[0],
+      "Ctrl+1 selects the first tab"
+    );
+    Assert.equal(gSpaces.getActiveId(), "a", "Ctrl+1 stays in the space");
+    await SpecialPowers.popPrefEnv();
   }
 
   BrowserTestUtils.removeTab(pageA);

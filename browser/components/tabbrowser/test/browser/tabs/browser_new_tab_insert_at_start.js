@@ -86,3 +86,63 @@ add_task(async function test_related_tab_follows_opener() {
   BrowserTestUtils.removeTab(related);
   BrowserTestUtils.removeTab(opener);
 });
+
+function nextTabOpen() {
+  return BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "TabOpen").then(
+    event => event.target
+  );
+}
+
+async function openFromCommandBar() {
+  let opened = nextTabOpen();
+  EventUtils.synthesizeKey("t", { accelKey: true });
+  await TestUtils.waitForCondition(() => gURLBar.focused);
+  EventUtils.sendString("https://example.org/");
+  EventUtils.synthesizeKey("KEY_Enter");
+  return opened;
+}
+
+async function openFromButton() {
+  let opened = nextTabOpen();
+  let button = document.getElementById("vertical-tabs-newtab-button");
+  if (button?.checkVisibility()) {
+    button.doCommand();
+  } else {
+    BrowserCommands.openTab();
+  }
+  let tab = await opened;
+  if (gURLBar.focused) {
+    EventUtils.synthesizeKey("KEY_Escape");
+  }
+  return tab;
+}
+
+add_task(async function test_new_tab_paths_open_at_start() {
+  let tabs = [];
+  for (let i = 0; i < 4; i++) {
+    let tab = BrowserTestUtils.addTab(gBrowser, "https://example.com/");
+    await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    gBrowser.moveTabToEnd(tab);
+    tabs.push(tab);
+  }
+  let opened = [];
+  for (let split of [false, true]) {
+    let splitview = split && gBrowser.addTabSplitView([tabs[2], tabs[3]]);
+    for (let open of [openFromCommandBar, openFromButton]) {
+      await BrowserTestUtils.switchTab(gBrowser, split ? tabs[3] : tabs[1]);
+      let tab = await open();
+      opened.push(tab);
+      Assert.equal(
+        tab.index,
+        0,
+        `${open.name} opens at the top${split ? " from a split" : ""}`
+      );
+    }
+    if (splitview) {
+      splitview.unsplitTabs();
+    }
+  }
+  for (let tab of [...tabs, ...opened]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+});

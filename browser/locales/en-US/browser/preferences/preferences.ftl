@@ -307,6 +307,10 @@ open-external-link-in-little-window =
 peek-links-on-shift-click =
     .label = Shift+click a link to preview it in Peek
 
+spaces-cmd-number-switches-spaces =
+    .label = Use ⌘1 to ⌘9 to switch spaces
+    .description = ⌃1 to ⌃9 then select tabs. When off, ⌘1 to ⌘9 select tabs and ⌃1 to ⌃9 switch spaces.
+
 split-pane-split-keys-override-sites =
     .label = Use ⌘⇧I, J, K and L to split panes, even on sites that use those keys
     .description = When off, a site that uses these keys gets them first. ⌃⌘⇧ with the same letters always splits.

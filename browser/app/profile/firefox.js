@@ -2871,6 +2871,9 @@ pref("browser.tabs.splitview.trigger.createCount", 0);
 // On macOS, Cmd+Shift+I/J/K/L split the selected split view pane. When
 // false, a page that uses the same keys gets them first.
 pref("browser.tabs.splitview.paneShortcutsOverrideSites", false);
+// On macOS, Cmd+1 to Cmd+9 switch spaces and Ctrl+1 to Ctrl+9 select tabs.
+// When false, Cmd+number selects tabs and Ctrl+number switches spaces.
+pref("browser.spaces.cmdNumberSwitchesSpaces", true);
 
 // Whether SVG favicons should be safely re-encoded using the moz-remote-image:// protocol.
 pref("browser.tabs.remoteSVGIconDecoding", true);

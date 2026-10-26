@@ -191,6 +191,7 @@ const COMMON_PREFERENCES = new Map([
 
   // Open new tabs at the end of the tab strip
   ["browser.tabs.insertAtStart", false],
+  ["browser.spaces.cmdNumberSwitchesSpaces", false],
 
   // Do not warn when closing all open tabs
   ["browser.tabs.warnOnClose", false],

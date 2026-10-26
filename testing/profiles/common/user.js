@@ -87,6 +87,7 @@ user_pref("browser.region.network.url", "");
 user_pref("browser.tabs.unloadOnLowMemory", false);
 // Open new tabs at the end of the tab strip, as most tests expect
 user_pref("browser.tabs.insertAtStart", false);
+user_pref("browser.spaces.cmdNumberSwitchesSpaces", false);
 // Pinned tabs keep the stock layout, as most tests expect
 user_pref("browser.tabs.pinnedTiles.columns", -2);
 user_pref("browser.tabs.vertical.newTabButtonAtTop", false);
