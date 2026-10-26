@@ -54,6 +54,24 @@ for bin in MacOS/XUL MacOS/firefox; do
   cp $ours/$bin $work/cmp/ours
   codesign --remove-signature $work/cmp/official
   codesign --remove-signature $work/cmp/ours 2> /dev/null || true
+  # Removing a signature leaves __LINKEDIT sized for the signature that was
+  # there, and Mozilla's signature is larger than the build's ad hoc one.
+  for f in $work/cmp/official $work/cmp/ours; do
+    $py - "$f" << 'EOF'
+import struct, sys
+with open(sys.argv[1], "r+b") as f:
+    magic, _, _, _, ncmds = struct.unpack("<IiiII", f.read(20))
+    assert magic == 0xFEEDFACF
+    offset = 32
+    for _ in range(ncmds):
+        f.seek(offset)
+        cmd, size = struct.unpack("<II", f.read(8))
+        if cmd == 0x19 and f.read(16).rstrip(b"\0") == b"__LINKEDIT":
+            f.seek(offset + 32)
+            f.write(struct.pack("<Q", 0))
+        offset += size
+EOF
+  done
   if ! cmp -s $work/cmp/official $work/cmp/ours; then
     echo "make-dmg: $bin differs from Mozilla's Firefox $ver" >&2
     exit 1
