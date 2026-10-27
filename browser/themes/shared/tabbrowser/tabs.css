@@ -3888,7 +3888,8 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   border: 1px solid var(--focus-outline-color);
   border-radius: var(--border-radius-small);
   color: var(--toolbar-field-focus-color);
-  background-color: var(--toolbar-field-focus-background-color);
+  background-color: Field;
+  background-image: linear-gradient(var(--toolbar-field-focus-background-color), var(--toolbar-field-focus-background-color));
   /* stylelint-disable-next-line stylelint-plugin-mozilla/use-font-size-tokens */
   font-size: 1.2em;
   outline: none;

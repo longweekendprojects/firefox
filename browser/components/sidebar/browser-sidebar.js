@@ -3044,6 +3044,7 @@ var SidebarController = {
       !this._revealed ||
       this._pointerOutsideAtEdge ||
       this._revealResize ||
+      document.getElementById("tab-rename-input") ||
       this.sidebarContainer.matches(":hover") ||
       this._revealEdge?.matches(":hover") ||
       this._launcherSplitter.matches(":hover")

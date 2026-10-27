@@ -76,6 +76,40 @@ add_task(async function test_reveal_and_conceal() {
   Assert.ok(!edge().hidden, "The edge is active again");
 });
 
+add_task(async function test_renaming_a_tab_keeps_sidebar() {
+  await hoverEdge();
+  window.gTabRename.startRename(gBrowser.selectedTab);
+  const input = document.getElementById("tab-rename-input");
+  Assert.ok(input, "The rename field is open");
+  const fieldRect = input.getBoundingClientRect();
+  const sidebarRect = sidebarContainer.getBoundingClientRect();
+  Assert.lessOrEqual(
+    fieldRect.right,
+    sidebarRect.right,
+    "The rename field stays inside the sidebar"
+  );
+  Assert.notEqual(
+    getComputedStyle(input).backgroundColor,
+    "rgba(0, 0, 0, 0)",
+    "The rename field has a solid background"
+  );
+
+  EventUtils.synthesizeMouseAtCenter(gBrowser.selectedTab, {
+    type: "mousemove",
+  });
+  await hoverContent();
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 500));
+  Assert.ok(SidebarController._revealed, "The sidebar stays while renaming");
+  Assert.equal(document.activeElement, input, "The rename field keeps focus");
+
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(
+    () => sidebarContainer.hidden,
+    "Sidebar hides once renaming ends with the pointer away"
+  );
+});
+
 add_task(async function test_toggle_while_revealed_keeps_sidebar() {
   await hoverEdge();
   await SidebarController.handleToolbarButtonClick();

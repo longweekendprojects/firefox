@@ -66,9 +66,15 @@ export function startRename(tab) {
   input.id = INPUT_ID;
   document.l10n.setAttributes(input, "tab-rename-input");
   input.value = tab.getAttribute("custom-label") || tab.label;
-  let width = Math.max(rect.width, 180);
-  let left = Math.min(rect.left, window.innerWidth - width - 4);
-  input.style.left = `${Math.max(left, 4)}px`;
+  let tabRect = tab.getBoundingClientRect();
+  let right = tabRect.right - 4;
+  let sidebar = window.SidebarController?.sidebarContainer;
+  if (sidebar && !sidebar.hidden && sidebar.contains(tab)) {
+    right = Math.min(right, sidebar.getBoundingClientRect().right - 4);
+  }
+  let left = Math.max(Math.min(rect.left, right - 60), 4);
+  let width = Math.max(right - left, 60);
+  input.style.left = `${left}px`;
   input.style.top = `${rect.top + rect.height / 2}px`;
   input.style.width = `${width}px`;
   document.body.append(input);
@@ -85,6 +91,9 @@ export function startRename(tab) {
     input.remove();
     if (save && tab.isConnected) {
       gBrowser.setCustomTabLabel(tab, value);
+    }
+    if (window.SidebarController?._revealed) {
+      window.SidebarController._scheduleConceal();
     }
   };
   input.addEventListener("keydown", event => {
