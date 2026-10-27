@@ -555,6 +555,9 @@ var gBrowserInit = {
         { global: "current" }
       );
       window.gSpaces.init();
+      ChromeUtils.importESModule(
+        "moz-src:///browser/components/tabbrowser/OnePasswordTrust.sys.mjs"
+      ).OnePasswordTrust.init();
     }
 
     let safeMode = document.getElementById("helpSafeMode");

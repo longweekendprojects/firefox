@@ -131,7 +131,8 @@ cp $ours/Resources/browser/omni.ja $app/Contents/Resources/browser/omni.ja
 touch $app/Contents/Resources/browser/.purgecaches
 mkdir -p $app/Contents/Resources/distribution
 cat > $app/Contents/Resources/distribution/policies.json << 'EOF'
-{"policies": {"DisableAppUpdate": true, "DisableTelemetry": true}}
+{"policies": {"DisableAppUpdate": true, "DisableTelemetry": true,
+  "Preferences": {"browser.onepassword.trustPrompt.enabled": {"Value": false, "Status": "default"}}}}
 EOF
 echo "$ver split $stamp" > $app/Contents/Resources/split-build.txt
 

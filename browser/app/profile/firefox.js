@@ -2860,6 +2860,10 @@ pref("browser.littlewindow.externalLinks", false);
 // 0 keeps it open.
 pref("browser.littlewindow.closeAfterIdleSeconds", 43200);
 
+// A one-time notice explains how to let 1Password unlock with Touch ID.
+pref("browser.onepassword.trustPrompt.enabled", true);
+pref("browser.onepassword.trustPrompt.done", false);
+
 // Whether tabs can be "split" or displayed side by side at once.
 pref("browser.tabs.splitView.enabled", true);
 pref("browser.tabs.splitview.hasUsed", false);

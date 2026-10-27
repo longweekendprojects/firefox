@@ -107,6 +107,9 @@ tags = "vertical-tabs"
 
 ["browser_tab_rename.js"]
 
+["browser_onepassword_trust.js"]
+run-if = ["os == 'mac'"]
+
 ["browser_exclude_fxview_hidden_tabs.js"]
 tags = "vertical-tabs"
 

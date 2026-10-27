@@ -21,6 +21,7 @@ MOZ_SRC_FILES += [
     "AsyncTabSwitcher.sys.mjs",
     "GroupsList.sys.mjs",
     "NewTabPagePreloading.sys.mjs",
+    "OnePasswordTrust.sys.mjs",
     "OpenInTabsUtils.sys.mjs",
     "SmartTabGrouping.sys.mjs",
     "splitview/SplitLayoutModel.sys.mjs",

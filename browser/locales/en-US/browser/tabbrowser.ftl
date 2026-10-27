@@ -672,3 +672,10 @@ spaces-context-delete =
 #   $name (String): the name of the space the tab moves to
 spaces-move-tab-to =
     .label = Move to { $name } Space
+
+## Notice that explains how to let 1Password unlock with Touch ID.
+
+onepassword-trust-message = To unlock 1Password with Touch ID, open 1Password, go to Settings > Browser, click Add Browser, and choose { -brand-short-name }.
+onepassword-trust-open =
+    .label = Open 1Password
+    .accesskey = O
