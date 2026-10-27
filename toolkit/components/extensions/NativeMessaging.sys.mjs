@@ -297,6 +297,11 @@ export class NativeApp extends EventEmitter {
         return this.proc.stdout.readJSON(len);
       })
       .then(msg => {
+        Services.obs.notifyObservers(
+          { wrappedJSObject: msg },
+          "native-app-message",
+          this.name
+        );
         this.emit("message", msg);
         this.readPromise = null;
         this._startRead();

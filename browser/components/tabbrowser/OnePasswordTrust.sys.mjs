@@ -3,28 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * A one-time notice that guides the user through trusting this browser in
- * the 1Password app. 1Password unlocks with Touch ID only in browsers it
- * trusts by their signature, and a build that is not on its built-in list
- * must be added under Settings > Browser > Add Browser.
+ * A notice that guides the user through trusting this browser in the
+ * 1Password app. 1Password unlocks with Touch ID only in browsers it trusts
+ * by their signature, and a build that is not on its built-in list must be
+ * added under Settings > Browser > Add Browser.
  *
- * The notice shows on macOS while the 1Password extension is enabled and the
- * 1Password app is installed, until the user opens 1Password from it.
+ * Every message from 1Password's native helper reports whether it trusts the
+ * browser: "Known" when trusted, "Untrusted" for a signed browser it does not
+ * trust yet. The notice shows while the helper reports "Untrusted" and closes
+ * once it reports "Known".
  */
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
 });
 
-export const EXTENSION_ID = "{d634138d-c276-4fc8-924b-40a0ea21d284}";
+export const HELPER_NAME = "com.1password.1password";
 export const APP_PATH = "/Applications/1Password.app";
 const ENABLED_PREF = "browser.onepassword.trustPrompt.enabled";
-const DONE_PREF = "browser.onepassword.trustPrompt.done";
 const NOTIFICATION_VALUE = "onepassword-trust";
+const MESSAGE_TOPIC = "native-app-message";
 
 let started = false;
 let dismissed = false;
@@ -38,30 +39,38 @@ export const OnePasswordTrust = {
       return;
     }
     started = true;
-    lazy.AddonManager.addAddonListener(this);
-    this.maybeShow();
+    Services.obs.addObserver(this, MESSAGE_TOPIC);
   },
 
-  onEnabled(aAddon) {
-    if (aAddon.id == EXTENSION_ID) {
+  observe(aSubject, aTopic, aData) {
+    if (aTopic != MESSAGE_TOPIC || aData != HELPER_NAME) {
+      return;
+    }
+    let msg = aSubject.wrappedJSObject;
+    let state = (msg?.browser_state ?? msg?.content?.browser_state)?.type;
+    if (state == "Known") {
+      this.hide();
+    } else if (state == "Untrusted") {
       this.maybeShow();
     }
   },
 
-  onInstalled(aAddon) {
-    this.onEnabled(aAddon);
+  hide() {
+    for (let win of lazy.BrowserWindowTracker.orderedWindows) {
+      let notification =
+        win.gNotificationBox?.getNotificationWithValue(NOTIFICATION_VALUE);
+      if (notification) {
+        win.gNotificationBox.removeNotification(notification);
+      }
+    }
   },
 
   async maybeShow() {
     if (
       dismissed ||
       !Services.prefs.getBoolPref(ENABLED_PREF, false) ||
-      Services.prefs.getBoolPref(DONE_PREF, false)
+      !this._appFile().exists()
     ) {
-      return false;
-    }
-    let addon = await lazy.AddonManager.getAddonByID(EXTENSION_ID);
-    if (!addon?.isActive || !this._appFile().exists()) {
       return false;
     }
     let win = lazy.BrowserWindowTracker.getTopWindow({ private: false });
@@ -86,8 +95,8 @@ export const OnePasswordTrust = {
         {
           "l10n-id": "onepassword-trust-open",
           callback: () => {
-            Services.prefs.setBoolPref(DONE_PREF, true);
             this._appFile().launch();
+            return true;
           },
         },
       ]
