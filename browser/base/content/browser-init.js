@@ -522,7 +522,7 @@ var gBrowserInit = {
 
     if (window.toolbar.visible) {
       ChromeUtils.importESModule(
-        "chrome://browser/content/tabbrowser/extension-reorder.mjs",
+        "chrome://browser/content/tabbrowser/toolbar-reorder.mjs",
         { global: "current" }
       ).init();
     }

@@ -703,7 +703,7 @@ run-if = [
 
 ["browser_tab_splitview_pane_extensions.js"]
 
-["browser_extension_reorder.js"]
+["browser_toolbar_reorder.js"]
 
 ["browser_tab_splitview_recursive.js"]
 

@@ -5,9 +5,10 @@
 /* global CustomizableUI, CustomizationHandler */
 
 /**
- * Reordering pinned extension buttons by dragging them, outside Customize
- * mode. This covers the toolbar's own extension buttons and the copies split
- * view pane bars show.
+ * Reordering the toolbar buttons after the address bar by dragging them,
+ * outside Customize mode, as in Arc and Chrome. This covers extension buttons,
+ * the extensions button and Firefox's own buttons there, and the extension
+ * buttons split view pane bars show. The main menu button stays at the end.
  */
 
 const TARGET_ID = "nav-bar-customization-target";
@@ -15,10 +16,10 @@ const DRAG_THRESHOLD = 5;
 const SHIFT_TRANSITION = "transform 150ms ease";
 
 /**
- * One drag of an extension button along a row of extension buttons. The
- * dragged button follows the pointer and the buttons it passes slide aside.
+ * One drag of a button along a row of buttons. The dragged button follows the
+ * pointer and the buttons it passes slide aside.
  */
-export class ExtensionReorder {
+export class ToolbarReorder {
   /**
    * @param {Element} button The dragged button.
    * @param {Element[]} items Every button in the row, in order.
@@ -114,9 +115,46 @@ export class ExtensionReorder {
 
 let pending = null;
 
+/** The toolbar items after the address bar that can be dragged, in order. */
+function movableItems() {
+  const items = [];
+  let afterUrlbar = false;
+  for (const node of document.getElementById(TARGET_ID).children) {
+    if (node.id == "urlbar-container") {
+      afterUrlbar = true;
+      continue;
+    }
+    if (
+      afterUrlbar &&
+      !node.id.startsWith("customizableui-special-") &&
+      CustomizableUI.getPlacementOfWidget(node.id)?.area ==
+        CustomizableUI.AREA_NAVBAR &&
+      node.checkVisibility()
+    ) {
+      items.push(node);
+    }
+  }
+  return items;
+}
+
 function toolbarItem(node) {
-  const item = node?.closest?.(".unified-extensions-item");
-  return item?.parentElement?.id == TARGET_ID ? item : null;
+  let item = node;
+  while (item && item.parentElement?.id != TARGET_ID) {
+    item = item.parentElement;
+  }
+  return item && movableItems().includes(item) ? item : null;
+}
+
+/** Closes a panel or menu the press opened from `item`. */
+function closePopupsFrom(item) {
+  for (const popup of document.querySelectorAll("panel, menupopup")) {
+    if (
+      popup.state == "open" &&
+      (item.contains(popup.anchorNode) || item.contains(popup))
+    ) {
+      popup.hidePopup();
+    }
+  }
 }
 
 function onPointerDown(event) {
@@ -145,15 +183,15 @@ function onPointerMove(event) {
     if (Math.abs(event.clientX - pending.x) < DRAG_THRESHOLD) {
       return;
     }
-    const items = [...document.getElementById(TARGET_ID).children].filter(
-      node =>
-        node.classList.contains("unified-extensions-item") &&
-        node.checkVisibility()
-    );
+    const items = movableItems();
     if (items.length < 2) {
       return;
     }
-    pending.reorder = new ExtensionReorder(
+    // Some buttons open their panel on press, some of them a moment later;
+    // a drag closes it and keeps it from opening.
+    closePopupsFrom(pending.item);
+    window.addEventListener("popupshowing", blockPopups, true);
+    pending.reorder = new ToolbarReorder(
       pending.item,
       items,
       pending.x,
@@ -162,6 +200,15 @@ function onPointerMove(event) {
   }
   pending.reorder.move(event.clientX);
 }
+
+function blockPopups(event) {
+  const anchor = event.target.anchorNode ?? event.target.triggerNode;
+  if (pending?.item.contains(anchor) || lastDragged?.contains(anchor)) {
+    event.preventDefault();
+  }
+}
+
+let lastDragged = null;
 
 function stopClick(event) {
   event.preventDefault();
@@ -178,6 +225,23 @@ function onPointerUp(event) {
     return;
   }
   reorder.finish(event.type == "pointerup");
+  const dragged = reorder.button;
+  lastDragged = dragged;
+  closePopupsFrom(dragged);
+  // A panel the press asked for can still be on its way.
+  window.setTimeout(() => {
+    if (lastDragged === dragged) {
+      window.removeEventListener("popupshowing", blockPopups, true);
+      lastDragged = null;
+    }
+    closePopupsFrom(dragged);
+    // A button whose panel did not open would otherwise stay pressed.
+    for (const button of [dragged, ...dragged.querySelectorAll("*")]) {
+      if (button.open) {
+        button.open = false;
+      }
+    }
+  }, 500);
   // The release would otherwise press the button.
   window.addEventListener("click", stopClick, { capture: true, once: true });
   window.setTimeout(

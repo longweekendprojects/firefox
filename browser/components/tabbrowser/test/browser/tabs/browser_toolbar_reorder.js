@@ -5,8 +5,9 @@
 
 /* global browser */
 
-// Pinned extension buttons can be dragged to a new order, in the toolbar and
-// in split view pane bars, and right-clicking one offers Unpin from Toolbar.
+// The toolbar buttons after the address bar can be dragged to a new order, in
+// the toolbar and in split view pane bars, and right-clicking a pinned
+// extension button offers Unpin from Toolbar.
 
 const PAGE = "https://example.com/";
 
@@ -35,9 +36,17 @@ function widgetIdFor(extension) {
 }
 
 function restoreOrder() {
+  CustomizableUI.addWidgetToArea(
+    "unified-extensions-button",
+    CustomizableUI.AREA_NAVBAR
+  );
   for (const id of ids) {
-    CustomizableUI.addWidgetToArea(id, CustomizableUI.AREA_NAVBAR);
+    gUnifiedExtensions.pinToToolbar(id, true);
   }
+}
+
+function position(id) {
+  return CustomizableUI.getPlacementOfWidget(id).position;
 }
 
 function extensionOrder(ids) {
@@ -96,6 +105,51 @@ add_task(async function test_drag_reorders_toolbar_buttons() {
   EventUtils.synthesizeMouse(button, half, 8, {});
   await extensions[1].awaitMessage("clicked");
   Assert.ok(true, "A plain click still presses the button");
+  restoreOrder();
+});
+
+add_task(async function test_toolbar_button_spacing() {
+  const back = document.getElementById("back-button");
+  const forward = document.getElementById("forward-button");
+  const rect = el => el.getBoundingClientRect();
+  Assert.equal(
+    rect(back.querySelector(".toolbarbutton-icon")).width,
+    26,
+    "Toolbar buttons are 26px wide"
+  );
+  Assert.equal(
+    rect(forward).left - rect(back).left,
+    28,
+    "Toolbar buttons are 28px apart, like pane bar buttons"
+  );
+});
+
+add_task(async function test_drag_reorders_firefox_buttons() {
+  restoreOrder();
+  const puzzle = document.getElementById("unified-extensions-button");
+  const first = document.getElementById(ids[0]);
+  Assert.greater(position("unified-extensions-button"), position(ids[0]));
+  await drag(puzzle, first, -first.getBoundingClientRect().width / 4);
+  Assert.less(
+    position("unified-extensions-button"),
+    position(ids[0]),
+    "The extensions button moved before the extensions"
+  );
+  // The panel opens a moment after the press, so give it time to try.
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 700));
+  Assert.ok(
+    !gUnifiedExtensions.isPanelOpen(),
+    "Dragging the extensions button leaves its panel closed"
+  );
+  const shown = BrowserTestUtils.waitForEvent(
+    gUnifiedExtensions.panel,
+    "popupshown"
+  );
+  EventUtils.synthesizeMouseAtCenter(puzzle, {});
+  await shown;
+  Assert.ok(true, "One click opens the panel after a drag");
+  await gUnifiedExtensions.togglePanel();
   restoreOrder();
 });
 
@@ -162,6 +216,18 @@ add_task(async function test_drag_reorders_pane_bar_buttons() {
     "pane bar shows the new order"
   );
   Assert.ok(tabs[0].splitview, "The pane did not move out of its split");
+
+  const puzzle = () => header().querySelector(".split-pane-extensions");
+  await drag(puzzle(), action(ids[1]), -6);
+  Assert.less(
+    position("unified-extensions-button"),
+    position(ids[1]),
+    "Dragging the pane bar's extensions button moves the toolbar's"
+  );
+  await TestUtils.waitForCondition(
+    () => puzzle().nextElementSibling === action(ids[1]),
+    "pane bar shows the extensions button in its new place"
+  );
 
   tabs[0].splitview.unsplitTabs();
   gBrowser.removeTabs(tabs);

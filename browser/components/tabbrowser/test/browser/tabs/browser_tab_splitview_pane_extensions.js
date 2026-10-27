@@ -162,10 +162,15 @@ add_task(async function test_panes_show_extension_buttons() {
     const button = paneAction(tab, widgetId);
     ok(button, "Each pane bar has the extension's button");
     ok(BrowserTestUtils.isVisible(button), "The pane button is visible");
+    const puzzle = paneHeader(tab).querySelector(".split-pane-extensions");
+    const position = id => CustomizableUI.getPlacementOfWidget(id).position;
     is(
-      button.nextElementSibling,
-      paneHeader(tab).querySelector(".split-pane-extensions"),
-      "The extensions button follows the extension buttons"
+      !!(
+        button.compareDocumentPosition(puzzle) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+      ),
+      position(widgetId) < position("unified-extensions-button"),
+      "The extensions button keeps its toolbar place among the extensions"
     );
   }
   ok(BrowserTestUtils.isHidden(node), "The toolbar's extension button hides");

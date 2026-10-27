@@ -28,8 +28,8 @@ const CommandBar = ChromeUtils.importESModule(
   { global: "current" }
 );
 
-const { ExtensionReorder } = ChromeUtils.importESModule(
-  "chrome://browser/content/tabbrowser/extension-reorder.mjs",
+const { ToolbarReorder } = ChromeUtils.importESModule(
+  "chrome://browser/content/tabbrowser/toolbar-reorder.mjs",
   { global: "current" }
 );
 
@@ -714,6 +714,17 @@ function toolbarActionIds() {
   );
 }
 
+/** How many of the extension buttons `ids` come before the extensions button. */
+function extensionsButtonIndex(ids) {
+  const placement = CustomizableUI.getPlacementOfWidget(EXTENSIONS_BUTTON);
+  if (placement?.area != CustomizableUI.AREA_NAVBAR) {
+    return ids.length;
+  }
+  return ids.filter(
+    id => CustomizableUI.getPlacementOfWidget(id).position < placement.position
+  ).length;
+}
+
 function selectedPaneButton(selector) {
   const button = headers.get(gBrowser.selectedTab)?.querySelector(selector);
   return button?.checkVisibility() ? button : null;
@@ -758,7 +769,9 @@ function fillActions(header, ids) {
         .getElementById("PanelUI-menu-button")
         ?.hasAttribute("badge-status")
     );
-  const key = ids.join(" ");
+  // The extensions button keeps its toolbar place among the extensions.
+  const before = extensionsButtonIndex(ids);
+  const key = `${ids.join(" ")} ${before}`;
   if (box._ids === key) {
     return;
   }
@@ -766,14 +779,21 @@ function fillActions(header, ids) {
   for (const button of box.querySelectorAll(".split-pane-action")) {
     button.remove();
   }
-  for (const id of ids) {
+  const menu = box.querySelector(".split-pane-app-menu");
+  ids.forEach((id, i) => {
+    if (i == before) {
+      menu.before(extensions);
+    }
     const button = document.createXULElement("toolbarbutton");
     button.className = "split-pane-action tabbable";
     button.id = `${header.getAttribute("panel")}-${id}`;
     button.dataset.widgetId = id;
     button.setAttribute("badged", "true");
     button.setAttribute("constrain-size", "true");
-    extensions.before(button);
+    menu.before(button);
+  });
+  if (before >= ids.length) {
+    menu.before(extensions);
   }
   updateActions(header);
 }
@@ -980,15 +1000,17 @@ function onHeaderPointerMove(event) {
       return;
     }
     grab.moved = true;
-    // Dragging an extension button reorders the extension buttons.
-    if (grab.button?.classList.contains("split-pane-action")) {
-      grab.reorder = new ExtensionReorder(
+    // Dragging an extension button or the extensions button reorders them.
+    if (grab.button?.matches(".split-pane-action, .split-pane-extensions")) {
+      grab.reorder = new ToolbarReorder(
         grab.button,
-        [...grab.header.querySelectorAll(".split-pane-action")].filter(b =>
-          b.checkVisibility()
-        ),
+        [
+          ...grab.header.querySelectorAll(
+            ".split-pane-action, .split-pane-extensions"
+          ),
+        ].filter(b => b.checkVisibility()),
         grab.x,
-        button => button.dataset.widgetId
+        button => button.dataset.widgetId ?? EXTENSIONS_BUTTON
       );
     } else {
       grab.header.setAttribute("dragging", "");

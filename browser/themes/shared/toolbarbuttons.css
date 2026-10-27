@@ -407,6 +407,13 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
   padding: var(--bookmark-block-padding) 4px;
 }
 
+/* Navigation toolbar buttons use the split view pane bar's tighter size and
+   spacing, so a single tab's toolbar matches a pane bar. */
+:root:not([uidensity="touch"]) #nav-bar {
+  --toolbarbutton-padding-inner: 5px;
+  --toolbarbutton-padding-outer: 1px;
+}
+
 #PersonalToolbar {
   /* These should match the sizing of the bookmark-items in the inline axis
    * (padding and margin, respectively) */
