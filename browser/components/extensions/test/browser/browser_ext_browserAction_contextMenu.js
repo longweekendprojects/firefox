@@ -714,11 +714,14 @@ add_task(async function test_unified_extensions_toolbar_pinning() {
   Assert.ok(removeFromToolbar.hidden, "Remove from Toolbar is hidden.");
 
   info(
-    `This button should have "Pin to Toolbar" visible and checked by default.`
+    `This pinned button should offer "Unpin from Toolbar" instead of the "Pin to Toolbar" checkbox.`
   );
-  let pinToToolbar = menu.querySelector(".customize-context-pinToToolbar");
-  Assert.ok(!pinToToolbar.hidden, "Pin to Toolbar is visible.");
-  Assert.ok(pinToToolbar.hasAttribute("checked"), "Pin to Toolbar is checked.");
+  Assert.ok(
+    menu.querySelector(".customize-context-pinToToolbar").hidden,
+    "Pin to Toolbar is hidden."
+  );
+  let pinToToolbar = menu.querySelector(".customize-context-unpinExtension");
+  Assert.ok(!pinToToolbar.hidden, "Unpin from Toolbar is visible.");
 
   info("Pinning addon to the addons panel.");
   await closeChromeContextMenu(TOOLBAR_CONTEXT_MENU, pinToToolbar);

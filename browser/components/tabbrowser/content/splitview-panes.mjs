@@ -28,6 +28,11 @@ const CommandBar = ChromeUtils.importESModule(
   { global: "current" }
 );
 
+const { ExtensionReorder } = ChromeUtils.importESModule(
+  "chrome://browser/content/tabbrowser/extension-reorder.mjs",
+  { global: "current" }
+);
+
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const PANEL_EVENTS = [
   "command",
@@ -975,17 +980,33 @@ function onHeaderPointerMove(event) {
       return;
     }
     grab.moved = true;
-    grab.header.setAttribute("dragging", "");
-    grab.indicator = document.createElementNS(HTML_NS, "div");
-    grab.indicator.className = "split-pane-drop";
-    grab.indicator.hidden = true;
-    const swap = document.createElementNS(HTML_NS, "div");
-    swap.className = "split-pane-drop-swap";
-    const label = document.createElementNS(HTML_NS, "span");
-    document.l10n.setAttributes(label, "tab-splitview-pane-drop-swap");
-    swap.append(label);
-    grab.indicator.append(swap);
-    splitterBox.append(grab.indicator);
+    // Dragging an extension button reorders the extension buttons.
+    if (grab.button?.classList.contains("split-pane-action")) {
+      grab.reorder = new ExtensionReorder(
+        grab.button,
+        [...grab.header.querySelectorAll(".split-pane-action")].filter(b =>
+          b.checkVisibility()
+        ),
+        grab.x,
+        button => button.dataset.widgetId
+      );
+    } else {
+      grab.header.setAttribute("dragging", "");
+      grab.indicator = document.createElementNS(HTML_NS, "div");
+      grab.indicator.className = "split-pane-drop";
+      grab.indicator.hidden = true;
+      const swap = document.createElementNS(HTML_NS, "div");
+      swap.className = "split-pane-drop-swap";
+      const label = document.createElementNS(HTML_NS, "span");
+      document.l10n.setAttributes(label, "tab-splitview-pane-drop-swap");
+      swap.append(label);
+      grab.indicator.append(swap);
+      splitterBox.append(grab.indicator);
+    }
+  }
+  if (grab.reorder) {
+    grab.reorder.move(event.clientX);
+    return;
   }
   grab.drop = dropTarget(event.clientX, event.clientY);
   showDropIndicator(grab.indicator, grab.drop);
@@ -1001,6 +1022,10 @@ function onHeaderPointerUp(event) {
   grab = null;
   if (g.header.hasPointerCapture?.(event.pointerId)) {
     g.header.releasePointerCapture(event.pointerId);
+  }
+  if (g.reorder) {
+    g.reorder.finish(event.type == "pointerup");
+    return;
   }
   g.header.removeAttribute("dragging");
   g.indicator?.remove();

@@ -26,6 +26,7 @@ browser.jar:
    content/browser/tabbrowser/newtab-in-list.css          (content/newtab-in-list.css)
    content/browser/tabbrowser/spaces.mjs                  (content/spaces.mjs)
    content/browser/tabbrowser/tab-rename.mjs              (content/tab-rename.mjs)
+   content/browser/tabbrowser/extension-reorder.mjs       (content/extension-reorder.mjs)
    content/browser/tabbrowser/split-view-footer.js        (content/split-view-footer.js)
    content/browser/tabbrowser/splitview-panes.css         (content/splitview-panes.css)
    content/browser/tabbrowser/splitview-panes.mjs         (content/splitview-panes.mjs)

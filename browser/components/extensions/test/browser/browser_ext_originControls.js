@@ -961,10 +961,12 @@ add_task(async function test_attention_dot_when_pinning_extension() {
       "toolbar-context-menu",
       `#${CSS.escape(extensionWidgetID)}`
     );
+    // A pinned button's menu offers Unpin from Toolbar instead of the
+    // Pin to Toolbar checkbox.
     let pinToToolbar = contextMenu.querySelector(
-      ".customize-context-pinToToolbar"
+      ".customize-context-unpinExtension"
     );
-    ok(pinToToolbar, "expected a 'Pin to Toolbar' menu item");
+    ok(pinToToolbar, "expected an 'Unpin from Toolbar' menu item");
     // Passing the `pinToToolbar` item to `closeChromeContextMenu()` will
     // activate it before closing the context menu.
     await closeChromeContextMenu(contextMenu.id, pinToToolbar);

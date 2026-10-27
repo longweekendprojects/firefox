@@ -42,11 +42,13 @@ add_task(async function test_attention_dot_when_pinning_in_another_window() {
     newWindow
   );
 
+  // A pinned button's menu offers Unpin from Toolbar instead of the
+  // Pin to Toolbar checkbox.
   let pinToToolbar = contextMenu.querySelector(
-    ".customize-context-pinToToolbar"
+    ".customize-context-unpinExtension"
   );
-  ok(pinToToolbar, "expected a 'Pin to Toolbar' menu item");
-  ok(!pinToToolbar.hidden, "Pin to Toolbar is visible");
+  ok(pinToToolbar, "expected an 'Unpin from Toolbar' menu item");
+  ok(!pinToToolbar.hidden, "Unpin from Toolbar is visible");
 
   ok(
     !newWindow.document.querySelector("#unified-extensions-button[attention]"),

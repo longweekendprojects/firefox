@@ -39,6 +39,12 @@ unified-extensions-item-messagebar-softblocked2 = { $extensionName } is restrict
 unified-extensions-context-menu-pin-to-toolbar =
     .label = Pin to Toolbar
 
+# Shown instead of the Pin to Toolbar checkbox when the menu opens from a
+# pinned extension button, which unpinning moves into the extensions panel.
+unified-extensions-context-menu-unpin =
+    .label = Unpin from Toolbar
+    .accesskey = U
+
 unified-extensions-context-menu-manage-extension =
     .label = Manage Extension
 

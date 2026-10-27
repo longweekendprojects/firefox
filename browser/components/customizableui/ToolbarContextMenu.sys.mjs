@@ -483,6 +483,9 @@ export var ToolbarContextMenu = {
       ".customize-context-reportExtension"
     );
     let pinToToolbar = popup.querySelector(".customize-context-pinToToolbar");
+    let unpinExtension = popup.querySelector(
+      ".customize-context-unpinExtension"
+    );
     let separator = reportExtension.nextElementSibling;
     let id = this._getExtensionId(popup);
     let addon = id && (await lazy.AddonManager.getAddonByID(id));
@@ -493,6 +496,9 @@ export var ToolbarContextMenu = {
 
     if (pinToToolbar) {
       pinToToolbar.hidden = !addon;
+    }
+    if (unpinExtension) {
+      unpinExtension.hidden = true;
     }
 
     reportExtension.hidden = !addon || !lazy.gAddonAbuseReportEnabled;
@@ -507,6 +513,12 @@ export var ToolbarContextMenu = {
           let area = lazy.CustomizableUI.getPlacementOfWidget(widgetId).area;
           let inToolbar = area != lazy.CustomizableUI.AREA_ADDONS;
           pinToToolbar.toggleAttribute("checked", inToolbar);
+          // A pinned button offers a plain Unpin item next to Manage
+          // Extension instead of the checkbox.
+          if (unpinExtension) {
+            unpinExtension.hidden = !inToolbar;
+            pinToToolbar.hidden = inToolbar;
+          }
         }
       }
 

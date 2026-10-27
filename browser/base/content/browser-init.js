@@ -520,6 +520,13 @@ var gBrowserInit = {
 
     UpdateUrlbarSearchSplitterState();
 
+    if (window.toolbar.visible) {
+      ChromeUtils.importESModule(
+        "chrome://browser/content/tabbrowser/extension-reorder.mjs",
+        { global: "current" }
+      ).init();
+    }
+
     if (document.documentElement.hasAttribute("little-window")) {
       ChromeUtils.importESModule(
         "chrome://browser/content/tabbrowser/little-window.mjs",

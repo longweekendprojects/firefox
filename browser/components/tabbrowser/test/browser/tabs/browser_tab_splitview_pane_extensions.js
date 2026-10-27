@@ -437,11 +437,8 @@ add_task(async function test_pane_button_context_menu() {
     type: "contextmenu",
   });
   await shown;
-  const pin = menu.querySelector(
-    ".unified-extensions-context-menu-pin-to-toolbar"
-  );
-  ok(!pin.hidden, "The menu is for the extension's button");
-  ok(pin.hasAttribute("checked"), "It shows the button as pinned");
+  const unpin = menu.querySelector("#unified-extensions-context-menu-unpin");
+  ok(!unpin.hidden, "The menu offers to unpin the extension's button");
   const hidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
   menu.hidePopup();
   await hidden;

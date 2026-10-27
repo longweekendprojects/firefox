@@ -306,6 +306,9 @@ document.addEventListener(
           break;
 
         // == toolbar-context-menu ==
+        case "toolbar-context-unpin-extension":
+          gUnifiedExtensions.unpinFromContextMenu(event.target.parentElement);
+          break;
         case "toolbar-context-manage-extension":
           ToolbarContextMenu.openAboutAddonsForContextAction(
             event.target.parentElement
@@ -408,6 +411,9 @@ document.addEventListener(
           break;
 
         // == unified-extensions-context-menu ==
+        case "unified-extensions-context-menu-unpin":
+          gUnifiedExtensions.unpinFromContextMenu(event.target.parentElement);
+          break;
         case "unified-extensions-context-menu-pin-to-toolbar":
           gUnifiedExtensions.onPinToToolbarChange(
             event.target.parentElement,

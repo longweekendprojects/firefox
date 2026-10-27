@@ -2891,10 +2891,18 @@ var gUnifiedExtensions = {
       );
     });
 
+    const unpinButton = menu.querySelector(
+      "#unified-extensions-context-menu-unpin"
+    );
+    unpinButton.hidden = true;
+
     if (forBrowserAction) {
       let area = CustomizableUI.getPlacementOfWidget(widgetId).area;
       let inToolbar = area != CustomizableUI.AREA_ADDONS;
       pinButton.toggleAttribute("checked", inToolbar);
+      // A pinned button offers a plain Unpin item instead of the checkbox.
+      unpinButton.hidden = !inToolbar;
+      pinButton.hidden = inToolbar;
 
       const placement = CustomizableUI.getPlacementOfWidget(widgetId);
       const notInPanel = placement?.area !== CustomizableUI.AREA_ADDONS;
@@ -2939,7 +2947,18 @@ var gUnifiedExtensions = {
       return;
     }
 
-    this.togglePanel();
+    // The menu also opens from toolbar and pane bar buttons, with the panel
+    // closed, so only close the panel here.
+    if (this.isPanelOpen()) {
+      this.togglePanel();
+    }
+  },
+
+  unpinFromContextMenu(menu) {
+    const widgetId = this._getWidgetId(menu);
+    if (widgetId) {
+      this.pinToToolbar(widgetId, false);
+    }
   },
 
   browserActionFor(policy) {
