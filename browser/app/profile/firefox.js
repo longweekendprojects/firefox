@@ -408,6 +408,8 @@ pref("browser.urlbar.accessibility.tabToSearch.announceResults", true);
 
 // Control autoFill behavior
 pref("browser.urlbar.autoFill", true);
+// Autofill any recently visited site, not only sites above the average rank.
+pref("browser.urlbar.autoFill.anyVisitedOrigin", true);
 
 // Whether enabling adaptive history autofill.
 #ifdef NIGHTLY_BUILD

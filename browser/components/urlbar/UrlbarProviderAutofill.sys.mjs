@@ -105,7 +105,16 @@ const SQL_AUTOFILL_WITH = ORIGIN_USE_ALT_FRECENCY
     )
   `;
 
-const SQL_AUTOFILL_FRECENCY_THRESHOLD = `total_fixed_host_frecency >= (
+// As in Arc, any site visited recently can autofill, the most visited first,
+// instead of only sites ranked above the average.
+const AUTOFILL_ANY_VISITED_ORIGIN = Services.prefs.getBoolPref(
+  "browser.urlbar.autoFill.anyVisitedOrigin",
+  false
+);
+
+const SQL_AUTOFILL_FRECENCY_THRESHOLD = AUTOFILL_ANY_VISITED_ORIGIN
+  ? `total_fixed_host_frecency >= 2.0`
+  : `total_fixed_host_frecency >= (
     SELECT value FROM autofill_frecency_threshold
   )`;
 
