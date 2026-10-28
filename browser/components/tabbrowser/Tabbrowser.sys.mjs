@@ -1273,10 +1273,12 @@ export class Tabbrowser {
    * at its pinned address, takes its place.
    *
    * @param {MozTabbrowserTab} aTab
+   * @param {object} [aDetached] Receives `replacement` and `inList` when
+   *   `aTab` was detached, for `reattachPinnedTab`.
    * @returns {MozTabbrowserTab} The tab that can join a split view: `aTab`,
    *   moved out of the pinned tabs or the pinned list.
    */
-  detachPinnedTabForSplit(aTab) {
+  detachPinnedTabForSplit(aTab, aDetached = null) {
     let inList =
       !aTab?.pinned && !aTab?.splitview && aTab?.hasAttribute("pinned-list");
     if (!aTab?.pinned && !inList) {
@@ -1318,6 +1320,10 @@ export class Tabbrowser {
     if (aTab.hasAttribute("space")) {
       replacement.setAttribute("space", aTab.getAttribute("space"));
     }
+    if (aDetached) {
+      aDetached.replacement = replacement;
+      aDetached.inList = inList;
+    }
     if (inList) {
       replacement.setAttribute("pinned-list", "true");
       this.moveTabBefore(replacement, aTab);
@@ -1341,6 +1347,43 @@ export class Tabbrowser {
     this.moveTabAfter(replacement, aTab);
     this.unpinTab(aTab);
     return aTab;
+  }
+
+  /**
+   * Undoes `detachPinnedTabForSplit`: `aTab` takes back its place among the
+   * pinned tabs or the pinned list, keeping its page, and the unloaded copy
+   * closes.
+   *
+   * @param {MozTabbrowserTab} aTab
+   * @param {object} aDetached What `detachPinnedTabForSplit` filled in.
+   * @param {MozTabbrowserTab} aDetached.replacement The unloaded copy.
+   * @param {boolean} aDetached.inList Whether `aTab` was in the pinned list.
+   * @returns {boolean} Whether `aTab` was put back.
+   */
+  reattachPinnedTab(aTab, { replacement, inList } = {}) {
+    if (
+      !replacement?.isConnected ||
+      replacement.closing ||
+      !aTab?.isConnected ||
+      aTab.closing ||
+      aTab.splitview ||
+      aTab.pinned
+    ) {
+      return false;
+    }
+    let url = replacement.getAttribute("pinned-url");
+    if (!inList) {
+      this.pinTab(aTab);
+    }
+    this.moveTabBefore(aTab, replacement);
+    if (inList) {
+      aTab.setAttribute("pinned-list", "true");
+    }
+    if (url) {
+      aTab.setAttribute("pinned-url", url);
+    }
+    this.removeTab(replacement, { skipSessionStore: true, animate: false });
+    return true;
   }
 
   /**

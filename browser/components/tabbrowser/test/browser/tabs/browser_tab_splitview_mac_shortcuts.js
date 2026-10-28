@@ -216,16 +216,32 @@ add_task(async function test_split_opens_command_bar_in_new_pane() {
 
   EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
   await TestUtils.waitForCondition(() => tab.splitview, "Cmd+Shift+L splits");
-  const splitview = tab.splitview;
-  const first = gBrowser.selectedTab;
   await TestUtils.waitForCondition(
-    () => commandBarOver(first),
+    () => commandBarOver(gBrowser.selectedTab),
     "the command bar opens over the first new pane"
   );
   EventUtils.sendString("typed");
   is(gURLBar.value, "typed", "typing goes into the command bar");
   EventUtils.synthesizeKey("KEY_Escape");
   await TestUtils.waitForCondition(() => !gURLBar.matches(":popover-open"));
+  await TestUtils.waitForCondition(
+    () => !tab.splitview,
+    "Escape takes back a split whose new pane is still blank"
+  );
+
+  tab.linkedBrowser.focus();
+  EventUtils.synthesizeKey("L", { accelKey: true, shiftKey: true });
+  await TestUtils.waitForCondition(() => tab.splitview, "Cmd+Shift+L splits");
+  const splitview = tab.splitview;
+  const first = gBrowser.selectedTab;
+  await TestUtils.waitForCondition(
+    () => commandBarOver(first),
+    "the command bar opens over the new pane"
+  );
+  const loaded = BrowserTestUtils.browserLoaded(first.linkedBrowser);
+  EventUtils.sendString(PAGE);
+  EventUtils.synthesizeKey("KEY_Enter");
+  await loaded;
 
   await BrowserTestUtils.switchTab(gBrowser, tab);
   tab.linkedBrowser.focus();
@@ -241,6 +257,10 @@ add_task(async function test_split_opens_command_bar_in_new_pane() {
   );
   EventUtils.synthesizeKey("KEY_Escape");
   await TestUtils.waitForCondition(() => !gURLBar.matches(":popover-open"));
+  await TestUtils.waitForCondition(
+    () => splitview.tabs.length == 2,
+    "Escape takes back only the blank pane"
+  );
 
   for (const t of [...splitview.tabs]) {
     BrowserTestUtils.removeTab(t);
@@ -262,10 +282,11 @@ add_task(async function test_add_split_view_opens_command_bar() {
   );
   EventUtils.synthesizeKey("KEY_Escape");
   await TestUtils.waitForCondition(() => !gURLBar.matches(":popover-open"));
-
-  for (const t of [...tab.splitview.tabs]) {
-    BrowserTestUtils.removeTab(t);
-  }
+  await TestUtils.waitForCondition(
+    () => !tab.splitview && !pane.isConnected,
+    "Escape takes back the split"
+  );
+  BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_shortcuts_are_listed_in_about_keyboard() {

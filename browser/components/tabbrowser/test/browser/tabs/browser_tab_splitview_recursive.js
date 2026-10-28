@@ -683,6 +683,134 @@ add_task(async function test_new_pane_is_blank_with_focused_address() {
   }
 });
 
+async function splitAndDismiss(tab, direction = "right") {
+  BrowserCommands.splitPane(direction);
+  const pane = gBrowser.selectedTab;
+  await TestUtils.waitForCondition(
+    () => commandBarOver(pane),
+    "the command bar opens over the new pane"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForCondition(
+    () => !pane.isConnected,
+    "Escape closes the blank pane"
+  );
+  Assert.ok(!commandBarOpen(), "the command bar closed");
+  Assert.equal(gBrowser.selectedTab, tab, "the tab it split from is selected");
+}
+
+add_task(async function test_escape_takes_back_a_new_split() {
+  const tab = await addLoadedTab();
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  await SimpleTest.promiseFocus(window);
+  const tabCount = gBrowser.tabs.length;
+  await splitAndDismiss(tab);
+  Assert.ok(!tab.splitview, "the tab is no longer split");
+  Assert.equal(gBrowser.tabs.length, tabCount, "no tab is left behind");
+
+  BrowserCommands.splitPane("right");
+  const pane = gBrowser.selectedTab;
+  await TestUtils.waitForCondition(
+    () => commandBarOver(pane),
+    "the command bar opens over the new pane"
+  );
+  gBrowser.selectedTab = tab;
+  await TestUtils.waitForCondition(
+    () => !pane.isConnected,
+    "selecting the other pane closes the blank pane"
+  );
+  Assert.ok(!tab.splitview, "the tab is no longer split");
+  Assert.equal(gBrowser.tabs.length, tabCount, "no tab is left behind");
+
+  const other = await addLoadedTab();
+  gBrowser.addTabSplitView([tab, other], { insertBefore: tab });
+  gBrowser.selectedTab = tab;
+  await SimpleTest.promiseFocus(window);
+  await splitAndDismiss(tab, "down");
+  Assert.deepEqual(
+    tab.splitview?.tabs,
+    [tab, other],
+    "an existing split keeps its panes"
+  );
+  for (const t of [...tab.splitview.tabs]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
+add_task(async function test_escape_puts_a_pinned_tab_back() {
+  const first = await addLoadedTab();
+  gBrowser.pinTab(first);
+  const tab = await addLoadedTab();
+  gBrowser.pinTab(tab);
+  const last = await addLoadedTab();
+  gBrowser.pinTab(last);
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  await SimpleTest.promiseFocus(window);
+  const browser = tab.linkedBrowser;
+  const index = tab._tPos;
+  const tabCount = gBrowser.tabs.length;
+  const pinnedCount = gBrowser.pinnedTabCount;
+  await splitAndDismiss(tab);
+  Assert.ok(tab.pinned, "the tab is pinned again");
+  Assert.equal(tab._tPos, index, "in its old place");
+  Assert.equal(tab.linkedBrowser, browser, "with its page still loaded");
+  Assert.equal(tab.getAttribute("pinned-url"), PAGE, "and its pinned address");
+  Assert.equal(gBrowser.pinnedTabCount, pinnedCount, "no pinned tab is added");
+  Assert.equal(gBrowser.tabs.length, tabCount, "no tab is left behind");
+  for (const t of [first, tab, last]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
+add_task(async function test_escape_puts_a_pinned_list_tab_back() {
+  const tab = await addLoadedTab();
+  tab.setAttribute("pinned-list", "true");
+  tab.setAttribute("pinned-url", PAGE);
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  await SimpleTest.promiseFocus(window);
+  const browser = tab.linkedBrowser;
+  const index = tab._tPos;
+  const tabCount = gBrowser.tabs.length;
+  await splitAndDismiss(tab);
+  Assert.ok(tab.hasAttribute("pinned-list"), "the tab is back in the list");
+  Assert.equal(tab._tPos, index, "in its old place");
+  Assert.equal(tab.linkedBrowser, browser, "with its page still loaded");
+  Assert.equal(tab.getAttribute("pinned-url"), PAGE, "and its pinned address");
+  Assert.equal(gBrowser.tabs.length, tabCount, "no tab is left behind");
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_loading_a_page_keeps_the_new_split() {
+  const tab = await addLoadedTab();
+  gBrowser.pinTab(tab);
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+  await SimpleTest.promiseFocus(window);
+  BrowserCommands.splitPane("right");
+  const pane = gBrowser.selectedTab;
+  await TestUtils.waitForCondition(
+    () => commandBarOver(pane),
+    "the command bar opens over the new pane"
+  );
+  const loaded = BrowserTestUtils.browserLoaded(
+    pane.linkedBrowser,
+    false,
+    "https://example.org/"
+  );
+  EventUtils.sendString("https://example.org/");
+  EventUtils.synthesizeKey("KEY_Enter");
+  await loaded;
+  Assert.ok(!commandBarOpen(), "the command bar closed");
+  Assert.ok(pane.isConnected && pane.splitview, "the new pane stays");
+  Assert.ok(tab.splitview && !tab.pinned, "the split keeps its pages");
+  EventUtils.synthesizeKey("KEY_Escape");
+  await TestUtils.waitForTick();
+  Assert.ok(pane.splitview, "a later Escape does not take the split back");
+  const pinned = gBrowser.tabs.find(t => t.pinned);
+  for (const t of [...tab.splitview.tabs, pinned]) {
+    BrowserTestUtils.removeTab(t);
+  }
+});
+
 add_task(async function test_split_pane_from_plain_tab_builds_once() {
   for (const direction of ["right", "left", "up", "down"]) {
     const tab = await addLoadedTab();

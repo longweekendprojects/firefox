@@ -105,14 +105,26 @@ var BrowserCommands = {
    * @param {string} [trigger] The split view telemetry trigger.
    */
   splitPane(direction, trigger = "keyboard_shortcut") {
-    const tab = gBrowser.detachPinnedTabForSplit(gBrowser.selectedTab);
+    const selected = gBrowser.selectedTab;
+    if (
+      !selected ||
+      selected.hidden ||
+      (selected.splitview &&
+        !selected.splitview.canSplitPane(selected, direction))
+    ) {
+      return;
+    }
+    const commandBar = ChromeUtils.importESModule(
+      "chrome://browser/content/tabbrowser/command-bar.mjs",
+      { global: "current" }
+    );
+    commandBar.settleSplitPane(false);
+    const detached = {};
+    const tab = gBrowser.detachPinnedTabForSplit(selected, detached);
     if (!tab || tab.hidden) {
       return;
     }
     let splitview = tab.splitview;
-    if (splitview && !splitview.canSplitPane(tab, direction)) {
-      return;
-    }
     // A new pane starts blank with its address field focused. The new tab
     // page needs more width than a pane often has, and a blank page costs
     // far less memory.
@@ -129,7 +141,30 @@ var BrowserCommands = {
     gBrowser.selectedTab = newTab;
     gBrowser.addEventListener(
       "TabSwitchDone",
-      () => newTab.splitview?.focusLocation(),
+      () => {
+        if (!newTab.splitview?.focusLocation()) {
+          return;
+        }
+        // Until something loads in the new pane, dismissing the command bar
+        // over it takes the split back, as in Arc.
+        commandBar.trackSplitPane(newTab, async () => {
+          if (gBrowser.selectedTab == newTab && !tab.closing) {
+            gBrowser.selectedTab = tab;
+          }
+          if (newTab.isConnected && !newTab.closing) {
+            gBrowser.removeTab(newTab, {
+              skipSessionStore: true,
+              animate: false,
+            });
+          }
+          // The split lets go of a tab it lost once its mutation observer runs.
+          await Promise.resolve();
+          gBrowser.reattachPinnedTab(tab, detached);
+          if (gBrowser.selectedTab == tab) {
+            tab.linkedBrowser.focus();
+          }
+        });
+      },
       { once: true }
     );
   },

@@ -26,6 +26,60 @@ const PROPERTIES = ["left", "top", "width"];
 let sheetLoaded = false;
 // The tab a new-tab command bar was opened over, while it is open.
 let newTabOwner = null;
+// The blank pane a split just opened, with how to take the split back, until
+// something loads in the pane.
+let pendingPane = null;
+// Set while Escape dismisses the command bar.
+let escaping = false;
+
+const navigationObserver = {
+  observe() {
+    if (gURLBar.focused && gBrowser.selectedTab == pendingPane?.pane) {
+      settleSplitPane(false);
+    }
+  },
+};
+
+/**
+ * Takes back the split that opened `pane` if the command bar over it is
+ * dismissed before anything loads in it.
+ *
+ * @param {MozTabbrowserTab} pane
+ * @param {Function} undo Closes `pane` and restores the tab it split from.
+ */
+export function trackSplitPane(pane, undo) {
+  settleSplitPane(false);
+  pendingPane = { pane, undo };
+  Services.obs.addObserver(navigationObserver, "urlbar-user-start-navigation");
+}
+
+/**
+ * Stops tracking the pending split pane.
+ *
+ * @param {boolean} cancel Whether to take the split back, if the pane is
+ *   still blank.
+ */
+export function settleSplitPane(cancel) {
+  const pending = pendingPane;
+  if (!pending) {
+    return;
+  }
+  pendingPane = null;
+  Services.obs.removeObserver(
+    navigationObserver,
+    "urlbar-user-start-navigation"
+  );
+  const { pane, undo } = pending;
+  const blank =
+    !pane.isConnected ||
+    pane.closing ||
+    (pane.linkedBrowser.currentURI.spec == "about:blank" &&
+      !pane.linkedBrowser.canGoBack &&
+      !pane.hasAttribute("busy"));
+  if (cancel && blank) {
+    undo();
+  }
+}
 
 export function isOpen() {
   return gURLBar.hasAttribute("commandbar");
@@ -42,6 +96,9 @@ export function show() {
   }
   if (gBrowser.selectedTab != newTabOwner) {
     leaveNewTab();
+  }
+  if (pendingPane && gBrowser.selectedTab != pendingPane.pane) {
+    settleSplitPane(false);
   }
   position();
   if (isOpen()) {
@@ -134,6 +191,12 @@ export function hide() {
   if (!isOpen()) {
     return;
   }
+  if (pendingPane && (escaping || pendingPane.pane.closing)) {
+    settleSplitPane(true);
+    if (!isOpen()) {
+      return;
+    }
+  }
   gURLBar.inputField.removeEventListener("blur", handler);
   gURLBar.inputField.removeEventListener("keydown", handler);
   window.removeEventListener("resize", handler);
@@ -150,6 +213,14 @@ const handler = {
   handleEvent(event) {
     switch (event.type) {
       case "blur":
+        // Clicking away dismisses a new pane's command bar, unless the whole
+        // window lost focus.
+        if (pendingPane && Services.focus.activeWindow == window) {
+          settleSplitPane(true);
+          if (!isOpen()) {
+            break;
+          }
+        }
         if (!gURLBar.view.isResultMenuOpen()) {
           hide();
         }
@@ -157,7 +228,13 @@ const handler = {
       case "keydown":
         if (event.key == "Escape") {
           gURLBar.handleRevert();
-          gBrowser.selectedBrowser.focus();
+          escaping = true;
+          try {
+            gBrowser.selectedBrowser.focus();
+            hide();
+          } finally {
+            escaping = false;
+          }
         }
         break;
       case "resize":
