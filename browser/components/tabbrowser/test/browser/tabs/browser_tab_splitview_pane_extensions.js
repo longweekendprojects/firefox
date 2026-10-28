@@ -104,12 +104,25 @@ add_task(async function test_pane_button_spacing_and_fading() {
     const header = paneHeader(tab);
     const back = header.querySelector(".split-pane-back");
     const forward = header.querySelector(".split-pane-forward");
-    Assert.equal(rect(back).width, 26, "Pane buttons are 26px wide");
+    const rootStyle = getComputedStyle(document.documentElement);
+    const inner = parseFloat(
+      rootStyle.getPropertyValue("--toolbarbutton-padding-inner")
+    );
+    const outer = parseFloat(
+      rootStyle.getPropertyValue("--toolbarbutton-padding-outer")
+    );
+    Assert.equal(
+      rect(back).width,
+      16 + 2 * inner,
+      "Pane Back keeps the stock toolbar button size"
+    );
     Assert.equal(
       rect(forward).left - rect(back).left,
-      28,
-      "Pane buttons are 28px apart"
+      16 + 2 * inner + 2 * outer,
+      "Pane Back and Forward keep the stock toolbar spacing"
     );
+    const menu = header.querySelector(".split-pane-app-menu");
+    Assert.equal(rect(menu).width, 26, "Other pane buttons are 26px wide");
     Assert.equal(
       getComputedStyle(back).borderRadius,
       "6px",

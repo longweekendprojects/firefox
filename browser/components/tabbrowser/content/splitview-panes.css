@@ -79,6 +79,12 @@
       background-color: var(--button-background-color-ghost-active);
     }
 
+    /* Back, Forward and Reload keep the stock toolbar size and spacing. */
+    &:is(.split-pane-back, .split-pane-forward, .split-pane-reload) {
+      margin-inline: var(--toolbarbutton-padding-outer);
+      padding: var(--toolbarbutton-padding-inner);
+    }
+
     &:not([disabled]):hover {
       background-color: var(--button-background-color-ghost-hover);
     }

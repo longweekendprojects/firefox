@@ -111,16 +111,29 @@ add_task(async function test_drag_reorders_toolbar_buttons() {
 add_task(async function test_toolbar_button_spacing() {
   const back = document.getElementById("back-button");
   const forward = document.getElementById("forward-button");
+  const extensionsButton = document.getElementById("unified-extensions-button");
   const rect = el => el.getBoundingClientRect();
+  const rootStyle = getComputedStyle(document.documentElement);
+  const inner = parseFloat(
+    rootStyle.getPropertyValue("--toolbarbutton-padding-inner")
+  );
+  const outer = parseFloat(
+    rootStyle.getPropertyValue("--toolbarbutton-padding-outer")
+  );
   Assert.equal(
     rect(back.querySelector(".toolbarbutton-icon")).width,
-    26,
-    "Toolbar buttons are 26px wide"
+    16 + 2 * inner,
+    "Back keeps the stock button size"
   );
   Assert.equal(
     rect(forward).left - rect(back).left,
-    28,
-    "Toolbar buttons are 28px apart, like pane bar buttons"
+    16 + 2 * inner + 2 * outer,
+    "Back and Forward keep the stock spacing"
+  );
+  Assert.equal(
+    rect(extensionsButton.querySelector(".toolbarbutton-icon")).width,
+    26,
+    "Buttons after the address bar are 26px wide"
   );
 });
 
