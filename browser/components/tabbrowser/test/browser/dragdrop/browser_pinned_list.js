@@ -56,7 +56,11 @@ function dropDone() {
 }
 
 function cleanUp(tabs) {
-  for (let tab of tabs) {
+  // Splitting a list tab leaves a copy of it in the list.
+  let copies = gBrowser.tabs.filter(
+    t => t.hasAttribute("pinned-list") && !testTabs.has(t)
+  );
+  for (let tab of [...tabs, ...copies]) {
     if (tab.isConnected) {
       BrowserTestUtils.removeTab(tab);
     }
@@ -148,20 +152,44 @@ add_task(async function test_close_key_resets_a_list_tab() {
   }
 });
 
-add_task(async function test_split_view_joins_the_list_as_one() {
+add_task(async function test_splitting_a_list_tab_leaves_the_list() {
   let tabs = await openTabs(3);
   try {
     gPinnedList.setInList(tabs[1], true);
     gPinnedList.normalize();
-    let split = gBrowser.addTabSplitView([tabs[1], tabs[2]]);
+    let split = gBrowser.addTabSplitView([tabs[1], tabs[2]], {
+      insertBefore: tabs[1],
+    });
     gPinnedList.normalize();
     Assert.ok(
-      tabs[2].hasAttribute("pinned-list") && split.hasAttribute("pinned-list"),
-      "A split with a list tab is wholly in the list"
+      !tabs[1].hasAttribute("pinned-list") &&
+        !split.hasAttribute("pinned-list"),
+      "The split is outside the list, as for a pinned tile"
     );
-    Assert.equal(unpinnedOrder()[0], tabs[1], "and sits before other tabs");
+    let copy = gBrowser.tabs.find(
+      t => t.hasAttribute("pinned-list") && !testTabs.has(t)
+    );
+    Assert.ok(copy, "A copy of the list tab stays in the list");
+    Assert.equal(
+      copy.getAttribute("pinned-url"),
+      "https://example.com/?tab1",
+      "The copy keeps the pinned address"
+    );
+    Assert.ok(!copy.linkedPanel, "The copy is unloaded");
+    Assert.equal(
+      gBrowser.visibleTabs.filter(t => !t.pinned)[0],
+      copy,
+      "The list sits before the split"
+    );
+    Assert.less(
+      gBrowser.visibleTabs.indexOf(tabs[1]),
+      gBrowser.visibleTabs.indexOf(tabs[0]),
+      "The split sits at the top of the regular tabs"
+    );
   } finally {
     cleanUp(tabs);
+    // Splitting marks split view as used, which changes later drag previews.
+    Services.prefs.clearUserPref("browser.tabs.splitview.hasUsed");
   }
 });
 

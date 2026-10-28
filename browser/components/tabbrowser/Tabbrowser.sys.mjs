@@ -1267,17 +1267,19 @@ export class Tabbrowser {
   }
 
   /**
-   * A split view holds only unpinned tabs. To split a pinned tab, as in Arc,
-   * its page moves into the regular tabs without reloading, and an unloaded
-   * copy of the pinned tab, pointed back at its pinned address, takes its
-   * place among the pinned tabs.
+   * A split view holds only unpinned tabs outside the pinned list. To split a
+   * pinned tab or a pinned list tab, as in Arc, its page moves into the
+   * regular tabs without reloading, and an unloaded copy of it, pointed back
+   * at its pinned address, takes its place.
    *
    * @param {MozTabbrowserTab} aTab
    * @returns {MozTabbrowserTab} The tab that can join a split view: `aTab`,
-   *   unpinned if it was pinned.
+   *   moved out of the pinned tabs or the pinned list.
    */
   detachPinnedTabForSplit(aTab) {
-    if (!aTab?.pinned) {
+    let inList =
+      !aTab?.pinned && !aTab?.splitview && aTab?.hasAttribute("pinned-list");
+    if (!aTab?.pinned && !inList) {
       return aTab;
     }
     let url =
@@ -1299,14 +1301,14 @@ export class Tabbrowser {
       ];
       state.index = 1;
     } catch {}
-    state.pinned = true;
+    state.pinned = !inList;
     delete state.scroll;
     delete state.formdata;
     delete state.userTypedValue;
     let replacement = this.addTrustedTab("about:blank", {
       createLazyBrowser: true,
       inBackground: true,
-      pinned: true,
+      pinned: !inList,
       skipAnimation: true,
       tabIndex: aTab._tPos + 1,
       userContextId: aTab.userContextId,
@@ -1315,6 +1317,26 @@ export class Tabbrowser {
     replacement.setAttribute("pinned-url", url);
     if (aTab.hasAttribute("space")) {
       replacement.setAttribute("space", aTab.getAttribute("space"));
+    }
+    if (inList) {
+      replacement.setAttribute("pinned-list", "true");
+      this.moveTabBefore(replacement, aTab);
+      aTab.removeAttribute("pinned-list");
+      aTab.removeAttribute("pinned-url");
+      // The tab moves to the top of the regular tabs, where a pinned tab
+      // goes when it is unpinned.
+      let space = aTab.getAttribute("space");
+      let first = this.visibleTabs.find(
+        t =>
+          t != aTab &&
+          !t.pinned &&
+          !t.hasAttribute("pinned-list") &&
+          t.getAttribute("space") == space
+      );
+      if (first) {
+        this.moveTabBefore(aTab, first.group ?? first.splitview ?? first);
+      }
+      return aTab;
     }
     this.moveTabAfter(replacement, aTab);
     this.unpinTab(aTab);
@@ -4215,7 +4237,7 @@ export class Tabbrowser {
       throw new Error("Cannot create split view with zero tabs");
     }
     tabs = tabs.map(tab => this.detachPinnedTabForSplit(tab));
-    if (insertBefore?.pinned) {
+    if (insertBefore?.pinned || insertBefore?.hasAttribute?.("pinned-list")) {
       insertBefore = this.detachPinnedTabForSplit(insertBefore);
     }
     if (!layout && direction && tabs.length == 2) {
