@@ -129,6 +129,11 @@ var BrowserCommands = {
     // page needs more width than a pane often has, and a blank page costs
     // far less memory.
     const newTab = gBrowser.addTrustedTab("about:blank");
+    // Until something loads in the new pane, the split stays out of the tab
+    // list, and the New Tab row shows as selected.
+    const tabContainer = gBrowser.tabContainer;
+    newTab.setAttribute("split-pending", "");
+    tabContainer.setAttribute("split-pending", "");
     if (splitview) {
       splitview.splitPane(tab, direction, newTab);
     } else {
@@ -138,32 +143,50 @@ var BrowserCommands = {
         direction,
       });
     }
+    const wrapper = splitview ? null : newTab.splitview;
+    wrapper?.setAttribute(
+      detached.replacement ? "split-pending" : "split-pending-solo",
+      ""
+    );
+    const reveal = () => {
+      newTab.removeAttribute("split-pending");
+      wrapper?.removeAttribute("split-pending");
+      wrapper?.removeAttribute("split-pending-solo");
+      if (!gBrowser.tabs.some(t => t.hasAttribute("split-pending"))) {
+        tabContainer.removeAttribute("split-pending");
+      }
+    };
     gBrowser.selectedTab = newTab;
     gBrowser.addEventListener(
       "TabSwitchDone",
       () => {
         if (!newTab.splitview?.focusLocation()) {
+          reveal();
           return;
         }
         // Until something loads in the new pane, dismissing the command bar
         // over it takes the split back, as in Arc.
-        commandBar.trackSplitPane(newTab, async () => {
-          if (gBrowser.selectedTab == newTab && !tab.closing) {
-            gBrowser.selectedTab = tab;
-          }
-          if (newTab.isConnected && !newTab.closing) {
-            gBrowser.removeTab(newTab, {
-              skipSessionStore: true,
-              animate: false,
-            });
-          }
-          // The split lets go of a tab it lost once its mutation observer runs.
-          await Promise.resolve();
-          gBrowser.reattachPinnedTab(tab, detached);
-          if (gBrowser.selectedTab == tab) {
-            tab.linkedBrowser.focus();
-          }
-        });
+        commandBar.trackSplitPane(
+          newTab,
+          async () => {
+            if (gBrowser.selectedTab == newTab && !tab.closing) {
+              gBrowser.selectedTab = tab;
+            }
+            if (newTab.isConnected && !newTab.closing) {
+              gBrowser.removeTab(newTab, {
+                skipSessionStore: true,
+                animate: false,
+              });
+            }
+            // The split lets go of a tab it lost once its mutation observer runs.
+            await Promise.resolve();
+            gBrowser.reattachPinnedTab(tab, detached);
+            if (gBrowser.selectedTab == tab) {
+              tab.linkedBrowser.focus();
+            }
+          },
+          reveal
+        );
       },
       { once: true }
     );

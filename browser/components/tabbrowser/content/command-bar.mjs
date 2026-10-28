@@ -46,10 +46,11 @@ const navigationObserver = {
  *
  * @param {MozTabbrowserTab} pane
  * @param {Function} undo Closes `pane` and restores the tab it split from.
+ * @param {Function} reveal Shows the split in the tab list once it settles.
  */
-export function trackSplitPane(pane, undo) {
+export function trackSplitPane(pane, undo, reveal) {
   settleSplitPane(false);
-  pendingPane = { pane, undo };
+  pendingPane = { pane, undo, reveal };
   Services.obs.addObserver(navigationObserver, "urlbar-user-start-navigation");
 }
 
@@ -69,7 +70,7 @@ export function settleSplitPane(cancel) {
     navigationObserver,
     "urlbar-user-start-navigation"
   );
-  const { pane, undo } = pending;
+  const { pane, undo, reveal } = pending;
   const blank =
     !pane.isConnected ||
     pane.closing ||
@@ -79,6 +80,7 @@ export function settleSplitPane(cancel) {
   if (cancel && blank) {
     undo();
   }
+  reveal();
 }
 
 export function isOpen() {

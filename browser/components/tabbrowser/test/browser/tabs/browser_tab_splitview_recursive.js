@@ -683,13 +683,32 @@ add_task(async function test_new_pane_is_blank_with_focused_address() {
   }
 });
 
-async function splitAndDismiss(tab, direction = "right") {
+async function splitAndDismiss(tab, direction = "right", fromPinned = false) {
   BrowserCommands.splitPane(direction);
   const pane = gBrowser.selectedTab;
   await TestUtils.waitForCondition(
     () => commandBarOver(pane),
     "the command bar opens over the new pane"
   );
+  Assert.ok(
+    BrowserTestUtils.isHidden(pane),
+    "the new pane is not in the tab list"
+  );
+  Assert.ok(
+    gBrowser.tabContainer.hasAttribute("split-pending"),
+    "the New Tab row shows as selected"
+  );
+  if (fromPinned) {
+    Assert.ok(
+      BrowserTestUtils.isHidden(pane.splitview),
+      "a split made from a pinned tab is not in the tab list"
+    );
+  } else {
+    Assert.ok(
+      BrowserTestUtils.isVisible(tab),
+      "the tab split from still shows"
+    );
+  }
   EventUtils.synthesizeKey("KEY_Escape");
   await TestUtils.waitForCondition(
     () => !pane.isConnected,
@@ -697,6 +716,11 @@ async function splitAndDismiss(tab, direction = "right") {
   );
   Assert.ok(!commandBarOpen(), "the command bar closed");
   Assert.equal(gBrowser.selectedTab, tab, "the tab it split from is selected");
+  Assert.ok(
+    !gBrowser.tabContainer.hasAttribute("split-pending"),
+    "the tab list shows as before"
+  );
+  Assert.ok(BrowserTestUtils.isVisible(tab), "the tab split from shows");
 }
 
 add_task(async function test_escape_takes_back_a_new_split() {
@@ -750,7 +774,7 @@ add_task(async function test_escape_puts_a_pinned_tab_back() {
   const index = tab._tPos;
   const tabCount = gBrowser.tabs.length;
   const pinnedCount = gBrowser.pinnedTabCount;
-  await splitAndDismiss(tab);
+  await splitAndDismiss(tab, "right", true);
   Assert.ok(tab.pinned, "the tab is pinned again");
   Assert.equal(tab._tPos, index, "in its old place");
   Assert.equal(tab.linkedBrowser, browser, "with its page still loaded");
@@ -771,7 +795,7 @@ add_task(async function test_escape_puts_a_pinned_list_tab_back() {
   const browser = tab.linkedBrowser;
   const index = tab._tPos;
   const tabCount = gBrowser.tabs.length;
-  await splitAndDismiss(tab);
+  await splitAndDismiss(tab, "right", true);
   Assert.ok(tab.hasAttribute("pinned-list"), "the tab is back in the list");
   Assert.equal(tab._tPos, index, "in its old place");
   Assert.equal(tab.linkedBrowser, browser, "with its page still loaded");
@@ -802,6 +826,14 @@ add_task(async function test_loading_a_page_keeps_the_new_split() {
   Assert.ok(!commandBarOpen(), "the command bar closed");
   Assert.ok(pane.isConnected && pane.splitview, "the new pane stays");
   Assert.ok(tab.splitview && !tab.pinned, "the split keeps its pages");
+  Assert.ok(
+    BrowserTestUtils.isVisible(pane) && BrowserTestUtils.isVisible(tab),
+    "the confirmed split shows in the tab list"
+  );
+  Assert.ok(
+    !gBrowser.tabContainer.hasAttribute("split-pending"),
+    "the New Tab row no longer shows as selected"
+  );
   EventUtils.synthesizeKey("KEY_Escape");
   await TestUtils.waitForTick();
   Assert.ok(pane.splitview, "a later Escape does not take the split back");

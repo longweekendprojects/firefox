@@ -3870,10 +3870,26 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 /* While the new tab command bar is open, the New Tab row shows as selected
    instead of the tab underneath, which looks selected again if the bar
    closes without opening a tab. */
-#tabbrowser-tabs[orient="vertical"][newtab-pending] .tabbrowser-tab > .tab-stack > .tab-background[selected]:not([multiselected]) {
+#tabbrowser-tabs[orient="vertical"]:is([newtab-pending], [split-pending]) .tabbrowser-tab > .tab-stack > .tab-background[selected]:not([multiselected]) {
   background: var(--tab-background-color) !important;
   outline-color: var(--tab-border-color);
   box-shadow: none;
+}
+
+/* A new split stays out of the tab list until something loads in its new
+   pane. A split made from a single tab shows that tab as it was. */
+#tabbrowser-tabs[split-pending] {
+  .tabbrowser-tab[split-pending],
+  tab-split-view-wrapper[split-pending] {
+    display: none !important;
+  }
+
+  #tabbrowser-arrowscrollbox tab-split-view-wrapper[split-pending-solo] {
+    padding: 0 !important;
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/no-background-without-text-color */
+    background: none !important;
+    --tab-border-radius: var(--split-row-radius, 9px);
+  }
 }
 
 /* The name editor of a tab being renamed, over the tab's title. */

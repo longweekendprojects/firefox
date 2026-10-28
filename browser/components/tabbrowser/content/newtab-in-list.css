@@ -64,7 +64,7 @@
 
 /* While the new tab command bar is open, the New Tab row shows as the
    selected tab, since the bar opens a new tab. */
-#tabbrowser-tabs[newtab-pending] #tabbrowser-arrowscrollbox[newtab-row] > #tabs-list-newtab-button {
+#tabbrowser-tabs:is([newtab-pending], [split-pending]) #tabbrowser-arrowscrollbox[newtab-row] > #tabs-list-newtab-button {
   background-color: var(--tab-background-color-selected);
   color: var(--tab-text-color-selected);
   outline: var(--tab-border);
