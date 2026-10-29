@@ -652,9 +652,13 @@ function render() {
   updateTint();
 }
 
-/** Tints the sidebar with the color of the shown space. */
+/**
+ * Tints the sidebar, and the selected split pane's outline, with the color of
+ * the shown space.
+ */
 function updateTint() {
   let container = document.getElementById("sidebar-container");
+  let root = document.documentElement;
   let button = list.querySelector("[checked]");
   let color =
     spaces.length > 1 &&
@@ -663,9 +667,11 @@ function updateTint() {
   if (color) {
     container?.style.setProperty("--space-tint-color", color);
     container?.setAttribute("space-tint", "");
+    root.style.setProperty("--space-accent-color", color);
   } else {
     container?.style.removeProperty("--space-tint-color");
     container?.removeAttribute("space-tint");
+    root.style.removeProperty("--space-accent-color");
   }
 }
 

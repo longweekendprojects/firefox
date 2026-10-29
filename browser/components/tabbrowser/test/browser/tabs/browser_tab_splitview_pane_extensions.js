@@ -480,3 +480,36 @@ add_task(async function test_pinning_puts_extension_before_extensions_button() {
   );
   await extension.unload();
 });
+
+add_task(async function test_selected_pane_outline_is_soft() {
+  const tabs = await makeSplit();
+  const container = document
+    .getElementById(tabs[0].linkedPanel)
+    .querySelector(".browserContainer");
+  const outline = () => getComputedStyle(container).outlineColor;
+  const alpha = color => {
+    const match =
+      color.match(/\/\s*([\d.]+)\s*\)$/) ||
+      color.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/);
+    return match ? Number(match[1]) : 1;
+  };
+  info("Outline color: " + outline());
+  Assert.equal(
+    getComputedStyle(container).outlineStyle,
+    "solid",
+    "The selected pane has an outline"
+  );
+  Assert.less(alpha(outline()), 0.7, "The selected pane's outline is softened");
+  const before = outline();
+  document.documentElement.style.setProperty(
+    "--space-accent-color",
+    "rgb(41, 50, 255)"
+  );
+  Assert.notEqual(
+    outline(),
+    before,
+    "The outline takes the shown space's color"
+  );
+  document.documentElement.style.removeProperty("--space-accent-color");
+  gBrowser.removeTabs(tabs);
+});
