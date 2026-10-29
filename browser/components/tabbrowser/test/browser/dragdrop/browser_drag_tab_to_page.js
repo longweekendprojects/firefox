@@ -18,8 +18,13 @@ function panelRect(tab) {
  * @returns {{shown: MozTabbrowserTab, indicator: boolean}}
  */
 async function dragTabToPage(tab, x, y, { drop = true } = {}) {
+  let selected = gBrowser.selectedTab;
   EventUtils.startDragSession(window, "move");
   let [, dataTransfer] = EventUtils.synthesizeDragOver(tab, tab, null, "move");
+  await TestUtils.waitForCondition(
+    () => gBrowser.selectedTab == selected,
+    "Starting the drag does not select the dragged tab"
+  );
   let session = EventUtils._getDOMWindowUtils(window).dragSession;
   let overlay = document.getElementById("tab-content-drop");
   Assert.ok(overlay, "The page drop area is there during a tab drag");
@@ -124,8 +129,8 @@ add_task(async function test_drag_back_without_drop_keeps_dragged_tab() {
     Assert.ok(!tab1.splitview && !tab2.splitview, "Nothing was split");
     Assert.equal(
       gBrowser.selectedTab,
-      tab2,
-      "A cancelled drag leaves the dragged tab selected, as before"
+      tab1,
+      "A cancelled drag keeps the tab that was selected before it"
     );
   } finally {
     BrowserTestUtils.removeTab(tab1);
@@ -162,5 +167,29 @@ add_task(async function test_drag_selected_tab_has_no_page_target() {
     session.endDragSession(true, 0);
   } finally {
     BrowserTestUtils.removeTab(tab1);
+  }
+});
+
+add_task(async function test_drag_pane_from_split_row_to_page() {
+  let tab1 = await addTab("data:text/html,one");
+  let tab2 = await addTab("data:text/html,two");
+  let tab3 = await addTab("data:text/html,three");
+  try {
+    gBrowser.addTabSplitView([tab2, tab3], { insertBefore: tab2 });
+    gBrowser.selectedTab = tab1;
+    let { shown, indicator } = await dragTabToPage(tab3, 0.1, 0.5);
+    Assert.equal(shown, tab1, "The page keeps showing the selected tab");
+    Assert.ok(indicator, "The drop side is highlighted");
+    Assert.ok(tab1.splitview, "The page split");
+    Assert.equal(tab3.splitview, tab1.splitview, "The pane joined it");
+    Assert.ok(!tab2.splitview, "Its old split, left with one tab, ended");
+    await TestUtils.waitForCondition(
+      () => panelRect(tab3).right <= panelRect(tab1).left,
+      "The pane takes the left side"
+    );
+  } finally {
+    for (let tab of [tab1, tab2, tab3]) {
+      BrowserTestUtils.removeTab(tab);
+    }
   }
 });

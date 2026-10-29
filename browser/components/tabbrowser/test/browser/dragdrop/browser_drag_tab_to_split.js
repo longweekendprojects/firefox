@@ -148,6 +148,7 @@ add_task(async function test_undo_split_drop() {
   let tab3 = await addTab("data:text/html,three");
   let tab4 = await addTab("data:text/html,four");
   let order = [...gBrowser.tabs];
+  let selected = gBrowser.selectedTab;
   try {
     await dragOntoForSplit(tab1, tab2, "left");
     let splitview = tab1.splitview;
@@ -173,7 +174,11 @@ add_task(async function test_undo_split_drop() {
       order,
       "Every tab is back where it was before the drops"
     );
-    Assert.equal(gBrowser.selectedTab, tab1, "The dragged tab stays selected");
+    Assert.equal(
+      gBrowser.selectedTab,
+      selected,
+      "The tab selected before the drags is selected again"
+    );
   } finally {
     gBrowser.removeTabs([tab1, tab2, tab3, tab4]);
   }

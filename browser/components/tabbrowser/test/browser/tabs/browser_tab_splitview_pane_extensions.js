@@ -499,7 +499,7 @@ add_task(async function test_selected_pane_outline_is_soft() {
     "solid",
     "The selected pane has an outline"
   );
-  Assert.less(alpha(outline()), 0.7, "The selected pane's outline is softened");
+  Assert.less(alpha(outline()), 0.4, "The selected pane's outline is softened");
   const before = outline();
   document.documentElement.style.setProperty(
     "--space-accent-color",

@@ -6,15 +6,14 @@
 
 /**
  * Dropping a tab from the tab strip onto the page splits it with the page or
- * pane under the pointer, as in Arc. Selecting a tab on mousedown would show
- * the dragged tab's page, so while the drag is over the page area, the tab
- * that was selected before the drag shows instead.
+ * pane under the pointer, as in Arc. Dragging a tab does not select it: the
+ * tab that was selected before the drag stays selected.
  */
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
 
-/** @type {?{tab: MozTabbrowserTab, target: MozTabbrowserTab, overlay: Element, indicator: Element, drop: ?object, shown: boolean, dropped: boolean}} */
+/** @type {?{source: Element, tab: MozTabbrowserTab, target: MozTabbrowserTab, overlay: Element, indicator: Element, drop: ?object, dropped: boolean}} */
 let drag = null;
 
 function panes() {
@@ -27,10 +26,11 @@ function panes() {
 /**
  * Starts watching a drag of `tab` from the tab strip.
  *
- * @param {MozTabbrowserTab} tab The dragged tab.
+ * @param {Element} source The dragged tab, or the split view it is a pane of.
+ * @param {MozTabbrowserTab} tab The tab that a drop on the page splits in.
  * @param {?MozTabbrowserTab} target The tab selected before the drag began.
  */
-export function start(tab, target) {
+export function start(source, tab, target) {
   removeOverlay();
   if (!target || target === tab || !target.isConnected || target.closing) {
     return;
@@ -61,37 +61,40 @@ export function start(tab, target) {
   for (const type of ["dragenter", "dragover", "dragleave", "drop"]) {
     overlay.addEventListener(type, onEvent);
   }
-  // A pointer event here means the drag is over without a dragend.
-  overlay.addEventListener("pointermove", end);
+  // A click here means the drag is over without a dragend.
   overlay.addEventListener("pointerdown", end);
   gBrowser.tabbox.append(overlay);
   drag = {
+    source,
     tab,
     target,
     overlay,
     indicator,
     drop: null,
-    shown: false,
     dropped: false,
   };
+  // Waits a frame, so a drop that ends the drag right away, such as one in
+  // another window, never sees the switch.
+  window.requestAnimationFrame(showTarget);
+}
+
+/** Shows the tab that was selected before the drag. */
+function showTarget() {
+  const target = drag?.target;
+  if (target?.isConnected && !target.closing && !drag.tab.closing) {
+    gBrowser.selectedTab = target;
+  }
 }
 
 /**
- * Ends the drag. Shows the dragged tab again if the drag showed the target
- * tab but nothing was dropped on it.
+ * Ends the drag.
  *
  * @returns {boolean} Whether the tab was dropped on the page.
  */
 export function end() {
   const d = drag;
   removeOverlay();
-  if (!d) {
-    return false;
-  }
-  if (d.shown && !d.dropped && d.tab.isConnected && !d.tab.closing) {
-    gBrowser.selectedTab = d.tab;
-  }
-  return d.dropped;
+  return !!d?.dropped;
 }
 
 function removeOverlay() {
@@ -104,17 +107,14 @@ function onEvent(event) {
     return;
   }
   const dt = event.dataTransfer;
-  if (dt?.mozGetDataAt(TAB_DROP_TYPE, 0) !== drag.tab) {
+  if (dt?.mozGetDataAt(TAB_DROP_TYPE, 0) !== drag.source) {
     return;
   }
   switch (event.type) {
     case "dragenter":
     case "dragover":
-      if (!drag.shown) {
-        drag.shown = true;
-        if (drag.target.isConnected && !drag.target.closing) {
-          gBrowser.selectedTab = drag.target;
-        }
+      if (gBrowser.selectedTab !== drag.target) {
+        showTarget();
       }
       drag.drop = dropAt(event.clientX, event.clientY);
       showIndicator();

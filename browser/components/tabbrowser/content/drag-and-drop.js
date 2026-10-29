@@ -107,7 +107,9 @@
       if (!tab) {
         return;
       }
+      let pane = null;
       if (tab.splitview) {
+        pane = tab;
         tab = tab.splitview;
       }
 
@@ -117,7 +119,7 @@
       }
 
       this._tabbrowserTabs.previewPanel?.deactivate(null, { force: true });
-      this.startTabDrag(event, tab);
+      this.startTabDrag(event, tab, { pane });
     }
 
     handle_dragover(event) {
@@ -1408,7 +1410,7 @@
 
     // Drag start
 
-    startTabDrag(event, tab, { fromTabList = false } = {}) {
+    startTabDrag(event, tab, { fromTabList = false, pane = null } = {}) {
       if (this.expandOnHover) {
         // Temporarily disable MousePosTracker while dragging
         MousePosTracker.removeListener(document.defaultView.SidebarController);
@@ -1488,10 +1490,15 @@
         }
       }
 
-      if (dataTransferOrderedTabs.length == 1 && isTab(tab) && !fromTabList) {
-        contentDrop().start(tab, tab._selectedBeforeMouseDown);
+      let dropTab = pane ?? tab;
+      if (
+        dataTransferOrderedTabs.length == 1 &&
+        isTab(dropTab) &&
+        !fromTabList
+      ) {
+        contentDrop().start(tab, dropTab, dropTab._selectedBeforeMouseDown);
       }
-      tab._selectedBeforeMouseDown = null;
+      dropTab._selectedBeforeMouseDown = null;
 
       // Set the cursor to an arrow during tab drags.
       dt.mozCursor = "default";
