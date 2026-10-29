@@ -14,6 +14,11 @@
     Tabbrowser: "moz-src:///browser/components/tabbrowser/Tabbrowser.sys.mjs",
   });
 
+  const contentDrop = () =>
+    ChromeUtils.importESModule(
+      "chrome://browser/content/tabbrowser/content-drop.mjs",
+      { global: "current" }
+    );
   const isTab = element => gBrowser.isTab(element);
   const isTabGroupLabel = element => gBrowser.isTabGroupLabel(element);
   const isSplitViewWrapper = element => gBrowser.isSplitViewWrapper(element);
@@ -790,6 +795,7 @@
     handle_dragend(event) {
       var dt = event.dataTransfer;
       var draggedTab = dt.mozGetDataAt(TAB_DROP_TYPE, 0);
+      let droppedOnPage = contentDrop().end();
 
       // Prevent this code from running if a tabdrop animation is
       // running since calling finishAnimateTabMove would clear
@@ -805,6 +811,11 @@
         this._expandGroupOnDrop(draggedTab);
       }
       this._resetTabsAfterDrop(draggedTab);
+
+      if (droppedOnPage) {
+        delete draggedTab._dragData;
+        return;
+      }
 
       if (
         dt.mozUserCancelled ||
@@ -1476,6 +1487,11 @@
           );
         }
       }
+
+      if (dataTransferOrderedTabs.length == 1 && isTab(tab) && !fromTabList) {
+        contentDrop().start(tab, tab._selectedBeforeMouseDown);
+      }
+      tab._selectedBeforeMouseDown = null;
 
       // Set the cursor to an arrow during tab drags.
       dt.mozCursor = "default";

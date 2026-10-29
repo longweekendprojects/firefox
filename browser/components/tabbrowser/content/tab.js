@@ -591,6 +591,7 @@
         eventMaySelectTab = false;
       }
 
+      this._selectedBeforeMouseDown = null;
       if (eventMaySelectTab) {
         let prevTab = gBrowser.selectedTab;
         // super.on_mousedown sets gBrowser.selectedTab via the property setter,
@@ -598,6 +599,7 @@
         // the change after the fact so we can supply the TAB_STRIP source.
         super.on_mousedown(event);
         if (gBrowser.selectedTab !== prevTab) {
+          this._selectedBeforeMouseDown = prevTab;
           gBrowser.recordTabMetrics(
             gBrowser.TabMetrics.METRIC_ACTION.ACTIVATE,
             gBrowser.TabMetrics.userTriggeredContext(
