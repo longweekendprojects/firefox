@@ -210,10 +210,42 @@
   }
 }
 
+/* As in Arc, a pane's bar and page form one card with small corners, so the
+   rounding lands on the bar instead of the page's scrollbar and corners. */
+#tabbrowser-tabpanels[splitlayout][splitview] > .split-pane.split-view-panel.split-view-panel-active {
+  border-radius: 6px;
+
+  > .split-pane-header {
+    border-start-start-radius: inherit;
+    border-start-end-radius: inherit;
+  }
+
+  > .browserContainer {
+    border-radius: inherit;
+    outline: none;
+  }
+
+  > .split-pane-header ~ .browserContainer {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+
+  &.deck-selected {
+    outline: var(--focus-outline);
+  }
+}
+
+@media -moz-pref("browser.nova.enabled") {
+  #tabbrowser-tabpanels[splitlayout][splitview] > .split-pane.split-view-panel.split-view-panel-active:not(.deck-selected) {
+    outline: var(--border-width) solid var(--chrome-content-separator-color);
+    outline-offset: calc(-1 * var(--border-width));
+  }
+}
+
 /* As in Arc, the selected pane's outline takes the shown space's color, and
    is much softer than a focus ring. */
 @media not (forced-colors) {
-  #tabbrowser-tabpanels[splitlayout][splitview] > .split-pane.split-view-panel.deck-selected > .browserContainer {
+  #tabbrowser-tabpanels[splitlayout][splitview] > .split-pane.split-view-panel.split-view-panel-active.deck-selected {
     outline-color: color-mix(in srgb, var(--space-accent-color, var(--focus-outline-color)) 35%, transparent);
   }
 }
@@ -230,6 +262,8 @@
     top: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    border-radius: 0;
+    outline: none;
   }
 }
 

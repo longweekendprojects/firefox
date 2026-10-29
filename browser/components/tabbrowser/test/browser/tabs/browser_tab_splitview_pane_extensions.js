@@ -483,10 +483,24 @@ add_task(async function test_pinning_puts_extension_before_extensions_button() {
 
 add_task(async function test_selected_pane_outline_is_soft() {
   const tabs = await makeSplit();
-  const container = document
-    .getElementById(tabs[0].linkedPanel)
-    .querySelector(".browserContainer");
-  const outline = () => getComputedStyle(container).outlineColor;
+  const panel = document.getElementById(tabs[0].linkedPanel);
+  const container = panel.querySelector(".browserContainer");
+  Assert.equal(
+    getComputedStyle(container).outlineStyle,
+    "none",
+    "The page has no outline of its own; the pane card carries it"
+  );
+  Assert.equal(
+    getComputedStyle(panel).borderTopRightRadius,
+    "6px",
+    "Pane cards have small corners"
+  );
+  Assert.equal(
+    getComputedStyle(container).borderTopRightRadius,
+    "6px",
+    "Without a bar in the pane, the page takes the card's corners"
+  );
+  const outline = () => getComputedStyle(panel).outlineColor;
   const alpha = color => {
     const match =
       color.match(/\/\s*([\d.]+)\s*\)$/) ||
@@ -495,7 +509,7 @@ add_task(async function test_selected_pane_outline_is_soft() {
   };
   info("Outline color: " + outline());
   Assert.equal(
-    getComputedStyle(container).outlineStyle,
+    getComputedStyle(panel).outlineStyle,
     "solid",
     "The selected pane has an outline"
   );
@@ -511,5 +525,31 @@ add_task(async function test_selected_pane_outline_is_soft() {
     "The outline takes the shown space's color"
   );
   document.documentElement.style.removeProperty("--space-accent-color");
-  gBrowser.removeTabs(tabs);
+
+  const lower = await addLoadedTab();
+  tabs[0].splitview.splitPane(tabs[0], "down", lower);
+  const lowerPanel = document.getElementById(lower.linkedPanel);
+  await TestUtils.waitForCondition(
+    () => paneHeader(lower)?.parentNode == lowerPanel,
+    "the lower pane shows its bar inside the pane"
+  );
+  const lowerStyle = getComputedStyle(
+    lowerPanel.querySelector(".browserContainer")
+  );
+  Assert.equal(
+    lowerStyle.borderTopRightRadius,
+    "0px",
+    "Under a bar, the page keeps square top corners for its scrollbar"
+  );
+  Assert.equal(
+    lowerStyle.borderBottomRightRadius,
+    "6px",
+    "The page rounds only the card's bottom corners"
+  );
+  Assert.equal(
+    getComputedStyle(paneHeader(lower)).borderTopRightRadius,
+    "6px",
+    "The bar takes the card's top corners"
+  );
+  gBrowser.removeTabs([...tabs, lower]);
 });

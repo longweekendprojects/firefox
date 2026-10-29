@@ -121,7 +121,9 @@ async function countReflowsDuring(tabs, task) {
  * @returns {boolean}
  */
 function hasSeparator(tab) {
-  const container = tab.linkedBrowser.closest(".browserContainer");
+  const container =
+    tab.linkedBrowser.closest(".split-pane") ??
+    tab.linkedBrowser.closest(".browserContainer");
   const style = getComputedStyle(container);
   const outlined =
     style.outlineStyle != "none" && parseFloat(style.outlineWidth) > 0;
