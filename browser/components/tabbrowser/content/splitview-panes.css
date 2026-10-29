@@ -230,8 +230,29 @@
     border-start-end-radius: 0;
   }
 
-  &.deck-selected {
+  &.deck-selected:not([barintoolbar]) {
     outline: var(--focus-outline);
+  }
+
+  /* A bar in the toolbar row caps the pane, so the page's top corners stay
+     square under it. */
+  &[barintoolbar],
+  &[barintoolbar] > .browserContainer {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+}
+
+/* The selected pane's outline also wraps its bar in the toolbar row. */
+#split-pane-card {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 6px;
+  outline: var(--focus-outline);
+  pointer-events: none;
+
+  &[hidden] {
+    display: none;
   }
 }
 
@@ -245,7 +266,8 @@
 /* As in Arc, the selected pane's outline takes the shown space's color, and
    is much softer than a focus ring. */
 @media not (forced-colors) {
-  #tabbrowser-tabpanels[splitlayout][splitview] > .split-pane.split-view-panel.split-view-panel-active.deck-selected {
+  #tabbrowser-tabpanels[splitlayout][splitview] > .split-pane.split-view-panel.split-view-panel-active.deck-selected,
+  #split-pane-card {
     outline-color: color-mix(in srgb, var(--space-accent-color, var(--focus-outline-color)) 35%, transparent);
   }
 }

@@ -485,22 +485,52 @@ add_task(async function test_selected_pane_outline_is_soft() {
   const tabs = await makeSplit();
   const panel = document.getElementById(tabs[0].linkedPanel);
   const container = panel.querySelector(".browserContainer");
+  const card = document.getElementById("split-pane-card");
+  Assert.ok(
+    panel.hasAttribute("barintoolbar"),
+    "The pane's bar is in the toolbar row"
+  );
+  Assert.equal(
+    getComputedStyle(panel).outlineStyle,
+    "none",
+    "The pane itself has no outline; the card outline wraps it and its bar"
+  );
   Assert.equal(
     getComputedStyle(container).outlineStyle,
     "none",
-    "The page has no outline of its own; the pane card carries it"
-  );
-  Assert.equal(
-    getComputedStyle(panel).borderTopRightRadius,
-    "6px",
-    "Pane cards have small corners"
+    "The page has no outline of its own"
   );
   Assert.equal(
     getComputedStyle(container).borderTopRightRadius,
-    "6px",
-    "Without a bar in the pane, the page takes the card's corners"
+    "0px",
+    "Under its bar, the page keeps square top corners"
   );
-  const outline = () => getComputedStyle(panel).outlineColor;
+  Assert.ok(BrowserTestUtils.isVisible(card), "The card outline shows");
+  const cardRect = card.getBoundingClientRect();
+  const barRect = paneHeader(tabs[0]).getBoundingClientRect();
+  const paneRect = panel.getBoundingClientRect();
+  Assert.lessOrEqual(
+    Math.abs(cardRect.top - barRect.top - 2),
+    1,
+    "The card starts at the top of the pane's bar, leaving room for its outline"
+  );
+  Assert.lessOrEqual(
+    Math.abs(cardRect.bottom - paneRect.bottom),
+    1,
+    "The card ends at the bottom of the page"
+  );
+  Assert.lessOrEqual(
+    Math.abs(cardRect.left - paneRect.left) +
+      Math.abs(cardRect.right - paneRect.right),
+    2,
+    "The card spans the pane's width"
+  );
+  Assert.equal(
+    getComputedStyle(card).borderTopRightRadius,
+    "6px",
+    "The card has small corners"
+  );
+  const outline = () => getComputedStyle(card).outlineColor;
   const alpha = color => {
     const match =
       color.match(/\/\s*([\d.]+)\s*\)$/) ||
@@ -509,7 +539,7 @@ add_task(async function test_selected_pane_outline_is_soft() {
   };
   info("Outline color: " + outline());
   Assert.equal(
-    getComputedStyle(panel).outlineStyle,
+    getComputedStyle(card).outlineStyle,
     "solid",
     "The selected pane has an outline"
   );
@@ -525,6 +555,15 @@ add_task(async function test_selected_pane_outline_is_soft() {
     "The outline takes the shown space's color"
   );
   document.documentElement.style.removeProperty("--space-accent-color");
+
+  gBrowser.selectedTab = tabs[1];
+  await TestUtils.waitForCondition(() => {
+    const r = card.getBoundingClientRect();
+    const p = document
+      .getElementById(tabs[1].linkedPanel)
+      .getBoundingClientRect();
+    return Math.abs(r.left - p.left) <= 1;
+  }, "The card follows the selected pane");
 
   const lower = await addLoadedTab();
   tabs[0].splitview.splitPane(tabs[0], "down", lower);
@@ -550,6 +589,16 @@ add_task(async function test_selected_pane_outline_is_soft() {
     getComputedStyle(paneHeader(lower)).borderTopRightRadius,
     "6px",
     "The bar takes the card's top corners"
+  );
+  gBrowser.selectedTab = lower;
+  await TestUtils.waitForCondition(
+    () => card.hidden,
+    "A pane with its bar inside shows its own outline instead of the card"
+  );
+  Assert.equal(
+    getComputedStyle(lowerPanel).outlineStyle,
+    "solid",
+    "The lower pane's own outline wraps its bar and page"
   );
   gBrowser.removeTabs([...tabs, lower]);
 });

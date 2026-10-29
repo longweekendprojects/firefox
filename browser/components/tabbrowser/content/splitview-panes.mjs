@@ -96,6 +96,11 @@ let grab = null;
  * resizing them.
  */
 let chromeObserver = null;
+/**
+ * Outline of the selected pane when its bar is in the toolbar row, so the
+ * bar and the page read as one card.
+ */
+let cardFrame = null;
 /** Pane bars shown in the toolbar row, with their pane's span, from the last render. */
 let toolbarLeaves = [];
 let followFrame = 0;
@@ -150,6 +155,7 @@ const handler = {
         break;
       case "TabSelect":
         markSelected();
+        placeCardFrame();
         anchorActions();
         break;
       case "mousedown":
@@ -254,7 +260,9 @@ export function render(wrapper) {
     if (slot && y <= area.y + 0.5) {
       [start, end] = toolbarSpan(slot, panels.left, x, width);
     }
-    if (end - start >= MIN_TOOLBAR_HEADER) {
+    const inToolbar = end - start >= MIN_TOOLBAR_HEADER;
+    panel.toggleAttribute("barintoolbar", inToolbar);
+    if (inToolbar) {
       toolbarLeaves.push({ header, x, width });
       if (header.parentNode !== toolbarBox) {
         toolbarBox.append(header);
@@ -274,6 +282,7 @@ export function render(wrapper) {
   }
   layoutSplitters(layout, splitters);
   markSelected();
+  placeCardFrame();
   anchorActions();
   if (CommandBar.isOpen() || gURLBar.focused) {
     CommandBar.show();
@@ -308,6 +317,7 @@ export function clear(tabs) {
       continue;
     }
     panel.classList.remove("split-pane");
+    panel.removeAttribute("barintoolbar");
     for (const property of ["left", "top", "width", "height"]) {
       panel.style.removeProperty(property);
     }
@@ -360,6 +370,9 @@ function attach() {
     splitterBox.addEventListener(type, handler);
   }
   gBrowser.tabbox.append(splitterBox);
+  cardFrame = document.createElementNS(HTML_NS, "div");
+  cardFrame.id = "split-pane-card";
+  splitterBox.append(cardFrame);
 
   const navbar = document.getElementById("nav-bar");
   if (navbar) {
@@ -429,6 +442,7 @@ function teardown() {
   grab = null;
   splitterBox?.remove();
   splitterBox = null;
+  cardFrame = null;
   toolbarBox?.remove();
   toolbarBox = null;
   for (const header of headers.values()) {
@@ -507,6 +521,7 @@ function followSidebarAnimation(slot) {
     header.style.left = start + "px";
     header.style.width = Math.max(0, end - start) + "px";
   }
+  placeCardFrame();
   followFrame = window.requestAnimationFrame(() =>
     followSidebarAnimation(slot)
   );
@@ -616,6 +631,36 @@ function toolbarSlot() {
     // Items between the hidden controls, such as spacers, are covered.
   }
   return { left: left + GAP, right: right - GAP, origin: bar.left };
+}
+
+/**
+ * Puts the card outline around the selected pane and its bar in the toolbar
+ * row, or hides it when that pane shows its bar inside the pane.
+ */
+function placeCardFrame() {
+  if (!cardFrame) {
+    return;
+  }
+  const tab = gBrowser.selectedTab;
+  const header = headers.get(tab);
+  const panel = document.getElementById(tab.linkedPanel);
+  if (!header || !panel || header.parentNode !== toolbarBox) {
+    cardFrame.hidden = true;
+    return;
+  }
+  const box = splitterBox.getBoundingClientRect();
+  const bar = header.getBoundingClientRect();
+  const pane = panel.getBoundingClientRect();
+  cardFrame.hidden = false;
+  // The bar row starts at the window's top edge, so the outline, drawn
+  // outside the card, needs room above it.
+  const top = bar.top + parseFloat(getComputedStyle(cardFrame).outlineWidth);
+  Object.assign(cardFrame.style, {
+    left: pane.left - box.left + "px",
+    top: top - box.top + "px",
+    width: pane.width + "px",
+    height: pane.bottom - top + "px",
+  });
 }
 
 function markSelected() {
