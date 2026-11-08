@@ -65,7 +65,7 @@ export function gridWidth() {
     parseFloat(
       window
         .getComputedStyle(container)
-        .getPropertyValue("--tab-inner-inline-margin")
+        .getPropertyValue("--tab-margin-inline-inner")
     ) || 0;
   return container.getBoundingClientRect().width - 2 * (inner + 2);
 }

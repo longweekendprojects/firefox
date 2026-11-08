@@ -57,6 +57,12 @@ var localProviderModules = [
     supportedSAPs: ["searchbar", "urlbar", "smartbar"],
   },
   {
+    name: "UrlbarProviderAddonsShortcutMoved",
+    module:
+      "moz-src:///browser/components/urlbar/UrlbarProviderAddonsShortcutMoved.sys.mjs",
+    supportedSAPs: ["urlbar"],
+  },
+  {
     name: "UrlbarProviderAliasEngines",
     module:
       "moz-src:///browser/components/urlbar/UrlbarProviderAliasEngines.sys.mjs",
@@ -986,7 +992,10 @@ export class Query {
     // live in another process.
     if (result.type == lazy.UrlbarShared.RESULT_TYPE.DYNAMIC) {
       result.payload.viewTemplate = provider.getViewTemplate(result);
-      result.payload.viewUpdate = provider.getViewUpdate(result);
+      result.payload.viewUpdate = provider.getViewUpdate(
+        result,
+        this.controller
+      );
     }
     let commands = provider.tryMethod(
       "getResultCommands",

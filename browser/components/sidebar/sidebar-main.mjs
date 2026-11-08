@@ -22,7 +22,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
-  GenAI: "resource:///modules/GenAI.sys.mjs",
+  GenAI: "moz-src:///browser/components/genai/GenAI.sys.mjs",
 });
 
 /**
@@ -61,6 +61,12 @@ export default class SidebarMain extends MozLitElement {
     }
     return this._fluentStrings;
   }
+
+  /**
+   * If `true`: On the next render, update the active launcher button to the
+   * one that matches the open panel.
+   */
+  #shouldUpdateActiveButton = false;
 
   constructor() {
     super();
@@ -215,15 +221,27 @@ export default class SidebarMain extends MozLitElement {
             if (!newCopyButton) {
               continue;
             }
-            panelButtonGroup.appendChild(newCopyButton);
+            // The Customize button stays last in the panel.
+            const customizeCopy = panelButtonGroup.querySelector(
+              '[view="viewCustomizeSidebar"]'
+            );
+            if (customizeCopy && view !== "viewCustomizeSidebar") {
+              panelButtonGroup.insertBefore(newCopyButton, customizeCopy);
+            } else {
+              panelButtonGroup.appendChild(newCopyButton);
+            }
 
             // Hide original button
             entry.target.style.visibility = "hidden";
-            for (const button of this.buttonGroup.children) {
-              const style = window.getComputedStyle(button);
-              if (style.display !== "none" && style.visibility !== "hidden") {
-                this.buttonGroup.activeChild = button;
-                break;
+            if (entry.target === this.buttonGroup.activeChild) {
+              // We're hiding the button that's currently active.
+              // Select a new one to ensure the group stays keyboard navigable.
+              for (const button of this.buttonGroup.children) {
+                const style = window.getComputedStyle(button);
+                if (style.display !== "none" && style.visibility !== "hidden") {
+                  this.buttonGroup.activeChild = button;
+                  break;
+                }
               }
             }
           } else if (entry.isIntersecting && buttonAlreadyAddedToOverflow) {
@@ -278,8 +296,11 @@ export default class SidebarMain extends MozLitElement {
     let newButton = document.createElement("moz-button");
     if (newButtonValues) {
       newButton.classList.add("expanded-button");
+      newButton.setAttribute("role", "presentation");
+      newButton.setAttribute("buttonrole", "tab");
       newButton.setAttribute("view", newButtonValues.action.view);
-      newButton.setAttribute("aria-pressed", newButtonValues.isActiveView);
+      newButton.setAttribute("aria-label", newButtonValues.actionLabel);
+      newButton.setAttribute("aria-selected", newButtonValues.isActiveView);
       newButton.setAttribute(
         "type",
         newButtonValues.isActiveView ? "icon" : "icon ghost"
@@ -289,7 +310,7 @@ export default class SidebarMain extends MozLitElement {
         this.resetPanelButtonValues();
         const isActiveView =
           this.open && newButtonValues.action.view === this.selectedView;
-        newButton.setAttribute("aria-pressed", isActiveView);
+        newButton.setAttribute("aria-selected", isActiveView);
         newButton.setAttribute("type", isActiveView ? "icon" : "icon ghost");
         this._toolsOverflowMenu.hidePopup();
       });
@@ -312,10 +333,10 @@ export default class SidebarMain extends MozLitElement {
   resetPanelButtonValues() {
     let panelButtonGroup = document.getElementById("tools-overflow-list");
     for (const panelButton of Array.from(panelButtonGroup.children)) {
-      // reset aria-pressed and button type for all panel buttons
+      // Reset aria-selected and button type for all panel buttons.
       const isActiveView =
         this.open && panelButton.getAttribute("view") === this.selectedView;
-      panelButton.setAttribute("aria-pressed", isActiveView);
+      panelButton.setAttribute("aria-selected", isActiveView);
       panelButton.setAttribute("type", isActiveView ? "icon" : "icon ghost");
     }
   }
@@ -521,6 +542,21 @@ export default class SidebarMain extends MozLitElement {
     return window.SidebarController.toolsAndExtensions;
   }
 
+  getLauncherActions() {
+    const actions = [...this.getToolsAndExtensions().values()];
+    if (!window.SidebarController.sidebarVerticalTabsEnabled) {
+      return actions;
+    }
+    const settingsFirst =
+      this.expanded && !window.SidebarController._positionStart;
+    actions.splice(
+      settingsFirst ? 0 : actions.length,
+      0,
+      ...this.bottomActions
+    );
+    return actions;
+  }
+
   setCustomize() {
     const view = "viewCustomizeSidebar";
     const customizeSidebar = window.SidebarController.sidebars.get(view);
@@ -597,6 +633,7 @@ export default class SidebarMain extends MozLitElement {
       case "sidebar-show":
         this.selectedView = e.detail.viewId;
         this.open = true;
+        this.#shouldUpdateActiveButton = true;
         break;
       case "sidebar-hide":
         this.open = false;
@@ -676,6 +713,15 @@ export default class SidebarMain extends MozLitElement {
   }
 
   updated() {
+    if (this.#shouldUpdateActiveButton) {
+      this.#shouldUpdateActiveButton = false;
+      // ButtonGroup falls back to selecting the first element child when
+      // activeChild is undefined.
+      this.buttonGroup.activeChild = [...this.allButtons].find(
+        button => button.getAttribute("view") === this.selectedView
+      );
+    }
+
     const isExpandOnHover =
       window.SidebarController.sidebarRevampVisibility === "expand-on-hover";
 
@@ -794,11 +840,14 @@ export default class SidebarMain extends MozLitElement {
       buttonValues,
       () => html`
         <moz-button
+          role="presentation"
+          buttonrole="tab"
           class=${classMap({
             "tools-overflow": buttonValues.toolsOverflowing,
           })}
           type=${buttonValues.isActiveView ? "icon" : "icon ghost"}
-          aria-pressed=${buttonValues.isActiveView}
+          aria-label=${buttonValues.actionLabel}
+          aria-selected=${buttonValues.isActiveView}
           view=${buttonValues.action.view}
           @click=${async () => await this.showView(buttonValues.action.view)}
           @mouseover=${e => this.onEntrypointHover(e, buttonValues.action.view)}
@@ -894,26 +943,10 @@ export default class SidebarMain extends MozLitElement {
             orientation=${this.isToolsOverflowing() ? "horizontal" : "vertical"}
             overflowing=${ifDefined(this.shouldShowOverflowButton)}
           >
-            ${when(!this.isToolsOverflowing(), () =>
-              repeat(
-                this.getToolsAndExtensions().values(),
-                action => action.view,
-                action => this.entrypointTemplate(action)
-              )
-            )}
-            ${when(window.SidebarController.sidebarVerticalTabsEnabled, () =>
-              repeat(
-                this.bottomActions,
-                action => action.view,
-                action => this.entrypointTemplate(action)
-              )
-            )}
-            ${when(this.isToolsOverflowing(), () =>
-              repeat(
-                this.getToolsAndExtensions().values(),
-                action => action.view,
-                action => this.entrypointTemplate(action)
-              )
+            ${repeat(
+              this.getLauncherActions(),
+              action => action.view,
+              action => this.entrypointTemplate(action)
             )}
           </button-group>
           ${when(

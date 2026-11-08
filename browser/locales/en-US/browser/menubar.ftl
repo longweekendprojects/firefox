@@ -91,6 +91,11 @@ menu-file-close-tab =
            *[other] Close { $tabCount } Tabs
         }
     .accesskey = C
+# Replaces menu-file-close-tab in a window that can only ever hold one tab,
+# such as a popup, where closing the tab closes the window.
+menu-file-close =
+    .label = Close
+    .accesskey = C
 menu-file-close-window =
     .label = Close Window
     .accesskey = d
@@ -103,11 +108,8 @@ menu-file-email-link =
 menu-file-share-url =
     .label = Share
     .accesskey = h
-menu-file-share-qrcode =
-    .label = Generate QR Code…
-    .accesskey = Q
-menu-file-share-qrcode2 =
-    .label = Generate QR Code
+menu-file-share-qrcode3 =
+    .label = Create QR Code
     .accesskey = Q
 menu-file-print-setup =
     .label = Page Setup…
@@ -240,6 +242,9 @@ menu-history-undo-window-menu =
 # "Search" is a verb, as in "Search in History"
 menu-history-search =
     .label = Search History
+# "Search" is a verb, as in "Search in Tabs"
+menu-history-search-tabs =
+    .label = Search Tabs
 
 ## Bookmarks Menu
 

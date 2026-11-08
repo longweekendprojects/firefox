@@ -15,7 +15,7 @@
   align-items: center;
   gap: var(--space-xsmall);
   padding-block: var(--space-xsmall);
-  margin-inline: var(--tab-inner-inline-margin);
+  margin-inline: var(--tab-margin-inline-inner);
   border-top: 1px solid var(--tab-border-color, color-mix(in srgb, currentColor 12%, transparent));
 }
 

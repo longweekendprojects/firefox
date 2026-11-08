@@ -312,7 +312,7 @@
   pointer-events: none;
   border: 2px solid var(--focus-outline-color);
   border-radius: var(--border-radius-medium);
-  background-color: var(--background-color-dimmed);
+  background-color: light-dark(color-mix(in srgb, currentColor 12%, transparent), color-mix(in srgb, currentColor 17%, transparent));
 }
 
 /* A drop on the center of a pane swaps the two panes, so the indicator

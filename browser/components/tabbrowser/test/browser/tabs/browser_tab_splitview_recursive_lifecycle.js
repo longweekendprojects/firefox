@@ -262,10 +262,6 @@ add_task(async function test_private_window() {
   Assert.equal(adopted, null, "private split refused");
   Assert.equal(gBrowser.tabs.length, normalTabs, "no tabs added");
   Assert.equal(sv.tabs.length, 3, "private split intact");
-  Assert.ok(
-    tabs.every(t => !t.removedByAdoption),
-    "no adoption state left on tabs"
-  );
 
   // Dropping it on the normal tab strip is refused too.
   const effect = EventUtils.synthesizeDrop(

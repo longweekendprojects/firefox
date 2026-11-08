@@ -20,8 +20,8 @@
 }
 
 #pinned-url-icon {
-  width: var(--tab-pinned-expanded-background-width);
-  height: var(--tab-pinned-expanded-background-width);
+  width: var(--tab-background-width-pinned-expanded);
+  height: var(--tab-background-width-pinned-expanded);
   margin-block-end: var(--space-small);
 
   &[hidden] {

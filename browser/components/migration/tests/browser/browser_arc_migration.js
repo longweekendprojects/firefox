@@ -7,10 +7,10 @@
 // split views, profiles as containers, and sign-in cookies.
 
 const { ArcProfileMigrator } = ChromeUtils.importESModule(
-  "resource:///modules/ArcProfileMigrator.sys.mjs"
+  "moz-src:///browser/components/migration/ArcProfileMigrator.sys.mjs"
 );
 const { ChromeMacOSLoginCrypto } = ChromeUtils.importESModule(
-  "resource:///modules/ChromeMacOSLoginCrypto.sys.mjs"
+  "moz-src:///browser/components/migration/ChromeMacOSLoginCrypto.sys.mjs"
 );
 const { Sqlite } = ChromeUtils.importESModule(
   "resource://gre/modules/Sqlite.sys.mjs"

@@ -195,6 +195,9 @@ document.addEventListener(
         case "context-take-screenshot":
           gContextMenu.takeScreenshot();
           break;
+        case "context-use-mini-window":
+          gContextMenu.useMiniWindow();
+          break;
         case "context-add-engine":
           if (!gContextMenu) {
             throw new Error("Context menu doesn't seem to be open.");
@@ -217,6 +220,9 @@ document.addEventListener(
         }
         case "context-translate-selection":
           gContextMenu.openSelectTranslationsPanel(event);
+          break;
+        case "context-create-aitab":
+          gContextMenu.createAITab();
           break;
         case "context-showonlythisframe":
           gContextMenu.showOnlyThisFrame();

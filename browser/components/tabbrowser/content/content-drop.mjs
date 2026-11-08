@@ -45,7 +45,7 @@ export function start(source, tab, target) {
     boxSizing: "border-box",
     border: "2px solid var(--focus-outline-color)",
     borderRadius: "var(--border-radius-medium)",
-    backgroundColor: "var(--background-color-dimmed)",
+    backgroundColor: "light-dark(color-mix(in srgb, currentColor 12%, transparent), color-mix(in srgb, currentColor 17%, transparent))",
   });
   overlay.append(indicator);
   const box = gBrowser.tabbox.getBoundingClientRect();
