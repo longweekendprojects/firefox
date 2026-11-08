@@ -43,7 +43,6 @@ unified-extensions-context-menu-pin-to-toolbar =
 # pinned extension button, which unpinning moves into the extensions panel.
 unified-extensions-context-menu-unpin =
     .label = Unpin from Toolbar
-    .accesskey = U
 
 unified-extensions-context-menu-manage-extension =
     .label = Manage Extension

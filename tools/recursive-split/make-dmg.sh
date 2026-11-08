@@ -37,7 +37,7 @@ $here/run-guarded.sh 1200 60 12000 -- nice -n 10 $py ./mach package > /tmp/ff-pk
 
 rm -rf $work/ours $work/stage $work/dmgsrc $work/cmp
 mkdir -p $work/mnt $work/ours $work/stage $work/dmgsrc $work/cmp
-hdiutil attach -quiet -nobrowse -mountpoint $work/mnt obj-artifact/dist/firefox-157.0.1.en-US.mac.dmg
+hdiutil attach -quiet -nobrowse -mountpoint $work/mnt obj-artifact/dist/firefox-*.en-US.mac.dmg
 ditto $work/mnt/Nightly.app $work/ours/Nightly.app
 hdiutil detach -quiet $work/mnt
 ours=$work/ours/Nightly.app/Contents

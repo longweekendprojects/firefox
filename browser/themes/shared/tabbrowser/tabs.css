@@ -4270,6 +4270,22 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     min-height: 0 !important;
     height: 100%;
     padding-block: 0 !important;
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+
+    /* The outer panes reach the edges of the tab strip, so a click there
+       still selects them. */
+    &:first-child {
+      --split-row-edge-start: calc(var(--tab-margin-inline-inner) + var(--split-row-inset));
+      margin-inline-start: calc(-1 * var(--split-row-edge-start)) !important;
+      padding-inline-start: var(--split-row-edge-start) !important;
+    }
+
+    &:last-child {
+      --split-row-edge-end: calc(var(--tab-row-margin-end, var(--tab-margin-inline-inner)) + var(--split-row-inset));
+      margin-inline-end: calc(-1 * var(--split-row-edge-end)) !important;
+      padding-inline-end: var(--split-row-edge-end) !important;
+    }
 
     > .tab-stack {
       height: 100%;

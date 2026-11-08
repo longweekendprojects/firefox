@@ -1,0 +1,13 @@
+# Artifact build: the compiled engine is downloaded, and only the front-end
+# JS and CSS are packaged locally.
+ac_add_options --enable-artifact-builds
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-artifact
+# Cap parallel jobs so the build cannot saturate smaller machines.
+mk_add_options MOZ_PARALLEL_BUILD=8
+
+# Download the engine of the Firefox release this branch last merged. Without
+# this, the artifact lookup walks the branch's own commits first and finds the
+# engine of an older release.
+release_tag=$(git -C "$topsrcdir" describe --tags --abbrev=0 --match 'FIREFOX_*_RELEASE' HEAD)
+export MOZ_ARTIFACT_REVISION=$(git -C "$topsrcdir" rev-parse "$release_tag^{commit}")
+mk_add_options "export MOZ_ARTIFACT_REVISION=$MOZ_ARTIFACT_REVISION"

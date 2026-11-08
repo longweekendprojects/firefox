@@ -1494,7 +1494,9 @@ add_task(async function test_narrow_panes_show_their_title() {
   const tabs = [await addLoadedTab(), await addLoadedTab()];
   gBrowser.addTabSplitView(tabs);
   await TestUtils.waitForCondition(
-    () => tabs[0].getBoundingClientRect().width < 100,
+    () =>
+      tabs[0].querySelector(".tab-background").getBoundingClientRect().width <
+      100,
     "The panes are narrow"
   );
   for (const tab of tabs) {

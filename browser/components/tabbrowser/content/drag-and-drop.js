@@ -2726,7 +2726,7 @@
             ) / 100
           : 0.5;
         if (
-          lazy.Tabbrowser.prefs.tabGroupsEnabled &&
+          Tabbrowser.prefs.tabGroupsEnabled &&
           isTab(draggedTab) &&
           movingTabs.length == 1 &&
           !isPinned &&
