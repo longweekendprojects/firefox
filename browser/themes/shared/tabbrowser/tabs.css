@@ -1910,7 +1910,7 @@ tab-group > tab-split-view-wrapper {
   }
 
   &:hover::after {
-    background-color: var(--tab-hover-background-color);
+    background-color: var(--tab-background-color-hover);
   }
 
   &[unfolded]::after {
@@ -3937,9 +3937,9 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   padding-inline: 6px;
   border: 1px solid var(--focus-outline-color);
   border-radius: var(--border-radius-small);
-  color: var(--toolbar-field-focus-color);
+  color: var(--toolbar-field-text-color-focus);
   background-color: Field;
-  background-image: linear-gradient(var(--toolbar-field-focus-background-color), var(--toolbar-field-focus-background-color));
+  background-image: linear-gradient(var(--toolbar-field-background-color-focus), var(--toolbar-field-background-color-focus));
   /* stylelint-disable-next-line stylelint-plugin-mozilla/use-font-size-tokens */
   font-size: 1.2em;
   outline: none;

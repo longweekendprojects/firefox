@@ -121,7 +121,7 @@
   text-overflow: ellipsis;
 
   &:focus {
-    color: var(--toolbar-field-color);
+    color: var(--toolbar-field-text-color);
     background-color: var(--toolbar-field-background-color);
   }
 
