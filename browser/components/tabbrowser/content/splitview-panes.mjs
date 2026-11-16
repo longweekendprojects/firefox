@@ -620,12 +620,13 @@ function placeCardFrame() {
   cardFrame.hidden = false;
   // The bar row starts at the window's top edge, so the outline, drawn
   // outside the card, needs room above it.
-  const top = bar.top + parseFloat(getComputedStyle(cardFrame).outlineWidth);
+  const cardTop =
+    bar.top + parseFloat(getComputedStyle(cardFrame).outlineWidth);
   Object.assign(cardFrame.style, {
     left: pane.left - box.left + "px",
-    top: top - box.top + "px",
+    top: cardTop - box.top + "px",
     width: pane.width + "px",
-    height: pane.bottom - top + "px",
+    height: pane.bottom - cardTop + "px",
   });
 }
 
