@@ -4,7 +4,7 @@
 "use strict";
 
 const PREF_NAME = "browser.tabs.insertAtStart";
-const TABS_PANE = SRD_PREF_VALUE ? "paneTabsBrowsing" : "paneGeneral";
+const TABS_PANE = "paneTabsBrowsing";
 
 add_task(async function test_default_is_on() {
   Assert.ok(

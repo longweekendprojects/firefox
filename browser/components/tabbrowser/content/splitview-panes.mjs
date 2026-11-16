@@ -103,7 +103,6 @@ let chromeObserver = null;
 let cardFrame = null;
 /** Pane bars shown in the toolbar row, with their pane's span, from the last render. */
 let toolbarLeaves = [];
-let followFrame = 0;
 
 /**
  * Called by browser action code when an action changes, and by the
@@ -263,16 +262,23 @@ export function render(wrapper) {
     const inToolbar = end - start >= MIN_TOOLBAR_HEADER;
     panel.toggleAttribute("barintoolbar", inToolbar);
     if (inToolbar) {
+      // Its own transition group slides the bar with its pane when the
+      // sidebar animates.
+      header.style.viewTransitionName =
+        "split-pane-bar-" + toolbarLeaves.length;
       toolbarLeaves.push({ header, x, width });
       if (header.parentNode !== toolbarBox) {
         toolbarBox.append(header);
       }
       header.style.left = start + "px";
       header.style.width = end - start + "px";
-    } else if (header.parentNode !== panel) {
-      header.style.removeProperty("left");
-      header.style.removeProperty("width");
-      panel.prepend(header);
+    } else {
+      header.style.removeProperty("view-transition-name");
+      if (header.parentNode !== panel) {
+        header.style.removeProperty("left");
+        header.style.removeProperty("width");
+        panel.prepend(header);
+      }
     }
     const style = panel.style;
     style.left = x + "px";
@@ -392,20 +398,7 @@ function attach() {
   window.SplitPaneActions = actionsHook;
   CustomizableUI.addListener(customizeListener);
   gBrowser.tabContainer.addEventListener("TabSelect", handler);
-  chromeObserver = new MutationObserver(() => {
-    scheduleRender();
-    if (
-      !followFrame &&
-      gBrowser.tabbox.hasAttribute("sidebar-ongoing-animations")
-    ) {
-      followFrame = window.requestAnimationFrame(() =>
-        followSidebarAnimation(toolbarSlot())
-      );
-    }
-  });
-  chromeObserver.observe(gBrowser.tabbox, {
-    attributeFilter: ["sidebar-ongoing-animations"],
-  });
+  chromeObserver = new MutationObserver(scheduleRender);
   const extensionsButton = document.getElementById(EXTENSIONS_BUTTON);
   if (extensionsButton) {
     chromeObserver.observe(extensionsButton, {
@@ -419,7 +412,15 @@ function attach() {
     });
   }
 
-  resizeObserver = new ResizeObserver(scheduleRender);
+  // A sidebar slide captures the new layout right after it resizes the
+  // panels, so the pane bars must move in the same frame to slide with them.
+  resizeObserver = new ResizeObserver(() => {
+    if (window.SidebarController?._activeViewTransition && current) {
+      render(current);
+    } else {
+      scheduleRender();
+    }
+  });
   resizeObserver.observe(tabpanels);
   if (navbar) {
     resizeObserver.observe(navbar);
@@ -432,10 +433,6 @@ function teardown() {
   if (pendingFrame) {
     window.cancelAnimationFrame(pendingFrame);
     pendingFrame = 0;
-  }
-  if (followFrame) {
-    window.cancelAnimationFrame(followFrame);
-    followFrame = 0;
   }
   toolbarLeaves = [];
   grab?.header.removeAttribute("dragging");
@@ -494,37 +491,6 @@ function toolbarSpan(slot, panelsLeft, x, width) {
     Math.max(panelsLeft + x, slot.left) - slot.origin,
     Math.min(panelsLeft + x + width, slot.right) - slot.origin,
   ];
-}
-
-/**
- * Moves the toolbar row's pane bars with the panes on every frame of a
- * sidebar slide. The slide moves the panels without resizing them, so only
- * their left edge changes.
- *
- * @param {object} slot The toolbar slot, which the slide does not move.
- */
-function followSidebarAnimation(slot) {
-  followFrame = 0;
-  if (
-    !current ||
-    !slot ||
-    !gBrowser.tabbox.hasAttribute("sidebar-ongoing-animations")
-  ) {
-    return;
-  }
-  const panelsLeft = gBrowser.tabpanels.getBoundingClientRect().left;
-  for (const { header, x, width } of toolbarLeaves) {
-    if (header.parentNode !== toolbarBox) {
-      continue;
-    }
-    const [start, end] = toolbarSpan(slot, panelsLeft, x, width);
-    header.style.left = start + "px";
-    header.style.width = Math.max(0, end - start) + "px";
-  }
-  placeCardFrame();
-  followFrame = window.requestAnimationFrame(() =>
-    followSidebarAnimation(slot)
-  );
 }
 
 /** Area inside tabpanels available to panes. */

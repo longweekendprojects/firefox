@@ -3,7 +3,7 @@
 
 "use strict";
 
-const TABS_PANE = SRD_PREF_VALUE ? "paneTabsBrowsing" : "paneGeneral";
+const TABS_PANE = "paneTabsBrowsing";
 
 add_task(async function test_defaults() {
   let defaults = Services.prefs.getDefaultBranch("");
@@ -56,7 +56,11 @@ add_task(async function test_checkboxes() {
 add_task(async function test_compact_toolbar() {
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
   const navbar = CustomizableUI.AREA_NAVBAR;
-  const hidden = ["fxa-toolbar-menu-button", "new-tab-button", "alltabs-button"];
+  const hidden = [
+    "fxa-toolbar-menu-button",
+    "new-tab-button",
+    "alltabs-button",
+  ];
   for (const id of hidden) {
     CustomizableUI.addWidgetToArea(id, navbar);
   }

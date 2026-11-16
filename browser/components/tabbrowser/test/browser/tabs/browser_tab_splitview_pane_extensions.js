@@ -385,54 +385,49 @@ add_task(async function test_toolbar_pane_bars_follow_sidebar() {
         .getBoundingClientRect();
       return Math.abs(header.right - panel.right) <= 2;
     });
-  const settled = async () => {
-    await TestUtils.waitForTick();
-    await TestUtils.waitForCondition(
-      () => !SidebarController._ongoingAnimations.length,
-      "Sidebar animation ends"
-    );
-    await new Promise(r =>
-      requestAnimationFrame(() => requestAnimationFrame(r))
-    );
-  };
-  // The first pane's right edge stays inside the toolbar row, so its bar
-  // must follow it on every frame of the slide.
-  let sampling = false;
-  let drift = 0;
-  let frames = 0;
-  const sample = () => {
-    if (!sampling) {
-      return;
-    }
-    requestAnimationFrame(() =>
-      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-      setTimeout(() => {
-        if (SidebarController._ongoingAnimations.length) {
-          const header = paneHeader(tabs[0]).getBoundingClientRect();
-          const panel = document
-            .getElementById(tabs[0].linkedPanel)
-            .getBoundingClientRect();
-          drift = Math.max(drift, Math.abs(header.right - panel.right));
-          frames++;
-        }
-        sample();
-      }, 0)
-    );
-  };
+  const translateX = transform =>
+    transform == "none" ? 0 : new DOMMatrix(transform).m41;
+  // The sidebar slides as a view transition. Each pane bar in the toolbar row
+  // gets its own transition group, which must go from the bar's old spot to
+  // the spot that lines up with its pane once the slide ends.
   const slide = async (expectHidden, label) => {
-    drift = 0;
-    frames = 0;
-    sampling = true;
-    sample();
-    await SidebarController.handleToolbarButtonClick();
+    const header = paneHeader(tabs[0]);
+    const before = header.getBoundingClientRect().left;
+    const click = SidebarController.handleToolbarButtonClick();
+    await TestUtils.waitForCondition(
+      () => SidebarController._activeViewTransition,
+      `The sidebar slide starts as it ${label}`
+    );
+    const transition = SidebarController._activeViewTransition;
+    await transition.ready;
+    const pseudo = "::view-transition-group(split-pane-bar-0)";
+    const animation = document
+      .getAnimations()
+      .find(a => a.effect.pseudoElement == pseudo);
+    ok(animation, `The first pane bar slides as the sidebar ${label}`);
+    const [first] = animation.effect.getKeyframes();
+    Assert.less(
+      Math.abs(translateX(first.transform) - before),
+      2,
+      `The slide starts at the bar's old spot as the sidebar ${label}`
+    );
+    const end = translateX(
+      getComputedStyle(document.documentElement, pseudo).transform
+    );
+    Assert.less(
+      Math.abs(end - header.getBoundingClientRect().left),
+      2,
+      `The slide ends where the bar lines up with its pane as it ${label}`
+    );
+    await transition.finished;
+    await click;
     await TestUtils.waitForCondition(
       () => container.hidden == expectHidden,
       `Sidebar ${label}`
     );
-    await settled();
-    sampling = false;
-    Assert.greater(frames, 2, `Sampled the slide while the sidebar ${label}`);
-    Assert.lessOrEqual(drift, 2, `Pane bars follow the slide as it ${label}`);
+    await new Promise(r =>
+      requestAnimationFrame(() => requestAnimationFrame(r))
+    );
     ok(aligned(), `Pane bars line up with their panes after it ${label}`);
   };
   await TestUtils.waitForCondition(aligned, "Pane bars line up");
