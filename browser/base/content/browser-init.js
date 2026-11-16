@@ -574,6 +574,9 @@ var gBrowserInit = {
       ChromeUtils.importESModule(
         "moz-src:///browser/components/tabbrowser/OnePasswordTrust.sys.mjs"
       ).OnePasswordTrust.init();
+      ChromeUtils.importESModule(
+        "moz-src:///browser/components/tabbrowser/SplitUpdater.sys.mjs"
+      ).SplitUpdater.init();
     }
 
     let safeMode = document.getElementById("helpSafeMode");

@@ -26,7 +26,7 @@ cd "$(dirname "$0")/../.."
 here=tools/recursive-split
 py=/opt/homebrew/bin/python3.13
 work=/tmp/ffsign
-stamp=$(date +%m%d-%H%M)
+stamp=$(date +%y%m%d-%H%M)
 out=~/Desktop/Nightly-split-$stamp.dmg
 mozreq='anchor apple generic and certificate leaf[subject.OU] = "43AQ936H96"'
 team=3LY4F2RNVS

@@ -45,7 +45,7 @@ The app is signed and notarized by Apple, so it opens without a warning.
 
 **Good to know**
 - Nightly uses its own profile, so your Firefox data is not touched.
-- It does not update itself. Download a new release to update.
+- It checks for new releases once a day and offers to restart into them.
 - To unlock 1Password with Touch ID, open the 1Password app, go to Settings, then Browser, click Add Browser, and choose Nightly. You do this once per Mac.
 
 Build \`$build\`, from commit \`${commit:0:12}\`.

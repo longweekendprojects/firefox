@@ -676,3 +676,15 @@ onepassword-trust-message = To unlock 1Password with Touch ID, open 1Password, g
 onepassword-trust-open =
     .label = Open 1Password
     .accesskey = O
+
+# Variables:
+#   $name (String): The name of the new release, such as "Nightly Split 160.0 (261116-1645)".
+split-update-available = A new version of { -brand-short-name } is available: { $name }.
+split-update-restart =
+    .label = Restart to Update
+    .accesskey = R
+split-update-downloading = Downloading the update. { -brand-short-name } will restart when it is ready.
+split-update-failed = The update could not be installed. You can download it from the release page.
+split-update-open-page =
+    .label = Open Release Page
+    .accesskey = O

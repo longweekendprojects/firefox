@@ -110,6 +110,10 @@ tags = "vertical-tabs"
 ["browser_onepassword_trust.js"]
 run-if = ["os == 'mac'"]
 
+["browser_split_updater.js"]
+run-if = ["os == 'mac'"]
+support-files = ["split_update_release.sjs"]
+
 ["browser_exclude_fxview_hidden_tabs.js"]
 tags = "vertical-tabs"
 

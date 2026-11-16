@@ -4,7 +4,7 @@ This fork of Firefox adds Arc-style browsing: split views with any number of pan
 
 **[Download for Mac (Apple Silicon)](https://github.com/longweekendprojects/firefox/releases/latest/download/Nightly-Split-macOS-arm64.dmg)**
 
-Open the DMG and drag Nightly to Applications. The app is signed and notarized by Apple, so it opens without a warning. It does not update itself, so download the [latest release](https://github.com/longweekendprojects/firefox/releases/latest) to update.
+Open the DMG and drag Nightly to Applications. The app is signed and notarized by Apple, so it opens without a warning. Nightly checks for a new release once a day. When one is out, a bar at the top of the window offers to restart into it. Builds older than 160.0 cannot do this, so install the [latest release](https://github.com/longweekendprojects/firefox/releases/latest) once by hand.
 
 The code lives on the `recursive-split` branch. To build it yourself, see `tools/recursive-split/`.
 

@@ -24,6 +24,7 @@ MOZ_SRC_FILES += [
     "OnePasswordTrust.sys.mjs",
     "OpenInTabsUtils.sys.mjs",
     "SmartTabGrouping.sys.mjs",
+    "SplitUpdater.sys.mjs",
     "splitview/SplitLayoutModel.sys.mjs",
     "Tabbrowser.sys.mjs",
     "TabMetrics.sys.mjs",
