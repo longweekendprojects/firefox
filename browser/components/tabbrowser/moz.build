@@ -20,6 +20,7 @@ JAR_MANIFESTS += ["jar.mn"]
 MOZ_SRC_FILES += [
     "AsyncTabSwitcher.sys.mjs",
     "GroupsList.sys.mjs",
+    "NavbarRepair.sys.mjs",
     "NewTabPagePreloading.sys.mjs",
     "OnePasswordTrust.sys.mjs",
     "OpenInTabsUtils.sys.mjs",

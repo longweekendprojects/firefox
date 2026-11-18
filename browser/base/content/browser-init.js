@@ -572,6 +572,9 @@ var gBrowserInit = {
       );
       window.gSpaces.init();
       ChromeUtils.importESModule(
+        "moz-src:///browser/components/tabbrowser/NavbarRepair.sys.mjs"
+      ).NavbarRepair.run();
+      ChromeUtils.importESModule(
         "moz-src:///browser/components/tabbrowser/OnePasswordTrust.sys.mjs"
       ).OnePasswordTrust.init();
       ChromeUtils.importESModule(
