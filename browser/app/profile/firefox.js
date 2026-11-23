@@ -3002,6 +3002,8 @@ pref("browser.migrate.arc.enabled", true);
 // Hide the striped address bar and robot icon shown while an automation
 // tool such as Marionette or WebDriver BiDi controls the browser.
 pref("browser.remoteControl.visualCue", false);
+// Keep navigator.webdriver false in web content while automation runs.
+pref("browser.remoteControl.reportToWebsites", false);
 pref("browser.migrate.bookmarks-file.enabled", true);
 pref("browser.migrate.brave.enabled", true);
 pref("browser.migrate.canary.enabled", true);

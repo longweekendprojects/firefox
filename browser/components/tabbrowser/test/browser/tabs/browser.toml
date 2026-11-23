@@ -112,6 +112,8 @@ run-if = ["os == 'mac'"]
 
 ["browser_navbar_repair.js"]
 
+["browser_remote_control_webdriver_hidden.js"]
+
 ["browser_split_updater.js"]
 run-if = ["os == 'mac'"]
 support-files = ["split_update_release.sjs"]

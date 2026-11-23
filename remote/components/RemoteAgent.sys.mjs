@@ -665,6 +665,14 @@ class RemoteAgentContentProcess {
   }
 
   get isBrowserAutomationRunning() {
+    if (
+      !Services.prefs.getBoolPref(
+        "browser.remoteControl.reportToWebsites",
+        true
+      )
+    ) {
+      return false;
+    }
     return (
       Services.cpmm.sharedData.get(SHARED_DATA_IS_BROWSER_AUTOMATION_KEY) ??
       false
