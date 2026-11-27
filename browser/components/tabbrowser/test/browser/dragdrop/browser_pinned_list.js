@@ -285,6 +285,9 @@ add_task(async function test_drag_between_tiles_and_list() {
       "It lands where it was dropped in the list"
     );
 
+    // The dropped row slides into place over its neighbor; drag the list tab
+    // once it has settled, or the drag starts on the sliding row.
+    await Promise.all(tile.getAnimations().map(a => a.finished));
     let tileRect = gBrowser.pinnedTabsContainer.getBoundingClientRect();
     await customDragAndDrop(
       tabs[0],
