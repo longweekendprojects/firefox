@@ -706,8 +706,9 @@ export class UrlbarProviderAutofill extends UrlbarProvider {
   }
 
   /**
+   * The search string with the prefix stripped.
+   *
    * @type {string}
-   *   The search string with the prefix stripped.
    */
   _searchString;
 

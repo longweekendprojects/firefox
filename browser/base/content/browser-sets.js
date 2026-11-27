@@ -226,6 +226,12 @@ document.addEventListener(
           case "Browser:CopyPageLink":
             BrowserCommands.copyPageLink();
             break;
+          case "Browser:CopyTabURL":
+            BrowserUtils.copyLink(
+              gURLBar.makeURIReadable(gBrowser.currentURI).displaySpec,
+              gBrowser.selectedBrowser.contentTitle
+            );
+            break;
           case "Browser:NextTab":
             gBrowser.tabContainer.advanceSelectedTab(
               1,
@@ -349,7 +355,10 @@ document.addEventListener(
             } else if (source?.id == "appMenuClearRecentHistory") {
               entryPoint = DIALOG_ENTRY_POINTS.APP_MENU;
             }
-            Sanitizer.showUI(window, undefined, { entryPoint });
+            Sanitizer.showUI(window, undefined, {
+              entryPoint,
+              triggeringEvent: event,
+            });
             break;
           }
           case "Tools:PrivateBrowsing":

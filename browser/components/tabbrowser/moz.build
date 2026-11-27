@@ -12,6 +12,8 @@ with Files("content/tabgroup-menu.js"):
     BUG_COMPONENT = ("Firefox", "Tabbed Browser: Tab Groups")
 with Files("content/tab-groups-list.mjs"):
     BUG_COMPONENT = ("Firefox", "Tabbed Browser: Tab Groups")
+with Files("TabGroupsToolbarButton.sys.mjs"):
+    BUG_COMPONENT = ("Firefox", "Tabbed Browser: Tab Groups")
 
 SPHINX_TREES["docs"] = "docs"
 
@@ -28,6 +30,7 @@ MOZ_SRC_FILES += [
     "SplitUpdater.sys.mjs",
     "splitview/SplitLayoutModel.sys.mjs",
     "Tabbrowser.sys.mjs",
+    "TabGroupsToolbarButton.sys.mjs",
     "TabMetrics.sys.mjs",
     "TabsList.sys.mjs",
     "TabUnloader.sys.mjs",

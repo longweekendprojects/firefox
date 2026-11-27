@@ -81,6 +81,7 @@
     </command>
     <command id="Browser:DuplicateTab" />
     <command id="Browser:CopyPageLink" />
+    <command id="Browser:CopyTabURL" />
     <command id="Profiles:CreateProfile" />
     <command id="Profiles:ManageProfiles" />
     <command id="Profiles:LaunchProfile" />
@@ -389,6 +390,7 @@
 
     <key id="key_restoreLastClosedTabOrWindowOrSession" command="History:RestoreLastClosedTabOrWindowOrSession" data-l10n-id="tab-new-shortcut" modifiers="accel,shift"/>
     <key id="key_undoCloseWindow" command="History:UndoCloseWindow" data-l10n-id="window-new-shortcut" modifiers="accel,shift"/>
+    <key id="key_undoCloseTab" command="History:UndoCloseTab"/>
 
     <key id="key_addTabSplitView" command="Browser:AddTabSplitView"/>
     <key id="key_separateTabSplitView" command="Browser:SeparateTabSplitView"/>
@@ -413,6 +415,7 @@
 #ifdef XP_MACOSX
     <key id="key_copyPageLink" key="C" modifiers="accel,shift" command="Browser:CopyPageLink"/>
 #endif
+    <key id="key_copyTabURL" command="Browser:CopyTabURL"/>
 
 #ifdef XP_GNOME
 #define NUM_SELECT_TAB_MODIFIER alt
