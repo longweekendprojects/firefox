@@ -17,6 +17,9 @@ const { Sqlite } = ChromeUtils.importESModule(
 );
 
 const PASSPHRASE = "arc-test-passphrase";
+// A Keychain item that does not exist, so the test never reads the real
+// "Arc Safe Storage" item or prompts for it on a Mac that has Arc.
+const TEST_KEYCHAIN_SERVICE = "Nightly Arc Import Test Storage";
 const WORK_PROFILE_NAME = "Arc Test Client";
 
 function tabItem(id, parentID, url, title) {
@@ -148,7 +151,7 @@ async function writeCookies(path, cookies) {
     last_access_utc INTEGER, has_expires INTEGER, is_persistent INTEGER,
     priority INTEGER, samesite INTEGER, source_scheme INTEGER)`);
   let crypto = new ChromeMacOSLoginCrypto(
-    "Arc Safe Storage",
+    TEST_KEYCHAIN_SERVICE,
     "Arc",
     PASSPHRASE
   );
@@ -221,6 +224,7 @@ add_task(async function test_import_everything_from_arc() {
   let migrator = new ArcProfileMigrator();
   migrator._chromeUserDataPath = userData;
   migrator._keychainMockPassphrase = PASSPHRASE;
+  migrator._keychainServiceName = TEST_KEYCHAIN_SERVICE;
 
   Assert.equal(await migrator.getSourceProfiles(), null, "One entry for Arc");
   let types = await migrator.getMigrateData(null);
