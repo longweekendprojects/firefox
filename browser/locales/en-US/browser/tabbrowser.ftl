@@ -705,3 +705,17 @@ split-update-failed = The update could not be installed. You can download it fro
 split-update-open-page =
     .label = Open Release Page
     .accesskey = O
+# In the Help menu of the menu bar.
+menu-split-update-check =
+    .label = Check for Updates…
+# In the main application menu.
+appmenuitem-split-update-check =
+    .label = Check for Updates…
+split-update-checking = Checking for updates…
+# Variables:
+#   $version (String): The running version, such as "161.0 split 261126-2145".
+split-update-up-to-date = { -brand-short-name } is up to date. You have version { $version }.
+split-update-check-failed = { -brand-short-name } could not check for updates. Check your internet connection and try again.
+split-update-try-again =
+    .label = Try Again
+    .accesskey = T

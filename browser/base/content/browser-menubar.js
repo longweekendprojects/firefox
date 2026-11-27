@@ -108,6 +108,11 @@ document.addEventListener(
         case "aboutName":
           openAboutDialog();
           break;
+        case "menu_splitUpdateCheck":
+          ChromeUtils.importESModule(
+            "moz-src:///browser/components/tabbrowser/SplitUpdater.sys.mjs"
+          ).SplitUpdater.checkNow();
+          break;
         case "menu_referralsPage":
           // Ensure the referrals pref is enabled
           if (Services.prefs.getBoolPref("browser.referrals.enabled")) {

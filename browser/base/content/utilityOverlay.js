@@ -561,6 +561,13 @@ function buildHelpMenu() {
   document.getElementById("menu_referralsPage").hidden =
     !Services.prefs.getBoolPref("browser.referrals.enabled");
 
+  let splitUpdateCheck = document.getElementById("menu_splitUpdateCheck");
+  if (splitUpdateCheck) {
+    splitUpdateCheck.hidden = !ChromeUtils.importESModule(
+      "moz-src:///browser/components/tabbrowser/SplitUpdater.sys.mjs"
+    ).SplitUpdater.canUpdate;
+  }
+
   let supportMenu = Services.policies.getSupportMenu();
   if (supportMenu) {
     let menuitem = document.getElementById("helpPolicySupport");

@@ -532,6 +532,11 @@ const PanelUI = {
       case "appMenu-help-button2":
         this.showSubView("PanelUI-helpView", target);
         break;
+      case "appMenu-split-update-button":
+        ChromeUtils.importESModule(
+          "moz-src:///browser/components/tabbrowser/SplitUpdater.sys.mjs"
+        ).SplitUpdater.checkNow();
+        break;
     }
   },
 
@@ -820,6 +825,12 @@ const PanelUI = {
       ASRouter.addImpression(message);
     }
     updateZoomUI(gBrowser.selectedBrowser);
+    let updateButton = panelview.querySelector("#appMenu-split-update-button");
+    if (updateButton) {
+      updateButton.hidden = !ChromeUtils.importESModule(
+        "moz-src:///browser/components/tabbrowser/SplitUpdater.sys.mjs"
+      ).SplitUpdater.canUpdate;
+    }
   },
 
   _onHelpViewShow() {
@@ -842,7 +853,10 @@ const PanelUI = {
       if (node.hidden) {
         continue;
       }
-      if (node.id === "menu_referralsPage") {
+      if (
+        node.id === "menu_referralsPage" ||
+        node.id === "menu_splitUpdateCheck"
+      ) {
         continue;
       }
       remaining.add(node);

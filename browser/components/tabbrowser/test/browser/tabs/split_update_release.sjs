@@ -1,5 +1,10 @@
 function handleRequest(request, response) {
-  let tag = new URLSearchParams(request.queryString).get("tag");
+  let params = new URLSearchParams(request.queryString);
+  if (params.has("status")) {
+    response.setStatusLine(request.httpVersion, params.get("status"), "Error");
+    return;
+  }
+  let tag = params.get("tag");
   response.setHeader("Content-Type", "application/json", false);
   response.write(
     JSON.stringify({

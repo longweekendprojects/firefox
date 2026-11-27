@@ -7,6 +7,11 @@ const { SplitUpdater } = ChromeUtils.importESModule(
   "moz-src:///browser/components/tabbrowser/SplitUpdater.sys.mjs"
 );
 
+const { CustomizableUITestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/CustomizableUITestUtils.sys.mjs"
+);
+const gCUITestUtils = new CustomizableUITestUtils(window);
+
 const SERVER =
   "https://example.com/browser/browser/components/tabbrowser/test/browser/tabs/split_update_release.sjs";
 
@@ -99,4 +104,103 @@ add_task(async function test_release_without_dmg_is_ignored() {
     null,
     "A release without the DMG asset is ignored"
   );
+});
+
+async function checkNowWith(query) {
+  SplitUpdater.hide();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.splitUpdate.url", `${SERVER}?${query}`],
+      ["browser.splitUpdate.lastCheck", Math.floor(Date.now() / 1000) - 60],
+    ],
+  });
+  let release = await SplitUpdater.checkNow();
+  await SpecialPowers.popPrefEnv();
+  return release;
+}
+
+add_task(async function test_check_now_reports_up_to_date() {
+  ok(
+    !(await checkNowWith("tag=split-160.0-261116-1645")),
+    "Same build is not newer"
+  );
+  let shown = notification();
+  ok(shown, "A notice reports the result");
+  is(shown.messageL10nId, "split-update-up-to-date", "It says up to date");
+  is(
+    shown.messageL10nArgs.version,
+    `${Services.appinfo.version} split 261116-1645`,
+    "It names the running version"
+  );
+});
+
+add_task(async function test_check_now_ignores_daily_limit() {
+  updates = [];
+  let release = await checkNowWith("tag=split-161.0-261120-0900");
+  is(release?.stamp, "261120-0900", "A recent daily check does not block it");
+  is(
+    notification().messageL10nId,
+    "split-update-available",
+    "Notice offers the update"
+  );
+  notification().buttonContainer.querySelector("button").click();
+  is(updates.length, 1, "Restart to Update starts the update");
+});
+
+add_task(async function test_check_now_reports_failure() {
+  ok(!(await checkNowWith("status=500")), "A server error finds nothing");
+  is(
+    notification().messageL10nId,
+    "split-update-check-failed",
+    "It says the check failed"
+  );
+  let button = notification().buttonContainer.querySelector("button");
+  is(
+    button.getAttribute("data-l10n-id"),
+    "split-update-try-again",
+    "It offers to try again"
+  );
+  SplitUpdater.hide();
+});
+
+add_task(async function test_menu_items_follow_can_update() {
+  await gCUITestUtils.openMainMenu();
+  let button = PanelMultiView.getViewNode(
+    document,
+    "appMenu-split-update-button"
+  );
+  ok(BrowserTestUtils.isVisible(button), "The app menu shows the item");
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.splitUpdate.url", `${SERVER}?tag=split-160.0-261116-1645`]],
+  });
+  let shown = TestUtils.waitForCondition(
+    () => notification()?.messageL10nId == "split-update-up-to-date",
+    "Clicking the item checks right away"
+  );
+  let hidden = BrowserTestUtils.waitForEvent(PanelUI.panel, "popuphidden");
+  button.click();
+  await hidden;
+  await shown;
+  await SpecialPowers.popPrefEnv();
+  SplitUpdater.hide();
+
+  buildHelpMenu();
+  ok(
+    !document.getElementById("menu_splitUpdateCheck").hidden,
+    "The Help menu shows the item"
+  );
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.splitUpdate.enabled", false]],
+  });
+  buildHelpMenu();
+  ok(
+    document.getElementById("menu_splitUpdateCheck").hidden,
+    "The Help menu hides the item when updates are off"
+  );
+  await gCUITestUtils.openMainMenu();
+  ok(BrowserTestUtils.isHidden(button), "The app menu hides it too");
+  await gCUITestUtils.hideMainMenu();
+  await SpecialPowers.popPrefEnv();
 });

@@ -37,6 +37,7 @@ const TEAM_ID = "3LY4F2RNVS";
 const CHECK_INTERVAL_S = 24 * 60 * 60;
 const FIRST_CHECK_DELAY_MS = 60 * 1000;
 const RECHECK_DELAY_MS = 6 * 60 * 60 * 1000;
+const UP_TO_DATE_HIDE_MS = 10 * 1000;
 const STAMP = /(\d{6}-\d{4})$/;
 
 // Mounts the DMG, checks Apple's notarization and our team's signature, and
@@ -81,6 +82,15 @@ let busy = false;
 export const SplitUpdater = {
   /** The running build's stamp, or null for builds not from make-dmg.sh. */
   installedStamp: undefined,
+
+  /** Whether this build can update itself, so update menu items show. */
+  get canUpdate() {
+    return (
+      AppConstants.platform == "macosx" &&
+      !!this.installedStamp &&
+      Services.prefs.getBoolPref(ENABLED_PREF, false)
+    );
+  },
 
   async init() {
     if (started || AppConstants.platform != "macosx") {
@@ -132,32 +142,85 @@ export const SplitUpdater = {
    * than the running build. Resolves to the release, or null.
    */
   async check() {
-    if (
-      !Services.prefs.getBoolPref(ENABLED_PREF, false) ||
-      !this.installedStamp
-    ) {
+    if (!this.canUpdate) {
       return null;
     }
     let release;
     try {
-      let response = await fetch(Services.prefs.getStringPref(URL_PREF), {
-        headers: { Accept: "application/vnd.github+json" },
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        return null;
-      }
-      release = this.parseRelease(await response.json());
+      release = await this._fetchLatest();
     } catch (e) {
       console.error("SplitUpdater: check failed", e);
       return null;
     }
-    Services.prefs.setIntPref(LAST_CHECK_PREF, Math.floor(Date.now() / 1000));
-    if (!release || release.stamp <= this.installedStamp) {
+    if (!this._isNewer(release)) {
       return null;
     }
     this.showAvailable(release);
     return release;
+  },
+
+  /**
+   * Checks right away, for the Check for Updates menu items, and always tells
+   * the user the result. Resolves to the newer release, or null.
+   */
+  async checkNow() {
+    if (!this.canUpdate || busy) {
+      return null;
+    }
+    this._show("split-update-checking", null, []);
+    let release;
+    try {
+      release = await this._fetchLatest();
+    } catch (e) {
+      console.error("SplitUpdater: check failed", e);
+      let win = this._window();
+      this._show(
+        "split-update-check-failed",
+        null,
+        [
+          {
+            "l10n-id": "split-update-try-again",
+            callback: () => {
+              this.checkNow();
+              return true;
+            },
+          },
+        ],
+        win?.gNotificationBox.PRIORITY_WARNING_MEDIUM
+      );
+      return null;
+    }
+    if (this._isNewer(release)) {
+      this.showAvailable(release);
+      return release;
+    }
+    let shown = await this._show("split-update-up-to-date", {
+      version: `${Services.appinfo.version} split ${this.installedStamp}`,
+    });
+    lazy.setTimeout(() => {
+      if (shown?.isConnected) {
+        shown.close();
+      }
+    }, UP_TO_DATE_HIDE_MS);
+    return null;
+  },
+
+  /** Fetches the latest release, which may be null if it has no DMG. */
+  async _fetchLatest() {
+    let response = await fetch(Services.prefs.getStringPref(URL_PREF), {
+      headers: { Accept: "application/vnd.github+json" },
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    let release = this.parseRelease(await response.json());
+    Services.prefs.setIntPref(LAST_CHECK_PREF, Math.floor(Date.now() / 1000));
+    return release;
+  },
+
+  _isNewer(aRelease) {
+    return !!aRelease && aRelease.stamp > this.installedStamp;
   },
 
   /** Picks the fields we need from a GitHub release, or null. */
@@ -179,7 +242,7 @@ export const SplitUpdater = {
     return lazy.BrowserWindowTracker.getTopWindow({ private: false });
   },
 
-  _show(aL10nId, aArgs, aButtons, aPriority) {
+  _show(aL10nId, aArgs, aButtons = [], aPriority) {
     this.hide();
     let win = this._window();
     if (!win) {
