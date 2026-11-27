@@ -10191,6 +10191,32 @@ export class Tabbrowser {
       this.#activeSplitView = null;
     }
     this.#moveSplitViewNotificationBoxes(aEvent.detail.tabs);
+    this.deactivateHiddenSplitViewBrowsers(aEvent.detail.tabs);
+  }
+
+  /**
+   * showSplitViewPanels activates every pane directly, so the tab switcher
+   * does not track panes that were never selected, and they would stay active
+   * and keep running as visible pages after their split is hidden.
+   *
+   * @param {MozTabbrowserTab[]} tabs
+   */
+  deactivateHiddenSplitViewBrowsers(tabs) {
+    for (const tab of tabs) {
+      const browser = tab.linkedBrowser;
+      if (
+        !browser?.docShellIsActive ||
+        tab.selected ||
+        tab.closing ||
+        this.splitViewBrowsers.includes(browser) ||
+        this._printPreviewBrowsers.has(browser) ||
+        lazy.PictureInPicture.isOriginatingBrowser(browser) ||
+        this.shouldActivateDocShell(browser)
+      ) {
+        continue;
+      }
+      browser.docShellIsActive = false;
+    }
   }
 
   /**

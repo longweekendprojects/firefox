@@ -285,6 +285,9 @@ export class MozTabSplitViewWrapper extends MozXULElement {
             this.#suspend();
           }
         }
+        if (removed.length) {
+          gBrowser.deactivateHiddenSplitViewBrowsers(removed);
+        }
       });
     }
     this.#tabChangeObserver.observe(this, {

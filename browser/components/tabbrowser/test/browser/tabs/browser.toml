@@ -629,6 +629,8 @@ skip-if = [
 
 ["browser_tab_splitview_findbar.js"]
 
+["browser_tab_splitview_hidden_panes_inactive.js"]
+
 ["browser_tab_splitview_footer.js"]
 support-files = ["file_withicon.html"]
 disabled = "Recursive split view replaces the footer with pane headers (browser_tab_splitview_recursive.js)"
